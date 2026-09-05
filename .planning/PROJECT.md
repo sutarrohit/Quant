@@ -40,13 +40,19 @@ submission.** If the simulator and the live path ever diverge, or if an LLM can 
 
 **Foundation**
 
-- [ ] Verify the multi-tenant runtime isolation patch in the Nautilus fork — prove tenant
-      scoping holds in the message bus, kernel, and Redis namespaces under adversarial test
+- [ ] Stand up a clean NautilusTrader v2 node (pinned commit) with the tenancy patch shelved —
+      one `LiveNode` process per tenant, Redis isolation provable by process boundary
 - [ ] Establish the engine-agnostic DSL seam: `StrategySpec` + `DslEvaluator` (pure, zero
       Nautilus imports) + `DslStrategy` (sole adapter file)
 - [ ] Freeze the six core contracts: `StrategySpec`, `AgentMandate`, `TradeIntent`,
       `RiskDecision`, OMS state machine boundary, reconciliation rules
-- [ ] Rebase the tenancy patch onto upstream `develop` and keep it rebasable
+- [ ] `ApprovalGate` as an `ExecutionAlgorithm` — the Copilot human-in-the-loop pause, using
+      the `exec_algorithm_id` routing branch so backtest and live run identical strategy bytes
+- [ ] Trials table (`strategy_lineage_id`, `params_hash`, `objective`, `ran_at`, `was_oos`)
+      recorded from the very first backtest — cannot be reconstructed retroactively
+- [ ] Daily `exchangeInfo` snapshot from day one — the survivorship history, not backfillable
+- [ ] Durable `clientOrderId` write-ahead to Postgres before any HTTP submission, with a fresh
+      ID per attempt and recorded lineage (Binance reuses IDs once an order leaves the book)
 
 **Data and simulation**
 
@@ -73,6 +79,8 @@ submission.** If the simulator and the live path ever diverge, or if an LLM can 
 - [ ] `AgentMandate` model with bounded scope, expiry, and revocation
 - [ ] Deterministic risk gate evaluated before the engine, on every intent, mandate-aware
 - [ ] Copilot approval flow — exact executable preview bound to an intent hash, short expiry
+- [ ] Approval notification channels: Telegram bot and web push, both carrying the exact trade
+      preview and approve/reject actions — without these the v1 success metric is unreachable
 - [ ] Postgres ledger mirroring execution truth for UI, timeline, and audit
 - [ ] Append-only audit store covering every fund-affecting action
 - [ ] Circuit breakers and kill switches at strategy, account, and platform level
@@ -92,6 +100,8 @@ submission.** If the simulator and the live path ever diverge, or if an LLM can 
 - [ ] Explanation layer — why a strategy fired, why a backtest looks as it does, where it is
       likely overfit
 - [ ] Sanitized portfolio query tool for the AI plane (no credentials, no order authority)
+- [ ] Open AI chat surface over markets, portfolio, strategies, and executions — sequenced
+      after the evidence and provenance layer so it answers from real data
 
 **Post-deployment monitoring**
 
@@ -112,11 +122,25 @@ submission.** If the simulator and the live path ever diverge, or if an LLM can 
   user-owned accounts with trade-only, withdrawal-disabled keys.
 - **Marketplace, copy trading, social feed, leaderboards** — needs supply and trust, may look
   like offering securities, and optimizes for luck-looks-like-skill.
-- **Mobile app** — quant work does not happen on a phone.
+- **Mobile app** — quant work does not happen on a phone. Approval *notifications* are in
+  scope via Telegram and web push; a native app is not.
+- **Multi-tenant density inside one runtime** — deferred, not abandoned. v1 has two tenants;
+  process-per-tenant is provably isolated and costs nothing. Revisit when paying tenants make
+  density a real constraint, and decide it then between upstreaming the seams or an orchestrator.
+- **Three-way live reconciliation** — Nautilus↔Postgres is the enforced leg; a third
+  credentialed caller against Binance doubles blast radius for information transitivity
+  already provides. Binance is audited out-of-band, daily.
+- **PineScript / LEAN strategy importer** — solves an empty-library problem that does not
+  exist with two users. Revisit if a strategy-supply problem appears.
 - **Our own trading model** — frontier models plus good tooling beats a small in-house model.
 - **Autopilot mode** — Architecture_Plan Phase 3. v1 requires per-trade human approval.
 - **Billing and entitlements** — no paying customers in v1.
 - **Kafka** — unnecessary at this throughput. Postgres transactional outbox plus workers.
+- **BullMQ** — Architecture_Plan §18's "outbox + BullMQ" is self-defeating: a Redis enqueue
+  outside the Postgres transaction is the exact dual write an outbox exists to prevent. Use
+  `pg-boss` so the enqueue is in the same transaction.
+- **Cross-strategy correlation (for now)** — produces no signal below roughly 3 concurrent
+  live strategies. Build it when that threshold is crossed.
 - **Temporal** — revisit for long-running workflows once the spine is boring.
 
 ## Context
@@ -155,13 +179,77 @@ submission.** If the simulator and the live path ever diverge, or if an LLM can 
   value: backtest and live must run the same code path, and that cannot be retrofitted. Also
   the source of the layered build order and the "reproduce a published backtest" acceptance test.
 
+**Research findings** (`.planning/research/` — STACK, FEATURES, ARCHITECTURE, PITFALLS, SUMMARY)
+
+Four parallel researchers, all verified against the local checkout. What changed the plan:
+
+- The tenancy patch is defective, not merely unverified — three of four researchers converged
+  on overlapping defects independently. This reversed the multi-tenancy decision (see Key
+  Decisions). The branch is archived as a record of the seams, not as a foundation.
+- Nautilus v2 supplies far more than Architecture_Plan assumed: ~80% of §13 reconciliation
+  (`reconciliation/mod.rs:16-41` — startup mass status, continuous open-order and position
+  checks, external-order detection, deterministic synthetic IDs for restart dedupe), an
+  append-only hash-chained event store (`crates/event_store/`, 40k LoC) that likely subsumes
+  the audit-store requirement, and a native answer to the Copilot pause.
+- Scale of what is *not* worth rebuilding, measured in this checkout: Binance adapter 140,612
+  LoC; execution engine 78,247; backtest 37,101; live runtime 35,376; portfolio 20,781.
+- Binance historical data is free and survivorship-free at `data.binance.vision` — klines from
+  2017-08 with checksums, delisted symbols (`SALTBTC`, `BCCBTC`, `MITHUSDT`) still present. No
+  data vendor needed for v1. No bulk loader in-tree, so ingestion is real work.
+- Binance SBE market data refuses to connect without Ed25519, making the "API secret" a
+  multi-line PKCS#8 PEM — this changes the credential schema and KMS envelope design.
+- The Binance adapter does not filter order types against `exchangeInfo`, so the DSL validator
+  must.
+- Storage: `ParquetDataCatalog` + DuckDB, not ClickHouse or TimescaleDB yet — anything the
+  backtest engine cannot read natively is a second copy that can disagree with the simulator.
+- Validation tooling does not exist off the shelf (`pypbo` unmaintained, `mlfinlab`
+  license-encumbered, vectorbt PRO commercial). Roughly 300 lines on numpy/scipy; the
+  load-bearing part is the trial counter, which lives in the strategy registry.
+- Supply-chain hazard: `pip install tradingagents` resolves to v0.7.0 from `Mai0313`, a
+  third-party fork carrying a higher version number than the official 0.4.0. Build the research
+  committee directly on LangGraph.
+- NL→strategy generation benchmarks at ~70–76% single-turn, 95–98% agentic with validator
+  feedback, and failures are semantic rather than syntactic — making the DSL validator
+  load-bearing for the AI plane, not only for safety.
+- Local `target/` is 18 GB.
+
 **Known divergences from Architecture_Plan**
 
 Architecture_Plan specifies CCXT and a hand-built TypeScript OMS, strategy runtime, and
-execution worker. Nautilus supplies those. Architecture_Plan sections 9–13 (OMS state machine,
-live order sequence, CCXT integration, idempotency, reconciliation) should be read as
-requirements on the *boundary and the ledger*, not as a build list. The control plane keeps
-authentication, mandates, approvals, entitlements, audit, and the product ledger.
+execution worker. Nautilus supplies those. Sections 9–13 should be read as requirements on the
+*boundary and the ledger*, not as a build list. The control plane keeps authentication,
+mandates, approvals, entitlements, audit, and the product ledger. Specifically:
+
+- **§11 (CCXT integration) — delete.** Superseded entirely by the Nautilus Binance adapter.
+- **§12 (idempotency) — incomplete, and the gap is catastrophic.** Binance enforces
+  `newClientOrderId` uniqueness *only among open orders*; once an order is filled or cancelled
+  the ID is reusable and Binance will accept a new order under it. §12's "search, then retry
+  with the same ID" therefore double-fires if the search misses a just-filled order. Missing:
+  write-ahead of the `clientOrderId` to Postgres before the HTTP call, a fresh ID per attempt
+  with recorded lineage, a settle delay before concluding no order exists, and a hard rule that
+  Copilot never auto-resubmits.
+- **§13 (reconciliation) — ~80% already built by Nautilus.** Build the Nautilus↔Postgres leg only.
+- **§16 (service permission table) — now false.** The strategy runner and execution worker are
+  one process, which therefore holds plaintext credentials. The table must be redrawn against
+  the real topology before it is used as a security argument.
+- **§17 (five services) — becomes four plus a worker**, since Nautilus absorbs `trading-core`
+  and `execution-worker`.
+- **§18 (outbox + BullMQ) — contradicted.** See Out of Scope.
+
+**Corrections to Quant-Phase**
+
+- "Almost nobody does validation properly" is false — StrategyQuant X, BuildAlpha, and Minara
+  all ship walk-forward, Monte Carlo, and OOS handling today.
+- "Almost no platform shows live-vs-backtest divergence" is false — QuantConnect ships Live
+  Reconciliation, running an OOS backtest in parallel with every live deployment.
+- Slippage attribution, strategy decay detection, and cross-strategy correlation were not found
+  shipped anywhere; those three claims survive.
+- Market context: Composer, the best-funded NL-to-strategy builder, exited crypto on
+  2026-01-31 and was acquired by SoFi in June 2026. Exchanges are commoditizing agent execution
+  plumbing (Coinbase for Agents, OKX Agentic Wallet, Gemini Agentic Trading, Kraken, Binance),
+  so no part of the value proposition should rest on "an AI can place a trade."
+- The safety architecture is table stakes, not a differentiator — Minara already markets this
+  exact trust chain. It must be built; it cannot be led with.
 
 **Housekeeping**
 
@@ -172,15 +260,19 @@ duplicate Nautilus checkout. Left in place; delete when convenient. The abandone
 
 ## Constraints
 
-- **Engine**: NautilusTrader (forked) — chosen because backtest and live share one code path,
-  which is the core value and cannot be retrofitted.
-- **Fork maintenance**: Track upstream `develop` and rebase regularly. The tenancy patch must
-  stay thin and rebasable; upstreaming it is preferred if `nautechsystems` will take it.
+- **Engine**: NautilusTrader **v2** (`v2.0.0rc4`), stock, pinned commit — chosen because
+  backtest and live share one code path, which is the core value and cannot be retrofitted.
+- **Fork maintenance**: none. The tenancy branch is archived, not built on. Track upstream
+  `develop` directly. If density is ever needed, prefer upstreaming the seams (`kernel.rs:101`,
+  kernel owning its bus, is a genuine improvement) over re-forking.
 - **Venue**: Binance spot only for v1. One venue, one asset class, get it boring first.
 - **Stack**: Hono + Prisma + Next.js control plane (`criox4/quant-platform` monorepo); Rust/Python
   Nautilus engine; Python AI plane. Three languages, matching Architecture_Plan's service split.
-- **Team**: 2 people. Quant-Phase estimates a credible platform at 2–3 person-years, so
-  sequencing must let the deterministic spine ship independently of the AI planes.
+- **Team**: 2 people. Quant-Phase's 2–3 person-year estimate covers its Layers 0–6 only;
+  adding the control plane, compiler, research committee, explanation layer, chat surface, and
+  a three-language split puts the real figure at **4–6 person-years — 2–3 calendar years for
+  two people**. Sequencing must therefore let the deterministic spine ship independently of the
+  AI planes, and the AI planes must not start until a live Copilot order has been reconciled.
 - **Trading mode**: Copilot only in v1 — every live order requires explicit human approval
   bound to an exact intent hash. Autopilot is out of scope.
 - **Credentials**: Trade-only API keys with withdrawals disabled; IP allowlisting where
@@ -200,7 +292,17 @@ duplicate Nautilus checkout. Left in place; delete when convenient. The abandone
 | Nautilus owns execution truth; the control plane owns authorization truth | Both Nautilus and Architecture_Plan want an OMS. Building both yields two systems disagreeing about positions — worse than either alone. Nautilus owns order lifecycle, fills, and positions. The control plane owns mandates, approvals, entitlements, and audit, since Nautilus's risk engine is per-node config with no concept of a tenant mandate expiring. | — Pending |
 | Postgres is the product ledger, not a competing source of truth | It mirrors Nautilus's execution state for UI, timeline, and audit. Reconciliation compares Nautilus ↔ Postgres ↔ Binance three ways. | — Pending |
 | Nautilus's risk engine stays on as an inner backstop | The mandate-aware deterministic gate runs before the engine; Nautilus's own risk engine remains enabled beneath it. Two independent gates is a feature, not duplication. | — Pending |
-| Multi-tenancy inside one runtime rather than a process per tenant | A Kubernetes deployment per customer does not scale in cost or operations for many small, mostly-idle accounts. Accepted price: a core fork that must be verified and kept rebasable. | — Pending |
+| ~~Multi-tenancy inside one runtime~~ **SUPERSEDED 2026-09-05** | Original rationale: a Kubernetes deployment per customer does not scale for many small, idle accounts. Reversed on evidence — see the next row. | ⚠️ Reversed |
+| Shelve the tenancy patch; run stock Nautilus v2, one `LiveNode` process per tenant | Research found commit `768cbf3664` defective, not merely unverified: thread-local `MessageBusScope` guards held across `.await` on a self-declared single-threaded host (`crates/live/src/tenant.rs:259-262`, `node/mod.rs`, `kernel.rs`, `runner.rs:194-226` — one affected sender is the order-submission channel); Redis tenancy failing open to the legacy untenanted key; `TenantNamespace::key_prefix()` (`common/src/tenant.rs:170-177`) embedding a fresh random `runtime_instance_id` per process so crash recovery loads nothing and the engine believes it is flat while holding a position; no PyO3 surface (`python/redis/cache.rs:335-336` hardcodes `tenant_id: None`); and `TenantHost` starting tenants via `LiveNode::start()`, whose own doc (`node/mod.rs:342-347`) says it "does not consume the runner or drive channel receivers" — so there is no multi-tenant event pump at all. Coverage: one test in the 671-line isolation host, asserting a zero queue depth is rejected. Meanwhile v1 has exactly two tenants. Shelving costs nothing, makes isolation provable by process boundary, and drops fork maintenance to zero. | — Pending |
+| Python hosts the runtime | Follows from shelving the patch: with process-per-tenant there is no Rust supervisor to write, `crates/live/src/tenant.rs` becomes archived rather than load-bearing, and `DslEvaluator` stays pure Python inside a Nautilus `Strategy` as the DSL seam intends. | — Pending |
+| Track upstream `develop` with no local patch | With the patch shelved there is nothing to rebase. Measured cost of *keeping* it: 141 upstream commits touched the patched paths in 90 days (~47/month), and `HEAD` (`be9eaff8a7`) is already a merge rather than a rebase, so "thin and rebasable" was untrue when written. | — Pending |
+| Pin NautilusTrader v2 (`v2.0.0rc4`), not v1 | `version.json` confirms v2; `TradingNode` does not exist, it is `LiveNode.builder(...)`. v1 (`origin/develop_v1`) receives security backports only. Consequence: v1-era tutorials and most model training data are wrong for this checkout, and `MIGRATION_V2.md` is required reading. Pin an exact commit — v2 is still an RC. | — Pending |
+| Copilot approval implemented as an `ApprovalGate` `ExecutionAlgorithm` | `Strategy::submit_order` routes three ways (`crates/trading/src/strategy/mod.rs:207-211`); the `exec_algorithm_id` branch parks the order without awaiting, and `cache.add_order` runs *before* routing so the order is durable first. TTL via `Clock::set_time_alert_ns`; release via the algorithm's own `submit_order`. In backtest the gate is simply not registered. Same strategy file, same bytes, backtest and live. Rejected `OrderEmulator` (hard-rejects non-price triggers, `order_emulator/emulator.rs:568-575`) and a holding `ExecutionClient` (would mark orders `Submitted` with no venue order, poisoning reconciliation). | — Pending |
+| Risk gate splits across the boundary rather than relocating | Mandate, policy, and entitlement checks run in TypeScript at intent time and emit a signed `RiskDecision`; the `ApprovalGate` enforces it in-engine; Nautilus's `RiskEngine` remains the money backstop. Balance, exposure, and precision checks stay in Nautilus because they cannot be evaluated correctly in TS against a lagged mirror. Two genuinely independent gates. | — Pending |
+| `UNKNOWN` is a derived ledger state, not an engine state | Nautilus's `OrderStatus` (`model/src/enums.rs:1351-1382`) has no `UNKNOWN`. The ledger derives it from `Submitted` persisting beyond a threshold. | — Pending |
+| Approval notifications via Telegram bot **and** web push | The v1 success metric is sustained Copilot trading; nobody watches a browser tab for a month. Telegram is the reliable mobile path with no app to ship, web push covers desktop. Neither is a mobile app. | — Pending |
+| Full open AI chat surface | Chosen over artifact-scoped chat and over Quant-Phase's "don't build it yet". Sequenced after the evidence and provenance layer so it answers from real data rather than model priors. | — Pending |
+| Differentiation is trial accounting plus an enforced OOS lockbox | Research falsified the broader claim: rigorous validation is already shipped (StrategyQuant X Monte Carlo and walk-forward matrices, Minara, BuildAlpha) and live-vs-backtest divergence is shipped by QuantConnect Live Reconciliation. What nobody surfaces is deflated Sharpe, PBO, or honest trial counts — and only the party running the optimizations can count them. Requires the trials table from the first backtest. | — Pending |
 | Global crypto with execution, AI-first | Chosen over the research-tool-without-execution wedge and over Indian equity/F&O. Accepts the larger regulatory surface; mitigated by connecting to user-owned accounts with trade-only keys and holding no custody. | — Pending |
 | v1 ships through Copilot live trading, dogfooded with our own money | Architecture_Plan Phase 2. Real capital on the line is what surfaces the bugs that matter, and unwillingness to run it ourselves would itself be information. | — Pending |
 | All three AI capabilities are the product, but sequenced behind the deterministic spine | Research committee, strategy authoring, and explanation together are the differentiator. Sequencing them after the spine means a slip in the research committee never blocks live trading. | — Pending |
@@ -225,4 +327,4 @@ This document evolves at phase transitions and milestone boundaries.
 5. Update Context with current state
 
 ---
-*Last updated: 2026-09-05 after initialization*
+*Last updated: 2026-09-05 after project research*
