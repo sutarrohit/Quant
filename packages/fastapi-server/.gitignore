@@ -1,0 +1,56 @@
+# ---- Environment -------------------------------------------------------
+# Never commit real secrets. .env.example is the tracked template.
+.env
+.env.*
+!.env.example
+
+# ---- Python ------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtualenvs
+.venv/
+venv/
+env/
+
+# Packaging / build artifacts
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# ---- Tooling caches ----------------------------------------------------
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.dmypy.json
+.tox/
+.nox/
+
+# ---- Coverage ----------------------------------------------------------
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# ---- Local database ----------------------------------------------------
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# ---- Uploaded media ----------------------------------------------------
+# Keep the directory and the shipped default avatar; ignore user uploads.
+media/*
+!media/.gitkeep
+!media/profile_pics/
+media/profile_pics/*
+!media/profile_pics/default.svg
+
+# ---- Editors / OS ------------------------------------------------------
+.idea/
+.vscode/
+*.swp
+.DS_Store

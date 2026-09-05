@@ -1,0 +1,20 @@
+{
+  "name": "@repo/fastapi-server",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "uv run fastapi dev main.py --port 8000",
+    "start": "uv run fastapi run main.py --port 8000",
+    "build": "uv sync --frozen",
+    "lint": "uv run ruff check .",
+    "format": "uv run ruff format .",
+    "check-types": "uv run ruff check --select F .",
+    "test": "uv run pytest",
+    "test:coverage": "uv run pytest --cov",
+    "db:migrate": "uv run alembic upgrade head",
+    "db:revision": "uv run alembic revision --autogenerate",
+    "db:downgrade": "uv run alembic downgrade -1",
+    "db:seed": "uv run python -m scripts.seed",
+    "db:seed:reset": "uv run python -m scripts.seed --reset"
+  }
+}

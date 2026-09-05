@@ -1,0 +1,20 @@
+# Hono API (@repo/api).
+#
+#   cp .env.example .env      # then fill in the values
+#   docker compose up --build
+#
+# The build context is the repository ROOT (two levels up) because this is a
+# pnpm workspace and the package depends on @repo/* configs. The Dockerfile
+# path is relative to that context.
+#
+# Bring your own Postgres: point DATABASE_URL / DIRECT_URL at it in .env.
+
+services:
+  api:
+    build:
+      context: ../..
+      dockerfile: apps/server/Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "4000:4000"

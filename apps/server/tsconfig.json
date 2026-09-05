@@ -1,0 +1,20 @@
+{
+  "extends": "@repo/typescript-config/base.json",
+
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "dist",
+
+    "paths": {
+      "@/*": ["./*"]
+    },
+
+    "types": ["node"]
+  },
+
+  "include": ["src/**/*", "prisma/**/*.ts"],
+  "exclude": ["node_modules", "dist", "**/*.test.ts"],
+  "tsc-alias": {
+    "resolveFullPaths": true
+  }
+}

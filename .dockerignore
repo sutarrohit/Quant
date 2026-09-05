@@ -1,0 +1,23 @@
+# Build context is the repo root; keep it small and secret-free.
+
+**/node_modules
+**/dist
+**/.next
+**/.turbo
+**/cdk.out
+**/coverage
+**/.venv
+**/__pycache__
+**/prisma/generated
+
+# Never ship real secrets into the build context
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.test
+
+**/*.db
+**/*.log
+.git
+.github
+**/.DS_Store

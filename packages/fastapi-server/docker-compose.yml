@@ -1,0 +1,34 @@
+# FastAPI blog API (@repo/fastapi-server).
+#
+#   cp .env.example .env      # then fill in SECRET_KEY (openssl rand -hex 32)
+#   docker compose up --build
+#
+# Every setting comes from .env (see `env_file` below) — the same file config.py
+# loads when running locally, so there is one place to change values. Values in
+# .env override the defaults baked into the image (notably ENVIRONMENT=production).
+#
+# The build context is this directory: the package is self-contained (uv +
+# pyproject.toml) and does not depend on the pnpm workspace.
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "8000:8000"
+    # ENVIRONMENT=production skips create_all, so the schema is applied by
+    # Alembic before the server starts.
+    command: >
+      sh -c "alembic upgrade head &&
+             fastapi run main.py --host 0.0.0.0 --port 8000"
+    volumes:
+      # Uploaded profile pictures. A bind mount (not a named volume) keeps the
+      # host uid, which matches the image's `app` user (uid 1000).
+      - ./media:/app/media
+      # The default sqlite DB lives inside the container and is lost on
+      # `docker compose down`. To keep it, create a ./data directory and set
+      # DATABASE_URL=sqlite+aiosqlite:////app/data/blog.db in .env, then:
+      # - ./data:/app/data
