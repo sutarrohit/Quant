@@ -203,17 +203,137 @@ Explicitly excluded. Documented to prevent scope creep.
 
 ## Traceability
 
-Which phases cover which requirements. Populated during roadmap creation.
+Which phases cover which requirements. Every v1 requirement maps to exactly one phase.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| (pending roadmap) | — | Pending |
+| FOUND-01 | Phase 1 — Walking Skeleton | Pending |
+| FOUND-02 | Phase 5 — Paper Trading | Pending |
+| FOUND-03 | Phase 1 — Walking Skeleton | Pending |
+| FOUND-04 | Phase 1 — Walking Skeleton | Pending |
+| FOUND-05 | Phase 1 — Walking Skeleton | Pending |
+| FOUND-06 | Phase 1 — Walking Skeleton | Pending |
+| FOUND-07 | Phase 2 — Trustworthy Simulation | Pending |
+| FOUND-08 | Phase 4 — Control Plane | Pending |
+| FOUND-09 | Phase 1 — Walking Skeleton | Pending |
+| DATA-01 | Phase 1 — Walking Skeleton | Pending |
+| DATA-02 | Phase 1 — Walking Skeleton | Pending |
+| DATA-03 | Phase 1 — Walking Skeleton | Pending |
+| DATA-04 | Phase 2 — Trustworthy Simulation | Pending |
+| DATA-05 | Phase 2 — Trustworthy Simulation | Pending |
+| DATA-06 | Phase 1 — Walking Skeleton | Pending |
+| DSL-01 | Phase 2 — Trustworthy Simulation | Pending |
+| DSL-02 | Phase 2 — Trustworthy Simulation | Pending |
+| DSL-03 | Phase 2 — Trustworthy Simulation | Pending |
+| DSL-04 | Phase 2 — Trustworthy Simulation | Pending |
+| DSL-05 | Phase 4 — Control Plane | Pending |
+| DSL-06 | Phase 4 — Control Plane | Pending |
+| SIM-01 | Phase 1 — Walking Skeleton | Pending |
+| SIM-02 | Phase 1 — Walking Skeleton | Pending |
+| SIM-03 | Phase 2 — Trustworthy Simulation | Pending |
+| SIM-04 | Phase 1 — Walking Skeleton | Pending |
+| SIM-05 | Phase 2 — Trustworthy Simulation | Pending |
+| VALID-01 | Phase 1 — Walking Skeleton | Pending |
+| VALID-02 | Phase 3 — Validation Evidence | Pending |
+| VALID-03 | Phase 3 — Validation Evidence | Pending |
+| VALID-04 | Phase 3 — Validation Evidence | Pending |
+| VALID-05 | Phase 3 — Validation Evidence | Pending |
+| VALID-06 | Phase 3 — Validation Evidence | Pending |
+| VALID-07 | Phase 3 — Validation Evidence | Pending |
+| PAPER-01 | Phase 5 — Paper Trading | Pending |
+| PAPER-02 | Phase 5 — Paper Trading | Pending |
+| PAPER-03 | Phase 5 — Paper Trading | Pending |
+| CTRL-01 | Phase 4 — Control Plane | Pending |
+| CTRL-02 | Phase 4 — Control Plane | Pending |
+| CTRL-03 | Phase 4 — Control Plane | Pending |
+| CTRL-04 | Phase 4 — Control Plane | Pending |
+| CTRL-05 | Phase 4 — Control Plane | Pending |
+| CTRL-06 | Phase 4 — Control Plane | Pending |
+| RISK-01 | Phase 6 — Copilot Approval | Pending |
+| RISK-02 | Phase 6 — Copilot Approval | Pending |
+| RISK-03 | Phase 6 — Copilot Approval | Pending |
+| RISK-04 | Phase 6 — Copilot Approval | Pending |
+| RISK-05 | Phase 6 — Copilot Approval | Pending |
+| RISK-06 | Phase 6 — Copilot Approval | Pending |
+| RISK-07 | Phase 6 — Copilot Approval | Pending |
+| APPR-01 | Phase 6 — Copilot Approval | Pending |
+| APPR-02 | Phase 6 — Copilot Approval | Pending |
+| APPR-03 | Phase 6 — Copilot Approval | Pending |
+| APPR-04 | Phase 6 — Copilot Approval | Pending |
+| APPR-05 | Phase 6 — Copilot Approval | Pending |
+| APPR-06 | Phase 6 — Copilot Approval | Pending |
+| APPR-07 | Phase 6 — Copilot Approval | Pending |
+| APPR-08 | Phase 6 — Copilot Approval | Pending |
+| EXEC-01 | Phase 8 — First Live Order | Pending |
+| EXEC-02 | Phase 8 — First Live Order | Pending |
+| EXEC-03 | Phase 8 — First Live Order | Pending |
+| EXEC-04 | Phase 8 — First Live Order | Pending |
+| EXEC-05 | Phase 8 — First Live Order | Pending |
+| EXEC-06 | Phase 8 — First Live Order | Pending |
+| EXEC-07 | Phase 5 — Paper Trading | Pending |
+| RECON-01 | Phase 5 — Paper Trading | Pending |
+| RECON-02 | Phase 7 — Safety Net | Pending |
+| RECON-03 | Phase 7 — Safety Net | Pending |
+| RECON-04 | Phase 7 — Safety Net | Pending |
+| RECON-05 | Phase 5 — Paper Trading | Pending |
+| SAFE-01 | Phase 7 — Safety Net | Pending |
+| SAFE-02 | Phase 7 — Safety Net | Pending |
+| SAFE-03 | Phase 7 — Safety Net | Pending |
+| SAFE-04 | Phase 7 — Safety Net | Pending |
+| SAFE-05 | Phase 7 — Safety Net | Pending |
+| LEDG-01 | Phase 5 — Paper Trading | Pending |
+| LEDG-02 | Phase 4 — Control Plane | Pending |
+| LEDG-03 | Phase 4 — Control Plane | Pending |
+| LEDG-04 | Phase 5 — Paper Trading | Pending |
+| MON-01 | Phase 9 — Post-Deployment Monitoring | Pending |
+| MON-02 | Phase 9 — Post-Deployment Monitoring | Pending |
+| MON-03 | Phase 6 — Copilot Approval | Pending |
+| MON-04 | Phase 9 — Post-Deployment Monitoring | Pending |
+| AI-01 | Phase 11 — Research Committee | Pending |
+| AI-02 | Phase 11 — Research Committee | Pending |
+| AI-03 | Phase 11 — Research Committee | Pending |
+| AI-04 | Phase 10 — NL → StrategySpec | Pending |
+| AI-05 | Phase 10 — NL → StrategySpec | Pending |
+| AI-06 | Phase 10 — NL → StrategySpec | Pending |
+| AI-07 | Phase 12 — Explanation + Chat | Pending |
+| AI-08 | Phase 11 — Research Committee | Pending |
+| AI-09 | Phase 10 — NL → StrategySpec | Pending |
+| AI-10 | Phase 11 — Research Committee | Pending |
+| CHAT-01 | Phase 12 — Explanation + Chat | Pending |
+| CHAT-02 | Phase 12 — Explanation + Chat | Pending |
+| CHAT-03 | Phase 12 — Explanation + Chat | Pending |
+| CHAT-04 | Phase 12 — Explanation + Chat | Pending |
 
 **Coverage:**
 - v1 requirements: 96 total
-- Mapped to phases: 0
-- Unmapped: 96 ⚠️
+- Mapped to phases: 96 ✓
+- Unmapped: 0
+- Duplicated across phases: 0
+
+**Phase totals:**
+
+| Phase | Requirements | Count |
+|-------|--------------|-------|
+| 1 — Walking Skeleton | FOUND-01, FOUND-03, FOUND-04, FOUND-05, FOUND-06, FOUND-09, DATA-01, DATA-02, DATA-03, DATA-06, SIM-01, SIM-02, SIM-04, VALID-01 | 14 |
+| 2 — Trustworthy Simulation | FOUND-07, DSL-01, DSL-02, DSL-03, DSL-04, DATA-04, DATA-05, SIM-03, SIM-05 | 9 |
+| 3 — Validation Evidence | VALID-02, VALID-03, VALID-04, VALID-05, VALID-06, VALID-07 | 6 |
+| 4 — Control Plane | FOUND-08, CTRL-01, CTRL-02, CTRL-03, CTRL-04, CTRL-05, CTRL-06, DSL-05, DSL-06, LEDG-02, LEDG-03 | 11 |
+| 5 — Paper Trading | FOUND-02, PAPER-01, PAPER-02, PAPER-03, LEDG-01, LEDG-04, EXEC-07, RECON-01, RECON-05 | 9 |
+| 6 — Copilot Approval | RISK-01, RISK-02, RISK-03, RISK-04, RISK-05, RISK-06, RISK-07, APPR-01, APPR-02, APPR-03, APPR-04, APPR-05, APPR-06, APPR-07, APPR-08, MON-03 | 16 |
+| 7 — Safety Net | RECON-02, RECON-03, RECON-04, SAFE-01, SAFE-02, SAFE-03, SAFE-04, SAFE-05 | 8 |
+| 8 — First Live Order | EXEC-01, EXEC-02, EXEC-03, EXEC-04, EXEC-05, EXEC-06 | 6 |
+| 9 — Post-Deployment Monitoring | MON-01, MON-02, MON-04 | 3 |
+| 10 — NL → StrategySpec | AI-04, AI-05, AI-06, AI-09 | 4 |
+| 11 — Research Committee | AI-01, AI-02, AI-03, AI-08, AI-10 | 5 |
+| 12 — Explanation + Chat | AI-07, CHAT-01, CHAT-02, CHAT-03, CHAT-04 | 5 |
+
+**First-live-order gate:** Phases 1, 2, 4, 5, 6, 7 must all be complete before Phase 8's real
+order. Phase 3 is deliberately *not* a gate.
+
+**Non-backfillable, mapped to the earliest phase that can host them:** `DATA-03` and `VALID-01`
+(Phase 1); `MON-03` (Phase 6 — the first phase in which a `TradeIntent` exists; its fields are
+frozen into the contract in Phase 4 so they cannot be dropped later).
 
 ---
 *Requirements defined: 2026-09-05*
-*Last updated: 2026-09-05 after initial definition*
+*Last updated: 2026-09-05 after roadmap creation*
