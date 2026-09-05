@@ -26,7 +26,7 @@ submission.** If the simulator and the live path ever diverge, or if an LLM can 
   Binance spot for a sustained period with zero silent failures (no unexplained position
   drift, no unresolved `UNKNOWN` orders, no tenant isolation leak).
 - **Strategy notes**: `Architecture_Plan.md` (system architecture), `Quant-Phase.md`
-  (platform design principles and build-order discipline), both at repo root.
+  (platform design principles and build-order discipline), both in `docs/`.
 
 ## Requirements
 
@@ -132,8 +132,9 @@ submission.** If the simulator and the live path ever diverge, or if an LLM can 
   cache/msgbus layer. **Unverified.** This is the single riskiest artifact in the project —
   a tenant isolation leak in the msgbus or Redis namespace routes one user's orders into
   another user's engine.
-- `criox4/Quant` — forked from `sutarrohit/Quant`, cloned to `Trade_Platform/Quant`. A
-  scaffold, not a trading platform: one commit, root package named `template`. Turborepo +
+- `criox4/quant-platform` (private) — the main development repo and the home of `.planning/`.
+  Seeded from the `sutarrohit/Quant` template with no fork lineage. A scaffold, not a trading
+  platform: root package named `template`. Turborepo +
   pnpm. `apps/server` is Hono 4 with `@hono/zod-openapi`, better-auth, Prisma 7 (pg adapter),
   pino, rate limiting, Swagger UI, CDK deploy scripts, vitest — one route group (`user`).
   `apps/server/prisma/schema.prisma` is 73 lines and four models (`User`, `Session`,
@@ -141,14 +142,16 @@ submission.** If the simulator and the live path ever diverge, or if an LLM can 
   `apps/web` is Next.js + shadcn with only `layout.tsx` and `page.tsx`.
   `packages/fastapi-server` is FastAPI + alembic + uv with `users.py` and `posts.py`
   boilerplate. Value delivered: auth, an OpenAPI-typed router, a Prisma connection. Nothing more.
+  The Nautilus fork remains a separate repo at `../Nautilus_Engine/nautilus_trader`, kept
+  independent so it can rebase cleanly onto upstream `develop`.
 
 **Source documents**
 
-- `Architecture_Plan.md` (1,453 lines) — three-plane separation, the six contracts to freeze
+- `docs/Architecture_Plan.md` (1,453 lines) — three-plane separation, the six contracts to freeze
   first, the trust chain, five deployable services, and a four-phase build sequence. Written
   assuming a TypeScript strategy runtime and a CCXT execution worker; this project replaces
   both with Nautilus (see Key Decisions).
-- `Quant-Phase.md` — platform design principles. Its central claim drives this project's core
+- `docs/Quant-Phase.md` — platform design principles. Its central claim drives this project's core
   value: backtest and live must run the same code path, and that cannot be retrofitted. Also
   the source of the layered build order and the "reproduce a published backtest" acceptance test.
 
@@ -163,7 +166,9 @@ authentication, mandates, approvals, entitlements, audit, and the product ledger
 **Housekeeping**
 
 `Trade_Platform/ /nautilus_trader` (directory literally named with a single space) is a
-duplicate Nautilus checkout. Left in place; delete when convenient.
+duplicate Nautilus checkout. Left in place; delete when convenient. The abandoned
+`criox4/Quant` fork also still exists on GitHub — delete with
+`gh auth refresh -h github.com -s delete_repo && gh repo delete criox4/Quant --yes`.
 
 ## Constraints
 
@@ -172,7 +177,7 @@ duplicate Nautilus checkout. Left in place; delete when convenient.
 - **Fork maintenance**: Track upstream `develop` and rebase regularly. The tenancy patch must
   stay thin and rebasable; upstreaming it is preferred if `nautechsystems` will take it.
 - **Venue**: Binance spot only for v1. One venue, one asset class, get it boring first.
-- **Stack**: Hono + Prisma + Next.js control plane (`criox4/Quant` monorepo); Rust/Python
+- **Stack**: Hono + Prisma + Next.js control plane (`criox4/quant-platform` monorepo); Rust/Python
   Nautilus engine; Python AI plane. Three languages, matching Architecture_Plan's service split.
 - **Team**: 2 people. Quant-Phase estimates a credible platform at 2–3 person-years, so
   sequencing must let the deterministic spine ship independently of the AI planes.
