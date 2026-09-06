@@ -40,3 +40,6 @@ yarn-error.log*
 # Local SQLite databases
 *.db
 *.db-journal
+
+# cross-AI review lane diagnostics (local only)
+.review-diagnostics/
