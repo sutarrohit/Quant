@@ -1,18 +1,18 @@
 ---
 gsd_state_version: 1.0
-current_phase: 1
-current_phase_name: Walking Skeleton
-status: planning
-stopped_at: Phase 1 replanned after cross-AI review (9 plans, 4 waves)
-last_updated: "2026-09-06T00:00:00.000Z"
+current_phase: 01
+current_phase_name: Walking Skeleton — Backtest a Hand-Written Spec on Real Data
+status: executing
+stopped_at: Completed 01-01-PLAN.md
+last_updated: "2026-09-06T12:49:01.721Z"
 last_activity: 2026-09-06
-last_activity_desc: Phase 1 replanned with Codex review feedback - 4 blockers fixed, checker passed clean
-state_head: d99c244520fafcb7055ad255793d00d5f66ec4fe
+last_activity_desc: Phase 01 execution started
+state_head: b15fd1a4bcb3fbdbf47b52df44cd404e76e6d8e6
 progress:
   total_phases: 12
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_plans: 9
+  completed_plans: 1
   percent: 0
 ---
 
@@ -24,14 +24,14 @@ See: .planning/PROJECT.md (updated 2026-09-05)
 
 **Core value:** Backtest and live run the same engine, and the AI never touches credentials or
 order submission.
-**Current focus:** Phase 1 — Walking Skeleton (backtest a hand-written spec on real Binance data)
+**Current focus:** Phase 01 — Walking Skeleton — Backtest a Hand-Written Spec on Real Data
 
 ## Current Position
 
-Phase: 1 of 12 (Walking Skeleton)
-Plan: 0 of 9 in current phase
-Status: Planned - ready to execute
-Last activity: 2026-09-06 — Phase 1 replanned with cross-AI review (4 blockers fixed)
+Phase: 01 (Walking Skeleton — Backtest a Hand-Written Spec on Real Data) — EXECUTING
+Plan: 2 of 9
+Status: Ready to execute
+Last activity: 2026-09-06 — Phase 01 execution started
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -52,6 +52,11 @@ Progress: [░░░░░░░░░░] 0%
 **Recent Trend:** No data yet.
 
 *Updated after each plan completion*
+**Per-Plan Metrics:**
+
+| Plan | Duration | Tasks | Files |
+|------|----------|-------|-------|
+| Phase 01 P01 | 8min | 3 tasks | 47 files |
 
 ## Accumulated Context
 
@@ -67,6 +72,8 @@ Decisions are logged in PROJECT.md Key Decisions table. Affecting current work:
   branch (`crates/trading/src/strategy/mod.rs:207-211`).
 - The deterministic spine (Phases 1–9) ships independently. AI planes (10–12) do not start until a
   live Copilot order has been placed and reconciled.
+- [Phase 01]: Task 1 package-legitimacy gate approved for all twelve [SUS]-flagged packages (checker false-positive, too-new = latest release date not founding date)
+- [Phase 01]: packages/fastapi-server fully stripped of the fastapi-blog domain (beyond the four explicitly-named deletions) to avoid leaving broken imports after dependency removal; reduced to a bare /health app reserved for Phase 5
 
 ### Pending Todos
 
@@ -92,6 +99,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-06T00:00:00.000Z
-Stopped at: Phase 1 replanned after cross-AI review (9 plans, 4 waves)
-Resume file: .planning/phases/01-walking-skeleton-backtest-a-hand-written-spec-on-real-data/01-01-PLAN.md
+Last session: 2026-09-06T12:49:01.702Z
+Stopped at: Completed 01-01-PLAN.md
+Resume file: None

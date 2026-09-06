@@ -14,8 +14,8 @@ Binance spot. Each maps to roadmap phases.
 - [ ] **FOUND-02**: One `LiveNode` process serves exactly one tenant; tenant isolation is guaranteed by the process boundary
 - [ ] **FOUND-03**: The tenancy branch is archived with a written record of which seams were valuable and why it was shelved
 - [ ] **FOUND-04**: `StrategySpec` is a versioned JSON schema that is the single source of truth for all three languages
-- [ ] **FOUND-05**: `DslEvaluator` is pure Python with zero Nautilus imports, testable against a list of bars with no engine
-- [ ] **FOUND-06**: `DslStrategy` is the only file importing both `DslEvaluator` and Nautilus; a grep-enforceable lock-in surface
+- [x] **FOUND-05**: `DslEvaluator` is pure Python with zero Nautilus imports, testable against a list of bars with no engine
+- [x] **FOUND-06**: `DslStrategy` is the only file importing both `DslEvaluator` and Nautilus; a grep-enforceable lock-in surface
 - [ ] **FOUND-07**: A golden-fixture suite proves the TypeScript validator and the Python evaluator agree on every spec
 - [ ] **FOUND-08**: `AgentMandate`, `TradeIntent`, and `RiskDecision` are frozen, versioned contracts generated from one schema
 - [ ] **FOUND-09**: All monetary values are decimal strings end to end; a test fails the build if a float reaches a money field
@@ -211,8 +211,8 @@ Which phases cover which requirements. Every v1 requirement maps to exactly one 
 | FOUND-02 | Phase 5 — Paper Trading | Pending |
 | FOUND-03 | Phase 1 — Walking Skeleton | Pending |
 | FOUND-04 | Phase 1 — Walking Skeleton | Pending |
-| FOUND-05 | Phase 1 — Walking Skeleton | Pending |
-| FOUND-06 | Phase 1 — Walking Skeleton | Pending |
+| FOUND-05 | Phase 1 — Walking Skeleton | Complete |
+| FOUND-06 | Phase 1 — Walking Skeleton | Complete |
 | FOUND-07 | Phase 2 — Trustworthy Simulation | Pending |
 | FOUND-08 | Phase 4 — Control Plane | Pending |
 | FOUND-09 | Phase 1 — Walking Skeleton | Pending |
@@ -305,6 +305,7 @@ Which phases cover which requirements. Every v1 requirement maps to exactly one 
 | CHAT-04 | Phase 12 — Explanation + Chat | Pending |
 
 **Coverage:**
+
 - v1 requirements: 96 total
 - Mapped to phases: 96 ✓
 - Unmapped: 0

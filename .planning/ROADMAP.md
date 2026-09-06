@@ -48,12 +48,14 @@ planes (Phases 10–12) are 55–86 person-weeks on their own and the spine ship
 ## Phase Details
 
 ### Phase 1: Walking Skeleton — Backtest a Hand-Written Spec on Real Data
+
 **Goal**: One hand-written JSON strategy runs over real Binance spot history through a pure Python
 evaluator inside stock NautilusTrader v2, and produces an equity curve that is byte-identical on
 re-run. The whole spine is exercised thinly rather than any layer being built thickly.
 **Depends on**: Nothing (first phase)
 **Requirements**: FOUND-01, FOUND-03, FOUND-04, FOUND-05, FOUND-06, FOUND-09, DATA-01, DATA-02, DATA-03, DATA-06, SIM-01, SIM-02, SIM-04, VALID-01
 **Success Criteria** (what must be TRUE):
+
   1. A developer points the tool at `BTCUSDT`, a JSON strategy file, and a date range, and gets an
      equity curve plus a trade list back — no manual data wrangling in between.
   2. Running the same backtest twice, on two machines, produces byte-identical output.
@@ -64,17 +66,19 @@ re-run. The whole spine is exercised thinly rather than any layer being built th
   5. Every backtest run — including throwaway ones — has already written a row to the `trials` table
      with `strategy_lineage_id`, `params_hash`, `objective`, `ran_at`, `was_oos`.
   6. A test fails the build if a float reaches any monetary field, in any of the three languages.
+
 **Sizing**: 16–22 person-weeks. The largest single cost is Binance Vision ingestion — there is no
 loader in-tree, and survivorship-free symbol history is harder than it looks.
 **Parallelism**: Two clean internal workstreams from day one — (A) data ingestion and the PIT
 universe, (B) contracts, `DslEvaluator`, and the `DslStrategy` adapter. They meet at the first
 backtest. Also do the two out-of-band items here: measure Rust rebuild time in week one (PROJECT.md
 engine tripwire 3), and archive the tenancy branch with its written record.
-**Plans**: 9 plans across 4 waves (tracer-first: waves 1-2 are scaffolding, wave 3 leads with the
+**Plans**: 1/9 plans executed across 4 waves (tracer-first: waves 1-2 are scaffolding, wave 3 leads with the
 end-to-end tracer slice, wave 4 expands both workstreams in parallel)
 
 Plans:
-- [ ] 01-01-PLAN.md — Workspace restructure, `engine/` uv project, pytest harness (wave 1)
+
+- [x] 01-01-PLAN.md — Workspace restructure, `engine/` uv project, pytest harness (wave 1)
 - [ ] 01-02-PLAN.md — Prisma schema package, Postgres, SQLAlchemy Core writers for `trials` and `symbol_listing_snapshot` (wave 2)
 - [ ] 01-03-PLAN.md — NautilusTrader v2 submodule at a pinned commit, Rust rebuild-time tripwire, tenancy archive ADR (wave 2)
 - [ ] 01-04-PLAN.md — `StrategySpec` JSON-Schema contract, codegen pipeline, float-in-money guard (wave 2)
@@ -89,12 +93,14 @@ in wave 2-3 (plans 01-02, 01-05, 01-06) so the elapsed-days wait for the gapless
 overlaps the rest of the build rather than following it.
 
 ### Phase 2: Trustworthy Simulation — The Foundation Acceptance Gate
+
 **Goal**: A user can author a strategy in the restricted JSON DSL and be told precisely why an
 unsound one is rejected — and the number the backtest reports can be trusted, proven by reproducing
 a published backtest within tolerance.
 **Depends on**: Phase 1
 **Requirements**: FOUND-07, DSL-01, DSL-02, DSL-03, DSL-04, DATA-04, DATA-05, SIM-03, SIM-05
 **Success Criteria** (what must be TRUE):
+
   1. **A published backtest is reproduced within a stated tolerance, with the residual difference
      explained rather than hand-waved.** This is the gate. Nothing downstream of simulation
      correctness proceeds until it passes.
@@ -117,12 +123,14 @@ work with no dependency on simulation correctness.
 **UI hint**: yes
 
 ### Phase 3: Validation Evidence — Is the Number Real?
+
 **Goal**: A user sees, next to any headline backtest result, the evidence for whether it is real —
 walk-forward windows, deflated Sharpe against the honest trial count, PBO, Monte Carlo distribution,
 and a parameter sensitivity surface showing plateau or needle.
 **Depends on**: Phase 2 (and Phase 1's trials table)
 **Requirements**: VALID-02, VALID-03, VALID-04, VALID-05, VALID-06, VALID-07
 **Success Criteria** (what must be TRUE):
+
   1. A user attempts to read out-of-sample data during optimization and is refused by the system,
      not by a convention — the lockbox is enforced and every look is budgeted and recorded.
   2. A user runs walk-forward on a strategy and sees per-window in-sample and out-of-sample results
@@ -143,12 +151,14 @@ This is the natural second workstream once the spine has a critical path.
 **UI hint**: yes
 
 ### Phase 4: Control Plane — Accounts, Credentials, Registry, Audit
+
 **Goal**: A user creates an account, connects a Binance key that provably cannot withdraw, and
 promotes a strategy through an immutable versioned lifecycle — with every fund-affecting action
 recorded append-only.
 **Depends on**: Phase 1 (contracts baseline)
 **Requirements**: FOUND-08, CTRL-01, CTRL-02, CTRL-03, CTRL-04, CTRL-05, CTRL-06, DSL-05, DSL-06, LEDG-02, LEDG-03
 **Success Criteria** (what must be TRUE):
+
   1. A user signs up, logs in, stays logged in across sessions, and connects a Binance account — and
      the platform verifies withdrawals are disabled rather than trusting the checkbox.
   2. A multi-line Ed25519 PKCS#8 PEM secret round-trips through envelope encryption and back; the
@@ -172,12 +182,14 @@ may make the audit store a projection rather than a new system.
 **UI hint**: yes
 
 ### Phase 5: Paper Trading — The Same Spec on Live Data, No Money
+
 **Goal**: A strategy version runs in a real `LiveNode` process against live Binance data with
 simulated fills; every order, fill, and position is mirrored into the Postgres ledger; and no
 strategy can reach LIVE without passing the paper gate.
 **Depends on**: Phase 2, Phase 4
 **Requirements**: FOUND-02, PAPER-01, PAPER-02, PAPER-03, LEDG-01, LEDG-04, EXEC-07, RECON-01, RECON-05
 **Success Criteria** (what must be TRUE):
+
   1. A user starts a paper run and watches simulated fills arrive against live Binance market data,
      with the strategy state prominent and colour-coded in the UI.
   2. After a multi-day paper run, the Postgres ledger and the Nautilus engine agree on every order,
@@ -201,12 +213,14 @@ Phase 6 finishes.
 **UI hint**: yes
 
 ### Phase 6: Copilot Approval — The Human Gate
+
 **Goal**: Every order the engine wants to send parks without blocking the event loop, a deterministic
 mandate-aware risk gate produces a signed decision, the user's phone buzzes with the exact executable
 values bound to a hash, and an unapproved or expired order is cancelled — never silently submitted.
 **Depends on**: Phase 5
 **Requirements**: RISK-01, RISK-02, RISK-03, RISK-04, RISK-05, RISK-06, RISK-07, APPR-01, APPR-02, APPR-03, APPR-04, APPR-05, APPR-06, APPR-07, APPR-08, MON-03
 **Success Criteria** (what must be TRUE):
+
   1. A user creates an `AgentMandate` bounding symbols, order types, sides, notional, exposure, daily
      loss, drawdown, and slippage, gives it an expiry, and later revokes it — and the revocation takes
      effect on the very next intent, not on the next restart.
@@ -235,11 +249,13 @@ here. Slippage history starts the moment this lands, which is before the first r
 **UI hint**: yes
 
 ### Phase 7: Safety Net — Reconciliation, Breakers, Kill Switches
+
 **Goal**: The platform notices when reality has diverged from its own belief, stops itself, and can
 be stopped by a human under conditions where most of the platform is broken.
 **Depends on**: Phase 5 (can overlap Phase 6)
 **Requirements**: RECON-02, RECON-03, RECON-04, SAFE-01, SAFE-02, SAFE-03, SAFE-04, SAFE-05
 **Success Criteria** (what must be TRUE):
+
   1. Drift injected deliberately between Nautilus and Postgres triggers a halt and a real alert within
      one reconciliation cycle.
   2. A daily out-of-band audit against Binance, from a separate read-only key, produces a signed
@@ -263,12 +279,14 @@ net, meeting at the Phase 8 gate.
 **UI hint**: yes
 
 ### Phase 8: First Live Order — Real Money, Small Size 🔴
+
 **Goal**: An approved order reaches Binance spot exactly once, and if the answer is ambiguous the
 platform says so and wakes a human rather than guessing. Then both builders run real capital in
 Copilot mode.
 **Depends on**: Phases 1, 2, 4, 5, 6, 7 (Phase 3 is **not** required)
 **Requirements**: EXEC-01, EXEC-02, EXEC-03, EXEC-04, EXEC-05, EXEC-06
 **Success Criteria** (what must be TRUE):
+
   1. Fault injection on testnet — time out a submission whose order actually filled — and the system
      detects it, records a derived `UNKNOWN` ledger state, **does not double-fire**, and escalates to
      a human. Copilot never auto-resubmits, verified by test.
@@ -282,6 +300,7 @@ Copilot mode.
   5. Both builders sustain live Copilot trading with real capital and **zero silent failures** — no
      unexplained position drift, no unresolved `UNKNOWN`, no isolation surprise.
 **Operational gates** (not requirements, but hard prerequisites for criterion 4):
+
   - Four alerts that page a phone and wake you, and no others: reconciliation drift, unresolved
     `UNKNOWN`, breaker fired, engine heartbeat lost.
   - A runbook in the repo, written before it is needed: kill switch, flatten via the Binance UI when
@@ -293,6 +312,7 @@ Copilot mode.
   - Position size capped at an amount you would be content to lose entirely to a bug. Start smaller
     than feels worth it — the first live orders exist to find bugs, not returns.
   - A defined "stop trading and go to bed" threshold, decided while calm.
+
 **Sizing**: 10–16 person-weeks of build, then an open-ended sustained-running period. Criterion 5 is
 measured in months, not weeks.
 **Parallelism**: None on the critical path — this is where both people converge. Phase 3 may still be
@@ -327,11 +347,13 @@ execution safe. It runs in parallel and must never be allowed to delay Phase 8.
 ---
 
 ### Phase 9: Post-Deployment Monitoring — Did It Do What It Said?
+
 **Goal**: The platform continuously tells the user how live performance differs from the backtest that
 justified going live, including when the difference is favourable.
 **Depends on**: Phase 8 (needs live fills), Phase 2 (needs the backtest to compare against)
 **Requirements**: MON-01, MON-02, MON-04
 **Success Criteria** (what must be TRUE):
+
   1. A user opens a deployed strategy and sees the live equity curve overlaid on the backtest curve,
      continuously — not only after a loss.
   2. A user sees expected versus actual fill price per trade in bps, and the aggregated distribution
@@ -348,6 +370,7 @@ flight, ship `MON-01` and `MON-02` first.
 **UI hint**: yes
 
 ### Phase 10: Strategy Authoring in English — NL → StrategySpec
+
 **Goal**: A user describes a strategy in plain language and receives a validated `StrategySpec` they
 can backtest — with the AI plane structurally incapable of reaching credentials, order authority, or
 any security-relevant identifier.
@@ -355,6 +378,7 @@ any security-relevant identifier.
 reconciled first), plus Phases 2 and 4
 **Requirements**: AI-04, AI-05, AI-06, AI-09
 **Success Criteria** (what must be TRUE):
+
   1. A user types "buy BTC when the 20-day crosses above the 50-day, risk 1% per trade, stop at 2 ATR"
      and gets back a spec that passes the Phase 2 validator and is immediately backtestable.
   2. The compiler loops on validator errors rather than emitting single-turn output — the observable
@@ -366,6 +390,7 @@ reconciled first), plus Phases 2 and 4
      `mandateId`, `idempotencyKey`, `riskDecisionId`, `approvalId`, or `clientOrderId` — enforced by
      the contract types from Phase 4, with a test that tries and fails to compile.
   5. Hard per-request and per-day token budgets are enforced in our code, not by hoping.
+
 **Sizing**: 16–26 person-weeks.
 **Parallelism**: Runs in parallel with Phase 9.
 **Hard sequencing**: **Does not start until Phase 8 criterion 4 has happened.** The deterministic
@@ -374,12 +399,14 @@ spine ships independently; this is the explicit project constraint.
 **UI hint**: yes
 
 ### Phase 11: Research Committee — Evidence-Backed Signals
+
 **Goal**: A full debate structure — market, news, sentiment, and portfolio analysts feeding bull and
 bear researchers feeding a research manager — produces a `SignalCandidate` whose every external fact
 is a citable, hashed, time-stamped artifact.
 **Depends on**: Phase 10
 **Requirements**: AI-01, AI-02, AI-03, AI-08, AI-10
 **Success Criteria** (what must be TRUE):
+
   1. A user requests research on a symbol and receives a `SignalCandidate` with the bull case, the bear
      case, and the research manager's adjudication — each claim traceable to specific evidence.
   2. Every external fact used is a structured `EvidenceReference` with source, publication timestamp,
@@ -397,12 +424,14 @@ the most fun part of the project, which is exactly why it will eat whatever it i
 **Plans**: TBD
 
 ### Phase 12: Explanation and Open Chat
+
 **Goal**: The user can ask why — why a strategy fired, why a backtest looks the way it does, where it
 is likely overfit — and can ask anything else about their markets, portfolio, strategies, and
 executions, answered from real data with citations.
 **Depends on**: Phase 11 (`CHAT-04` requires the evidence and provenance layer to exist first)
 **Requirements**: AI-07, CHAT-01, CHAT-02, CHAT-03, CHAT-04
 **Success Criteria** (what must be TRUE):
+
   1. A user clicks any fill and asks "why did this fire?", and gets an explanation grounded in the
      frozen strategy version and the evidence available at that timestamp — citing the specific bars
      and trades it describes.
@@ -525,7 +554,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Walking Skeleton | 0/TBD | Not started | - |
+| 1. Walking Skeleton | 1/9 | In Progress|  |
 | 2. Trustworthy Simulation | 0/TBD | Not started | - |
 | 3. Validation Evidence | 0/TBD | Not started | - |
 | 4. Control Plane | 0/TBD | Not started | - |
