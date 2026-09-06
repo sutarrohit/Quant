@@ -70,8 +70,23 @@ loader in-tree, and survivorship-free symbol history is harder than it looks.
 universe, (B) contracts, `DslEvaluator`, and the `DslStrategy` adapter. They meet at the first
 backtest. Also do the two out-of-band items here: measure Rust rebuild time in week one (PROJECT.md
 engine tripwire 3), and archive the tenancy branch with its written record.
-**Plans**: TBD
-**Non-backfillable**: `DATA-03`, `VALID-01`. Both are cheap here and impossible later.
+**Plans**: 9 plans across 4 waves (tracer-first: waves 1-2 are scaffolding, wave 3 leads with the
+end-to-end tracer slice, wave 4 expands both workstreams in parallel)
+
+Plans:
+- [ ] 01-01-PLAN.md — Workspace restructure, `engine/` uv project, pytest harness (wave 1)
+- [ ] 01-02-PLAN.md — Prisma schema package, Postgres, SQLAlchemy Core writers for `trials` and `symbol_listing_snapshot` (wave 2)
+- [ ] 01-03-PLAN.md — NautilusTrader v2 submodule at a pinned commit, Rust rebuild-time tripwire, tenancy archive ADR (wave 2)
+- [ ] 01-04-PLAN.md — `StrategySpec` JSON-Schema contract, codegen pipeline, float-in-money guard (wave 2)
+- [ ] 01-05-PLAN.md — **TRACER**: one hand-written spec over real checksum-verified data through the stock engine, end to end (wave 3)
+- [ ] 01-06-PLAN.md — Non-backfillable daily `exchangeInfo` snapshot cron on hosted Postgres (wave 3)
+- [ ] 01-07-PLAN.md — Ingestion at scale: timestamp-unit boundary, full history, shared object-store catalog (wave 4)
+- [ ] 01-08-PLAN.md — Evaluator edge semantics and the grep-enforced purity boundary in CI (wave 4)
+- [ ] 01-09-PLAN.md — Two-machine determinism, run artifacts, one turbo CI pipeline (wave 4)
+
+**Non-backfillable**: `DATA-03`, `VALID-01`. Both are cheap here and impossible later. Both start
+in wave 2-3 (plans 01-02, 01-05, 01-06) so the elapsed-days wait for the gapless daily count
+overlaps the rest of the build rather than following it.
 
 ### Phase 2: Trustworthy Simulation — The Foundation Acceptance Gate
 **Goal**: A user can author a strategy in the restricted JSON DSL and be told precisely why an
