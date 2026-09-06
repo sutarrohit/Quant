@@ -1,0 +1,12 @@
+{
+  "name": "@repo/engine",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "uv sync --frozen",
+    "lint": "uv run ruff check .",
+    "format": "uv run ruff format .",
+    "check-types": "uv run ruff check --select F .",
+    "test": "uv run pytest"
+  }
+}
