@@ -213,6 +213,14 @@ None - no external service configuration required. Toolchain versions (`uv 0.12.
 - `pnpm-workspace.yaml` already lists `prisma` and `schemas` as workspace members even though neither directory exists yet — pnpm resolves the missing entries to zero packages without erroring (confirmed via `pnpm install`), so plans 01-02 and 01-04 can create those packages without a workspace-file change.
 - No blockers. The one open item is cosmetic (the root-invocation pytest-scoping note above) and requires no follow-up action.
 
+## Self-Check: PASSED
+
+All created files verified present on disk (`engine/pyproject.toml`, `engine/package.json`,
+`engine/README.md`, `engine/tests/conftest.py`, `engine/tests/dsl/test_scaffold_smoke.py`,
+`engine/uv.lock`, `packages/fastapi-server/tests/test_health.py`, this SUMMARY.md). All cited
+commit hashes (`466f480`, `ad96c8d`, `d0e70ff`, `71225f0`, `6f2ac59`) verified present in
+`git log`.
+
 ---
 *Phase: 01-walking-skeleton-backtest-a-hand-written-spec-on-real-data*
 *Completed: 2026-09-06*
