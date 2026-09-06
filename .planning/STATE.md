@@ -3,16 +3,16 @@ gsd_state_version: 1.0
 current_phase: 01
 current_phase_name: Walking Skeleton — Backtest a Hand-Written Spec on Real Data
 status: executing
-stopped_at: Completed 01-02-PLAN.md
-last_updated: "2026-09-06T13:05:57.368Z"
+stopped_at: Completed 01-03-PLAN.md
+last_updated: "2026-09-06T15:57:18.680Z"
 last_activity: 2026-09-06
 last_activity_desc: Phase 01 execution started
-state_head: 2b2fc636c50b91eff9cd76e7bc0f036640629e4f
+state_head: 06fa5c4eac444eca92e4a8e2c1be29dedac90d6d
 progress:
   total_phases: 12
   completed_phases: 0
   total_plans: 9
-  completed_plans: 2
+  completed_plans: 3
   percent: 0
 ---
 
@@ -29,7 +29,7 @@ order submission.
 ## Current Position
 
 Phase: 01 (Walking Skeleton — Backtest a Hand-Written Spec on Real Data) — EXECUTING
-Plan: 3 of 9
+Plan: 4 of 9
 Status: Ready to execute
 Last activity: 2026-09-06 — Phase 01 execution started
 
@@ -58,6 +58,7 @@ Progress: [░░░░░░░░░░] 0%
 |------|----------|-------|-------|
 | Phase 01 P01 | 8min | 3 tasks | 47 files |
 | Phase 01 P02 | 14min | 3 tasks | 18 files |
+| Phase 01 P03 | 161min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -77,6 +78,8 @@ Decisions are logged in PROJECT.md Key Decisions table. Affecting current work:
 - [Phase 01]: packages/fastapi-server fully stripped of the fastapi-blog domain (beyond the four explicitly-named deletions) to avoid leaving broken imports after dependency removal; reduced to a bare /health app reserved for Phase 5
 - [Phase 01]: [Phase 01, Plan 02]: engine_from_env() rewrites postgresql:// to postgresql+psycopg:// so one DATABASE_URL value works for both Prisma (TS) and SQLAlchemy Core (psycopg v3, not psycopg2)
 - [Phase 01]: [Phase 01, Plan 02]: trial_recorder/record_capture manage their own transaction on the given Connection independent of caller's surrounding work, required for the D-15 crash guarantee
+- [Phase 01]: [Phase 01, Plan 03]: Task 1 legitimacy gate rejected the plan's pin be9eaff8a7 (carried the tenancy patch); human named replacement pin 4692bac35bb11a25eeebb8d7af4d51c55afe53ec, verified unpatched and an ancestor of origin/develop
+- [Phase 01]: [Phase 01, Plan 03]: engine/pyproject.toml overrides nautilus-trader's build to the vendored release-debugging profile via uv config-settings-package (not a vendor patch) — the stock fat-LTO release profile OOM-kills on a 32GB/10-core machine per docs/adr/0002
 
 ### Pending Todos
 
@@ -102,6 +105,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-06T13:05:57.348Z
-Stopped at: Completed 01-02-PLAN.md
+Last session: 2026-09-06T15:57:18.658Z
+Stopped at: Completed 01-03-PLAN.md
 Resume file: None

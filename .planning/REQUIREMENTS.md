@@ -10,9 +10,9 @@ Binance spot. Each maps to roadmap phases.
 
 ### Foundation
 
-- [ ] **FOUND-01**: A stock NautilusTrader v2 `LiveNode` runs from a pinned upstream commit with no local patches
+- [x] **FOUND-01**: A stock NautilusTrader v2 `LiveNode` runs from a pinned upstream commit with no local patches
 - [ ] **FOUND-02**: One `LiveNode` process serves exactly one tenant; tenant isolation is guaranteed by the process boundary
-- [ ] **FOUND-03**: The tenancy branch is archived with a written record of which seams were valuable and why it was shelved
+- [x] **FOUND-03**: The tenancy branch is archived with a written record of which seams were valuable and why it was shelved
 - [ ] **FOUND-04**: `StrategySpec` is a versioned JSON schema that is the single source of truth for all three languages
 - [x] **FOUND-05**: `DslEvaluator` is pure Python with zero Nautilus imports, testable against a list of bars with no engine
 - [x] **FOUND-06**: `DslStrategy` is the only file importing both `DslEvaluator` and Nautilus; a grep-enforceable lock-in surface
@@ -207,9 +207,9 @@ Which phases cover which requirements. Every v1 requirement maps to exactly one 
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FOUND-01 | Phase 1 — Walking Skeleton | Pending |
+| FOUND-01 | Phase 1 — Walking Skeleton | Complete |
 | FOUND-02 | Phase 5 — Paper Trading | Pending |
-| FOUND-03 | Phase 1 — Walking Skeleton | Pending |
+| FOUND-03 | Phase 1 — Walking Skeleton | Complete |
 | FOUND-04 | Phase 1 — Walking Skeleton | Pending |
 | FOUND-05 | Phase 1 — Walking Skeleton | Complete |
 | FOUND-06 | Phase 1 — Walking Skeleton | Complete |

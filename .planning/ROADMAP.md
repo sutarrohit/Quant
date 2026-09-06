@@ -73,14 +73,14 @@ loader in-tree, and survivorship-free symbol history is harder than it looks.
 universe, (B) contracts, `DslEvaluator`, and the `DslStrategy` adapter. They meet at the first
 backtest. Also do the two out-of-band items here: measure Rust rebuild time in week one (PROJECT.md
 engine tripwire 3), and archive the tenancy branch with its written record.
-**Plans**: 2/9 plans executed across 4 waves (tracer-first: waves 1-2 are scaffolding, wave 3 leads with the
+**Plans**: 3/9 plans executed across 4 waves (tracer-first: waves 1-2 are scaffolding, wave 3 leads with the
 end-to-end tracer slice, wave 4 expands both workstreams in parallel)
 
 Plans:
 
 - [x] 01-01-PLAN.md — Workspace restructure, `engine/` uv project, pytest harness (wave 1)
 - [x] 01-02-PLAN.md — Prisma schema package, Postgres, SQLAlchemy Core writers for `trials` and `symbol_listing_snapshot` (wave 2)
-- [ ] 01-03-PLAN.md — NautilusTrader v2 submodule at a pinned commit, Rust rebuild-time tripwire, tenancy archive ADR (wave 2)
+- [x] 01-03-PLAN.md — NautilusTrader v2 submodule at a pinned commit, Rust rebuild-time tripwire, tenancy archive ADR (wave 2)
 - [ ] 01-04-PLAN.md — `StrategySpec` JSON-Schema contract, codegen pipeline, float-in-money guard (wave 2)
 - [ ] 01-05-PLAN.md — **TRACER**: one hand-written spec over real checksum-verified data through the stock engine, end to end (wave 3)
 - [ ] 01-06-PLAN.md — Non-backfillable daily `exchangeInfo` snapshot cron on hosted Postgres (wave 3)
@@ -554,7 +554,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Walking Skeleton | 2/9 | In Progress|  |
+| 1. Walking Skeleton | 3/9 | In Progress|  |
 | 2. Trustworthy Simulation | 0/TBD | Not started | - |
 | 3. Validation Evidence | 0/TBD | Not started | - |
 | 4. Control Plane | 0/TBD | Not started | - |
