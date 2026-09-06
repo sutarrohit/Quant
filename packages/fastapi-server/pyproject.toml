@@ -1,17 +1,11 @@
 [project]
-name = "fastapi-blog"
+name = "supervisor"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "aiosqlite>=0.22.1",
-    "alembic>=1.19.1",
-    "fastapi[standard]>=0.135.1",
-    "pwdlib[argon2]>=0.3.0",
-    "pydantic-settings>=2.13.1",
-    "pyjwt>=2.12.1",
-    "sqlalchemy>=2.0.48",
+    "fastapi>=0.135.1",
 ]
 
 [dependency-groups]
@@ -35,7 +29,3 @@ target-version = "py313"
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM", "C4"]
 ignore = ["E501"]
-
-[tool.ruff.lint.per-file-ignores]
-"alembic/*" = ["E402", "F401"]
-"tests/*" = ["E402"]

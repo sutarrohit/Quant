@@ -1,5 +1,5 @@
 {
-  "name": "template",
+  "name": "quant-platform",
   "private": true,
   "scripts": {
     "build": "turbo run build",

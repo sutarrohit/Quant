@@ -43,3 +43,15 @@ yarn-error.log*
 
 # cross-AI review lane diagnostics (local only)
 .review-diagnostics/
+
+# Generated contract artifacts (D-06)
+engine/generated/
+schemas/generated/
+
+# Backtest run outputs (D-19, D-20)
+runs/
+*.png
+
+# Local data catalog cache (D-23)
+catalog/
+.data-cache/

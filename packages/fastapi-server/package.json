@@ -10,11 +10,6 @@
     "format": "uv run ruff format .",
     "check-types": "uv run ruff check --select F .",
     "test": "uv run pytest",
-    "test:coverage": "uv run pytest --cov",
-    "db:migrate": "uv run alembic upgrade head",
-    "db:revision": "uv run alembic revision --autogenerate",
-    "db:downgrade": "uv run alembic downgrade -1",
-    "db:seed": "uv run python -m scripts.seed",
-    "db:seed:reset": "uv run python -m scripts.seed --reset"
+    "test:coverage": "uv run pytest --cov"
   }
 }
