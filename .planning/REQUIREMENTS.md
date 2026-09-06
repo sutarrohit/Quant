@@ -24,7 +24,7 @@ Binance spot. Each maps to roadmap phases.
 
 - [ ] **DATA-01**: Binance spot OHLCV is ingested from `data.binance.vision` with checksum verification
 - [ ] **DATA-02**: Ingested data is stored in a `ParquetDataCatalog` the backtest engine reads natively
-- [ ] **DATA-03**: A daily `exchangeInfo` snapshot is captured and retained, building point-in-time symbol history
+- [x] **DATA-03**: A daily `exchangeInfo` snapshot is captured and retained, building point-in-time symbol history
 - [ ] **DATA-04**: Delisted symbols are present in history; a backtest universe resolves to what existed on that date
 - [ ] **DATA-05**: Data quality monitors flag gaps, outliers, and exchange candle restatements
 - [ ] **DATA-06**: Bar timestamp semantics (open vs close) are explicit in the catalog and asserted in tests
@@ -48,7 +48,7 @@ Binance spot. Each maps to roadmap phases.
 
 ### Validation
 
-- [ ] **VALID-01**: Every optimization run is recorded in a trials table (`strategy_lineage_id`, `params_hash`, `objective`, `ran_at`, `was_oos`) from the very first backtest
+- [x] **VALID-01**: Every optimization run is recorded in a trials table (`strategy_lineage_id`, `params_hash`, `objective`, `ran_at`, `was_oos`) from the very first backtest
 - [ ] **VALID-02**: Out-of-sample data is genuinely inaccessible during optimization; the lockbox is enforced, not advisory
 - [ ] **VALID-03**: A user can run walk-forward analysis and see per-window results
 - [ ] **VALID-04**: A user sees deflated Sharpe and probability of backtest overfitting, computed against the honest trial count
@@ -218,7 +218,7 @@ Which phases cover which requirements. Every v1 requirement maps to exactly one 
 | FOUND-09 | Phase 1 — Walking Skeleton | Pending |
 | DATA-01 | Phase 1 — Walking Skeleton | Pending |
 | DATA-02 | Phase 1 — Walking Skeleton | Pending |
-| DATA-03 | Phase 1 — Walking Skeleton | Pending |
+| DATA-03 | Phase 1 — Walking Skeleton | Complete |
 | DATA-04 | Phase 2 — Trustworthy Simulation | Pending |
 | DATA-05 | Phase 2 — Trustworthy Simulation | Pending |
 | DATA-06 | Phase 1 — Walking Skeleton | Pending |
@@ -233,7 +233,7 @@ Which phases cover which requirements. Every v1 requirement maps to exactly one 
 | SIM-03 | Phase 2 — Trustworthy Simulation | Pending |
 | SIM-04 | Phase 1 — Walking Skeleton | Pending |
 | SIM-05 | Phase 2 — Trustworthy Simulation | Pending |
-| VALID-01 | Phase 1 — Walking Skeleton | Pending |
+| VALID-01 | Phase 1 — Walking Skeleton | Complete |
 | VALID-02 | Phase 3 — Validation Evidence | Pending |
 | VALID-03 | Phase 3 — Validation Evidence | Pending |
 | VALID-04 | Phase 3 — Validation Evidence | Pending |
