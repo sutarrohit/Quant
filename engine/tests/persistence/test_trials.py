@@ -30,9 +30,11 @@ def test_record_trial_inserts_one_row(conn):
 
 
 def test_trial_recorder_records_crash(conn):
-    with pytest.raises(RuntimeError):
-        with trial_recorder(conn, strategy_lineage_id="lineage-crash", params_hash="hash-crash", was_oos=False):
-            raise RuntimeError("boom")
+    with (
+        pytest.raises(RuntimeError),
+        trial_recorder(conn, strategy_lineage_id="lineage-crash", params_hash="hash-crash", was_oos=False),
+    ):
+        raise RuntimeError("boom")
 
     row = conn.execute(
         sa.select(trials.c.status, trials.c.error_message).where(trials.c.params_hash == "hash-crash")

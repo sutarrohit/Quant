@@ -55,3 +55,7 @@ runs/
 # Local data catalog cache (D-23)
 catalog/
 .data-cache/
+
+# Python bytecode caches (no per-directory .gitignore of their own, unlike .venv/.pytest_cache/.ruff_cache)
+__pycache__/
+*.pyc
