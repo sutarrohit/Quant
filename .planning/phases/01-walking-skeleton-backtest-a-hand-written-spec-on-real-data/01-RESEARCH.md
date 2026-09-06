@@ -665,7 +665,16 @@ exist in Nautilus and should be used as-is for Phase 1 (see Don't Hand-Roll).
 either the pinned submodule source, a live `data.binance.vision`/PyPI/npm fetch, or official
 documentation via Context7 this session.
 
-## Open Questions
+## Open Questions (RESOLVED at plan time)
+
+> Each question below was closed by Phase 1 planning. Resolution trail:
+> - **Q1** — RESOLVED as a spike, not an answer: `01-04-PLAN.md` Task 1 is a `checkpoint:decision`
+>   requiring the generator to be run and its actual emitted types quoted before options are presented.
+> - **Q2** — RESOLVED in `01-03-PLAN.md` Task 2: the pinned checkout's `rust-toolchain.toml` pins
+>   channel `1.98.0`; the devcontainer pins that exact channel.
+> - **Q3** — RESOLVED in `01-07-PLAN.md` Task 2: BTCUSDT, ETHUSDT, BNBUSDT, plus one symbol listed
+>   2021 or later.
+
 
 1. **How exactly should a JSON-Schema decimal-string field become a strict Python `Decimal` via the
    D-06 codegen pipeline?**
