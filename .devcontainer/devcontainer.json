@@ -1,0 +1,33 @@
+{
+  "name": "quant-platform",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "args": {
+      // D-10: pin Python 3.13, Node 24 (satisfies root package.json's
+      // engines.node >=18 floor), pnpm 10.34.5, uv >=0.12,<0.13 (the
+      // submodule's own required-version), and Rust 1.98.0 — exactly the
+      // channel vendor/nautilus_trader/rust-toolchain.toml pins. A mismatch
+      // here is the two-machine divergence success criterion 2 forbids.
+      "PYTHON_VERSION": "3.13",
+      "NODE_VERSION": "24",
+      "PNPM_VERSION": "10.34.5",
+      "UV_VERSION": "0.12.0",
+      "RUST_CHANNEL": "1.98.0"
+    }
+  },
+  "remoteUser": "vscode",
+  "workspaceFolder": "/workspaces/quant-platform",
+  "mounts": [
+    // Persistent cargo registry + build-directory volumes so a container
+    // rebuild does not force a cold Rust compile of the vendored workspace
+    // (its target/ directory reaches double-digit gigabytes).
+    "source=quant-platform-cargo-registry,target=/usr/local/cargo/registry,type=volume",
+    "source=quant-platform-nautilus-target,target=/workspaces/quant-platform/vendor/nautilus_trader/target,type=volume"
+  ],
+  "postCreateCommand": "git submodule update --init --recursive && uv sync --project engine",
+  "customizations": {
+    "vscode": {
+      "extensions": ["rust-lang.rust-analyzer", "ms-python.python", "charliermarsh.ruff"]
+    }
+  }
+}

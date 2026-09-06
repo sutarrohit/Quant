@@ -10,13 +10,36 @@ dependencies = [
     "psycopg[binary]>=3.2.10",
     "pyarrow>=25.0.1",
     "matplotlib>=3.10.7",
+    "nautilus-trader",
 ]
+
+[tool.uv.sources]
+# D-04: NautilusTrader v2 consumed editable from the pinned submodule, not a published wheel.
+nautilus-trader = { path = "../vendor/nautilus_trader/python", editable = true }
+
+[tool.uv]
+# `vendor/nautilus_trader`'s stock [profile.release] is opt-level=3 + lto="fat" +
+# codegen-units=1 — a full-workspace fat-LTO link that OOM-killed on a 32 GB/10-core
+# machine measured at plan-execution time (see docs/adr/0002-rust-rebuild-time-tripwire.md).
+# `release-debugging` is a profile the submodule's own Cargo.toml already defines
+# (inherits release, sets lto=false) — same opt-level=3 runtime, no full-LTO link. This
+# is a build-argument override, not a patch to vendored source: FOUND-01's "no local
+# patch" invariant is untouched.
+config-settings-package = { "nautilus-trader" = { build-args = "--profile release-debugging" } }
 
 [dependency-groups]
 dev = [
     "pytest>=9.1.1",
     "ruff>=0.16.5",
     "datamodel-code-generator>=0.76.2",
+    "maturin==1.15.0",
+]
+# Everything plan 01-06's daily exchangeInfo cron needs, and nothing else — installed with
+# `uv sync --frozen --no-install-project --only-group snapshot` so the cron never compiles Rust.
+snapshot = [
+    "httpx>=0.28.1",
+    "sqlalchemy>=2.0.48",
+    "psycopg[binary]>=3.2.10",
 ]
 
 [tool.pytest.ini_options]

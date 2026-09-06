@@ -1,0 +1,3 @@
+[submodule "vendor/nautilus_trader"]
+	path = vendor/nautilus_trader
+	url = https://github.com/criox4/nautilus_trader.git
