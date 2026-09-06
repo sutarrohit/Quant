@@ -18,6 +18,8 @@ importers:
         specifier: 5.9.2
         version: 5.9.2
 
+  engine: {}
+
   packages/eslint-config:
     devDependencies:
       '@eslint/js':
