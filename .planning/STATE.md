@@ -3,16 +3,16 @@ gsd_state_version: 1.0
 current_phase: 01
 current_phase_name: Walking Skeleton — Backtest a Hand-Written Spec on Real Data
 status: executing
-stopped_at: Completed 01-03-PLAN.md
-last_updated: "2026-09-06T15:57:18.680Z"
+stopped_at: Completed 01-04-PLAN.md
+last_updated: "2026-09-07T00:13:47.534Z"
 last_activity: 2026-09-06
 last_activity_desc: Phase 01 execution started
-state_head: 06fa5c4eac444eca92e4a8e2c1be29dedac90d6d
+state_head: 3cb0f5e298b56518541ccc3245266a17a484ba94
 progress:
   total_phases: 12
   completed_phases: 0
   total_plans: 9
-  completed_plans: 3
+  completed_plans: 4
   percent: 0
 ---
 
@@ -29,7 +29,7 @@ order submission.
 ## Current Position
 
 Phase: 01 (Walking Skeleton — Backtest a Hand-Written Spec on Real Data) — EXECUTING
-Plan: 4 of 9
+Plan: 5 of 9
 Status: Ready to execute
 Last activity: 2026-09-06 — Phase 01 execution started
 
@@ -59,6 +59,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P01 | 8min | 3 tasks | 47 files |
 | Phase 01 P02 | 14min | 3 tasks | 18 files |
 | Phase 01 P03 | 161min | 3 tasks | 9 files |
+| Phase 01 P04 | 10min | 3 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -80,6 +81,8 @@ Decisions are logged in PROJECT.md Key Decisions table. Affecting current work:
 - [Phase 01]: [Phase 01, Plan 02]: trial_recorder/record_capture manage their own transaction on the given Connection independent of caller's surrounding work, required for the D-15 crash guarantee
 - [Phase 01]: [Phase 01, Plan 03]: Task 1 legitimacy gate rejected the plan's pin be9eaff8a7 (carried the tenancy patch); human named replacement pin 4692bac35bb11a25eeebb8d7af4d51c55afe53ec, verified unpatched and an ancestor of origin/develop
 - [Phase 01]: [Phase 01, Plan 03]: engine/pyproject.toml overrides nautilus-trader's build to the vendored release-debugging profile via uv config-settings-package (not a vendor patch) — the stock fat-LTO release profile OOM-kills on a 32GB/10-core machine per docs/adr/0002
+- [Phase 01]: [Phase 01, Plan 04]: Task 1 checkpoint resolved to Option A (hand-written engine/money.py parse_money wrapper) after a live spike found no datamodel-code-generator flag maps a pattern-string field to Decimal -- closes RESEARCH.md A3
+- [Phase 01]: [Phase 01, Plan 04]: params_hash hashes raw parsed JSON values (money fields excepted, canonicalized via to_canonical_str) rather than the Pydantic model's coerced dump, since Pydantic silently coerces 5.0 to int 5 for an integer field
 
 ### Pending Todos
 
@@ -105,6 +108,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-09-06T15:57:18.658Z
-Stopped at: Completed 01-03-PLAN.md
+Last session: 2026-09-07T00:13:47.512Z
+Stopped at: Completed 01-04-PLAN.md
 Resume file: None
