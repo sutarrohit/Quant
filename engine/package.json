@@ -2,6 +2,9 @@
   "name": "@repo/engine",
   "version": "0.1.0",
   "private": true,
+  "dependencies": {
+    "@repo/schemas": "workspace:*"
+  },
   "scripts": {
     "build": "uv sync --frozen",
     "lint": "uv run ruff check .",

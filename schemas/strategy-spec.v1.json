@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://quant-platform.local/schemas/strategy-spec.v1.json",
+  "title": "StrategySpec",
+  "description": "The versioned StrategySpec contract (D-06, FOUND-04). Bounded to exactly what the D-26 SMA crossover strategy needs -- Phase 1 proves the seam, not the expressiveness. Neither this schema's generated Pydantic model nor its generated TypeScript type is authoritative; this file is.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "spec_version",
+    "symbol",
+    "bar_interval",
+    "indicators",
+    "entry",
+    "exit",
+    "sizing"
+  ],
+  "properties": {
+    "spec_version": {
+      "description": "Contract version. The only permitted value for this schema is \"1\".",
+      "const": "1"
+    },
+    "symbol": {
+      "description": "Exchange symbol, e.g. BTCUSDT.",
+      "type": "string",
+      "minLength": 1
+    },
+    "bar_interval": {
+      "description": "Bar aggregation interval, e.g. 1h.",
+      "type": "string",
+      "minLength": 1
+    },
+    "indicators": {
+      "description": "The two SMA windows the crossover compares. Both are declared as positive integers only -- fast_period < slow_period is a semantic rule enforced by engine.dsl.spec.load_spec, not a schema constraint. Draft 2020-12 has no portable keyword comparing one property's value against another's, so this schema deliberately does not attempt to express that ordering.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fast_period", "slow_period"],
+      "properties": {
+        "fast_period": {
+          "description": "Fast SMA window length, in bars.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "slow_period": {
+          "description": "Slow SMA window length, in bars.",
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "entry": {
+      "description": "The single permitted entry rule: go long when the fast SMA crosses above the slow SMA.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rule"],
+      "properties": {
+        "rule": {
+          "const": "fast_crosses_above_slow"
+        }
+      }
+    },
+    "exit": {
+      "description": "The single permitted exit rule: flatten when the fast SMA crosses back below the slow SMA.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rule"],
+      "properties": {
+        "rule": {
+          "const": "fast_crosses_below_slow"
+        }
+      }
+    },
+    "sizing": {
+      "description": "Position sizing for the single permitted entry.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["trade_size"],
+      "properties": {
+        "trade_size": {
+          "description": "Money-shaped field (D-07): a decimal string, never a JSON number, so this generates a TypeScript string and never a float-carrying number. Maximum scale is 8 decimal places.",
+          "type": "string",
+          "pattern": "^-?[0-9]+(\\.[0-9]{1,8})?$"
+        }
+      }
+    }
+  }
+}
