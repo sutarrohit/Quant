@@ -18,8 +18,8 @@ keeps two contracts distinct and tests them separately, because one strict model
 ``MONEY_SCALE`` matches the schema pattern's maximum decimal places
 (``schemas/strategy-spec.v1.json``, ``^-?[0-9]+(\\.[0-9]{1,8})?$``). Rounding is always explicit
 (``ROUND_HALF_EVEN``, never the ambient decimal context, which is process-global mutable state
-whose rounding a value would otherwise depend on whatever else ran first in the process) and
-``float()`` never appears on any money path in this module.
+whose rounding a value would otherwise depend on whatever else ran first in the process), and
+this module never casts a value to the built-in floating-point type on any money path.
 """
 
 from __future__ import annotations

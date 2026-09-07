@@ -1,0 +1,17 @@
+-- D-07 float-in-money guard -- SQL half.
+--
+-- STUB. This query is deliberately commented out: no SQL schema owns a money-shaped column in
+-- Phase 1 (only the Python engine handles money, per D-07). It becomes real in Phase 4, when
+-- Prisma's schema first declares a monetary column.
+--
+-- The assertion this query will make once enabled: every monetary column is `numeric` or
+-- `text`, and never `double precision`/`real` -- the exact float representation D-07 forbids.
+-- Not wired into any CI job or migration check by this plan.
+--
+-- SELECT table_name, column_name, data_type
+-- FROM information_schema.columns
+-- WHERE table_schema = 'public'
+--   AND column_name ILIKE '%amount%' OR column_name ILIKE '%price%' OR column_name ILIKE '%size%'
+--   AND data_type NOT IN ('numeric', 'text');
+-- -- Expected result once enabled: zero rows. Any row returned is a money-shaped column typed
+-- -- as a float, which is the exact defect this guard exists to catch.
