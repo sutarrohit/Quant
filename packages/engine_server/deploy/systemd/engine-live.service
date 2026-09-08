@@ -1,0 +1,50 @@
+[Unit]
+Description=NautilusTrader engine live control plane
+Documentation=file:///opt/engine-server/docs/adr-001-live-execution.md
+After=network-online.target redis-server.service redis-server@redis-cache.service
+Wants=network-online.target
+# Both, and they must be different instances: DatabaseConfig exposes no DB
+# index (D15), so a shared server means a FLUSHDB on the queue erases live
+# position state.
+Requires=redis-server.service redis-server@redis-cache.service
+
+[Service]
+Type=exec
+User=nautilus
+Group=nautilus
+WorkingDirectory=/opt/engine-server
+EnvironmentFile=/etc/engine-server.env
+ExecStart=/opt/engine-server/.venv/bin/python -m engine.live.main
+
+Restart=always
+RestartSec=5
+
+# SIGTERM stops the nodes, marks them STOPPED and releases their leases, so a
+# restart picks the accounts up on the next pass rather than after a 90s
+# heartbeat timeout. Give that path room to finish; SIGKILL skips all of it,
+# which is what the heartbeat timeout exists to cover.
+KillSignal=SIGTERM
+TimeoutStopSec=30
+KillMode=mixed
+
+# Restarting will not clear a HALTED account -- that is deliberate. A node that
+# disagrees with the venue about money is not recovered by trying again, and an
+# operator re-states the desired state to clear it (spec section 10.3).
+
+MemoryMax=4G
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+# The kill-switch directory lives here, and must stay writable: it is the path
+# an operator uses when Redis and the API are both unreachable.
+ReadWritePaths=/var/lib/engine-server
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target

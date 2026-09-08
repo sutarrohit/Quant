@@ -1,0 +1,47 @@
+[Unit]
+Description=NautilusTrader engine backtest worker %i
+Documentation=file:///opt/engine-server/docs/nautilus-service-spec.md
+After=network-online.target redis-server.service
+Wants=network-online.target
+Requires=redis-server.service
+
+[Service]
+Type=exec
+User=nautilus
+Group=nautilus
+WorkingDirectory=/opt/engine-server
+EnvironmentFile=/etc/engine-server.env
+ExecStart=/opt/engine-server/.venv/bin/arq engine.worker.main.WorkerSettings
+
+Restart=always
+RestartSec=5
+
+# Templated because each worker runs exactly ONE backtest at a time
+# (max_jobs=1): a backtest saturates a core, so concurrent runs inside one
+# process would only make each other slower. Scale by instance:
+#   systemctl enable --now engine-worker@1 engine-worker@2
+
+# A Nautilus engine holds a lot of memory and a leaking worker OOMs the box.
+# Better to lose one job than the machine; arq marks it FAILED and the caller
+# sees a code rather than a hang.
+MemoryMax=4G
+OOMPolicy=kill
+
+# A backtest runs in a child process the runner kills at the timeout. Give the
+# parent longer than that ceiling so systemd is the backstop, not the mechanism.
+TimeoutStopSec=120
+KillMode=mixed
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/engine-server
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target

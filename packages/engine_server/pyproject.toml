@@ -1,0 +1,67 @@
+[project]
+name = "engine-server"
+version = "0.1.0"
+description = "NautilusTrader service: market-data catalog, DSL strategies, and backtest jobs."
+readme = "README.md"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "nautilus-trader==1.231.0",
+    "fastapi[standard]>=0.135.1",
+    "pydantic>=2.11",
+    "pydantic-settings>=2.13.1",
+    "arq>=0.26",
+    "redis>=5.2",
+    "pandas>=2.2",
+    "pyarrow>=18.0",
+    "httpx>=0.28.1",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+    "hypothesis>=6.120",
+    "ruff>=0.16.5",
+    "mypy>=1.14",
+    "respx>=0.22",
+    "fakeredis[lua]>=2.26",
+    "backtesting>=0.3",
+]
+
+[build-system]
+requires = ["uv_build>=0.12.9,<0.13.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "engine"
+module-root = "src"
+
+[tool.pytest.ini_options]
+addopts = ["--import-mode=importlib"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+# The Phase 3 acceptance tests run 100 real backtests. Deselect with
+#   uv run pytest -m "not slow"
+markers = ["slow: acceptance tests that run many real backtests"]
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "C4"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.13"
+files = ["src/engine"]
+
+[[tool.mypy.overrides]]
+module = ["engine.dsl.*", "engine.strategies.*", "engine.backtest.*"]
+strict = true
+
+[[tool.mypy.overrides]]
+module = ["nautilus_trader.*", "fsspec.*", "pyarrow.*"]
+ignore_missing_imports = true

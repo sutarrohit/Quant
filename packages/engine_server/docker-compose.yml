@@ -1,0 +1,126 @@
+# NautilusTrader service.
+#
+#   cp .env.example .env      # then set NT_INTERNAL_API_KEY
+#   docker compose up --build
+#
+# Four services and two Redis instances. Neither split is an arrangement of
+# convenience:
+#
+# * a backtest pins a CPU for minutes, so running one inside the API process
+#   would block the event loop and take the service down under two concurrent
+#   users (spec section 7.1);
+# * the live cache and the job queue are separate Redis **instances**, not
+#   separate logical databases, because Nautilus's DatabaseConfig exposes no DB
+#   index (docs/nautilus-api-notes.md D15) -- a `redis://host/5` URL's trailing
+#   /5 never reaches it. Both would land on database 0 of one instance, and a
+#   FLUSHDB aimed at the queue would erase live position state.
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: api
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NT_CATALOG_PATH: /data/catalog
+      NT_RAW_PATH: /data/raw
+      NT_ARTIFACT_PATH: /data/artifacts
+      NT_REDIS_URL: redis://redis:6379/0
+      NT_CACHE_REDIS_URL: redis://redis-cache:6379/0
+    ports:
+      - "8000:8000"
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      # Bind mounts, not named volumes: they keep the host uid, which matches
+      # the image's `app` user (uid 1000).
+      - ./catalog:/data/catalog
+      - ./raw:/data/raw
+      - ./artifacts:/data/artifacts
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: worker
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NT_CATALOG_PATH: /data/catalog
+      NT_ARTIFACT_PATH: /data/artifacts
+      NT_REDIS_URL: redis://redis:6379/0
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./catalog:/data/catalog
+      - ./artifacts:/data/artifacts
+    # Scale with `docker compose up --scale worker=4`. Each worker runs one
+    # backtest at a time (max_jobs=1), because a backtest saturates a core and
+    # concurrent runs would only make each other slower.
+
+  live:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: live
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NT_CATALOG_PATH: /data/catalog
+      NT_REDIS_URL: redis://redis:6379/0
+      NT_CACHE_REDIS_URL: redis://redis-cache:6379/0
+      NT_LIVE_KILL_SWITCH_DIR: /data/kill
+    depends_on:
+      redis:
+        condition: service_healthy
+      redis-cache:
+        condition: service_healthy
+    volumes:
+      - ./catalog:/data/catalog
+      # The on-disk kill switch, reachable from the host:
+      #   mkdir -p run/kill && touch run/kill/kill-acct_1
+      # It stops new orders within seconds and works when Redis and the API do
+      # not. `touch run/kill/kill-all` stops every account.
+      - ./run/kill:/data/kill
+    # Exactly one. Two supervisors is safe -- the lease allows only one node per
+    # account -- but it buys nothing here, and `deploy.replicas` would make the
+    # `holder` ambiguous in the logs.
+    stop_grace_period: 30s
+    # SIGTERM releases the leases so the next supervisor picks the accounts up
+    # on its next pass instead of after a 90s heartbeat timeout. Give it room.
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    # The arq job queue and the live desired-state records.
+    command: ["redis-server", "--appendonly", "yes"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    volumes:
+      - redis-data:/data
+
+  redis-cache:
+    image: redis:7-alpine
+    restart: unless-stopped
+    # Nautilus's live cache: open orders and positions. This is the state a
+    # restart recovers from, so it is persisted and kept away from anything
+    # that might reasonably be flushed.
+    command: ["redis-server", "--appendonly", "yes"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    volumes:
+      - redis-cache-data:/data
+
+volumes:
+  redis-data:
+  redis-cache-data:

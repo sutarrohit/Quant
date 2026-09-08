@@ -1,0 +1,80 @@
+{
+  "data": {
+    "bar_types": [
+      "BTCUSDT.BINANCE-15-MINUTE-LAST-EXTERNAL"
+    ],
+    "catalog_path": "./catalog",
+    "end_time": "2025-01-01T00:00:00+00:00",
+    "instrument_id": "BTCUSDT.BINANCE",
+    "start_time": "2023-01-01T00:00:00+00:00"
+  },
+  "dispose_on_completion": false,
+  "strategy": {
+    "config": {
+      "bar_type": "BTCUSDT.BINANCE-15-MINUTE-LAST-EXTERNAL",
+      "cost_bps": "15",
+      "instrument_id": "BTCUSDT.BINANCE",
+      "spec": {
+        "entry": {
+          "all": [
+            {
+              "indicator": "rsi",
+              "operator": "crossesAbove",
+              "period": 14,
+              "reference": null,
+              "value": "30"
+            }
+          ]
+        },
+        "exit": {
+          "any": [
+            {
+              "type": "takeProfitPercent",
+              "value": "4"
+            },
+            {
+              "type": "stopLossPercent",
+              "value": "2"
+            }
+          ]
+        },
+        "market": {
+          "exchange": "binance",
+          "marketType": "spot",
+          "symbols": [
+            "BTC/USDT"
+          ],
+          "timeframe": "15m"
+        },
+        "sizing": {
+          "riskPercent": "1",
+          "type": "riskPercent"
+        },
+        "strategyId": "btc-rsi-recovery",
+        "version": 4
+      },
+      "spec_hash": "4564ce612a37246edafa186616f8e04d567bf4305130c4b3844bf43b30e9d1e7",
+      "strategy_version_id": "sv_01K000000000000000000000"
+    },
+    "config_path": "engine.strategies.dsl_strategy:DslStrategyConfig",
+    "strategy_path": "engine.strategies.dsl_strategy:DslStrategy"
+  },
+  "venue": {
+    "account_type": "CASH",
+    "base_currency": null,
+    "fee_model": {
+      "config": {
+        "maker_bps": "1",
+        "slippage_bps": "5",
+        "taker_bps": "10"
+      },
+      "config_path": "engine.backtest.fees:BpsFeeModelConfig",
+      "fee_model_path": "engine.backtest.fees:BpsFeeModel"
+    },
+    "name": "BINANCE",
+    "oms_type": "NETTING",
+    "starting_balances": [
+      "10000 USDT"
+    ]
+  }
+}
