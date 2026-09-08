@@ -1,0 +1,67 @@
+# ---- Environment -------------------------------------------------------
+# Never commit real secrets. .env.example is the tracked template.
+.env
+.env.*
+!.env.example
+
+# ---- Python ------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtualenvs
+.venv/
+venv/
+env/
+
+# Packaging / build artifacts
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# ---- Tooling caches ----------------------------------------------------
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.hypothesis/
+.dmypy.json
+.tox/
+.nox/
+
+# ---- Coverage ----------------------------------------------------------
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# ---- Service data ------------------------------------------------------
+# Parquet market-data catalog (NT_CATALOG_PATH). Large and reproducible from
+# raw/ via the ingest CLI, so it is not tracked.
+/catalog/
+# Raw exchange responses (NT_RAW_PATH). The audit trail -- archived to object
+# storage, not to git.
+/raw/
+# Backtest result artifacts (NT_ARTIFACT_PATH).
+/artifacts/
+
+# Test fixtures ARE tracked; the golden-file tests depend on them.
+!tests/fixtures/**
+
+# ---- Editors / OS ------------------------------------------------------
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# The on-disk kill switch. The directory is tracked; the flags in it are
+# operational state, and a committed one would stop an account on deploy.
+run/kill/*
+!run/kill/.gitkeep
+
+# Soak-run logs. Operational output, not source.
+run/logs/
+
+# Venue keys. Mounted at runtime; never committed, in any form.
+run/secrets/

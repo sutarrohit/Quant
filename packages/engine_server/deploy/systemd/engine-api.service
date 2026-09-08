@@ -1,0 +1,37 @@
+[Unit]
+Description=NautilusTrader engine API
+Documentation=file:///opt/engine-server/docs/nautilus-service-spec.md
+After=network-online.target redis-server.service
+Wants=network-online.target
+Requires=redis-server.service
+
+[Service]
+Type=exec
+User=nautilus
+Group=nautilus
+WorkingDirectory=/opt/engine-server
+EnvironmentFile=/etc/engine-server.env
+ExecStart=/opt/engine-server/.venv/bin/fastapi run src/engine/api/app.py --host 0.0.0.0 --port 8000
+
+Restart=always
+RestartSec=2
+
+# The API validates and enqueues. It must never run a backtest (spec section
+# 7.1), so it needs no CPU headroom -- if this limit is ever the thing that
+# bites, something is running in the request handler that should not be.
+MemoryMax=1G
+
+# Hardening. The service reads a catalog and writes nothing but logs.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/engine-server
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target

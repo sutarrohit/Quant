@@ -1,0 +1,20 @@
+{
+  "averageHoldingSeconds": 130350,
+  "averageTrade": "12.48388849",
+  "cagr": "12.366671",
+  "endingEquity": "10099.51969505",
+  "exposurePercent": "58.400538",
+  "maxDrawdown": "-4.843449",
+  "medianTrade": "27.97895928",
+  "openPositions": 1,
+  "profitFactor": "1.151207",
+  "sharpe": "1.001084",
+  "sortino": "1.481901",
+  "startingEquity": "10000.00000000",
+  "totalFees": "119.97300076",
+  "totalReturn": "0.995197",
+  "totalSlippage": "59.98650038",
+  "tradeCount": 12,
+  "unrealizedPnl": "-50.28696680",
+  "winRate": "50.000000"
+}

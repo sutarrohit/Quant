@@ -1,0 +1,56 @@
+{
+  "spec": {
+    "strategyId": "btc-rsi-recovery",
+    "version": 1,
+    "market": {
+      "exchange": "binance",
+      "marketType": "spot",
+      "symbols": [
+        "BTC/USDT"
+      ],
+      "timeframe": "15m"
+    },
+    "entry": {
+      "all": [
+        {
+          "indicator": "rsi",
+          "period": 14,
+          "operator": "crossesAbove",
+          "value": "30"
+        }
+      ]
+    },
+    "exit": {
+      "any": [
+        {
+          "type": "takeProfitPercent",
+          "value": "4"
+        },
+        {
+          "type": "stopLossPercent",
+          "value": "2"
+        }
+      ]
+    },
+    "sizing": {
+      "type": "riskPercent",
+      "riskPercent": "1"
+    }
+  },
+  "strategyVersionId": "sv_soak_001",
+  "venue": "BINANCE",
+  "instrumentId": "BTCUSDT.BINANCE",
+  "barType": "BTCUSDT.BINANCE-15-MINUTE-LAST-EXTERNAL",
+  "mode": "SIMULATION",
+  "risk": {
+    "max_order_notional": "500",
+    "max_position_notional": "1000",
+    "max_open_positions": 1,
+    "daily_loss_limit": "200"
+  },
+  "fees": {
+    "maker_bps": "10",
+    "taker_bps": "10",
+    "slippage_bps": "5"
+  }
+}
