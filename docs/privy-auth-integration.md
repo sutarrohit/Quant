@@ -50,14 +50,15 @@ never issues, stores, or refreshes a session. It only verifies a token on each r
 
 Two things follow from this:
 
-- **We use the `privy-token` HttpOnly cookie, not an `Authorization` header.** The token is
-  never readable by JavaScript, which removes the XSS token-theft surface. This is viable
-  because cookies are scoped by *host*, not by port or origin — see the constraint in 2.1.
+- **We use the `privy-token` cookie, not an `Authorization` header.** In production it is
+  HttpOnly and therefore unreadable by page scripts, which removes the XSS token-theft
+  surface. **In development it is not** — see 2.2. This is viable at all because cookies are
+  scoped by *host*, not by port or origin — see 2.1.
 - **Our `user` table stops being an identity store.** Privy holds the credential, the
   email, the linked wallets. Our row exists only to hang domain data off (onboarding,
   tenancy, exchange accounts later). It is keyed by the Privy DID.
 
-### 2.1 The cookie constraint — read this before choosing a deploy topology
+### 2.1 Cookie scoping vs CORS — two independent gates
 
 CORS and cookie scoping are two independent gates. A request only carries the cookie if it
 passes **both**, and permissive CORS cannot rescue a cookie the browser declined to send.
@@ -77,31 +78,71 @@ What Privy actually does:
 - **`SameSite` defaults to `Strict`**, configurable to `Lax` in the dashboard. Neither value
   is `None`.
 
-That last line is the hard constraint. `SameSite` is evaluated on the registrable domain
-(eTLD+1), so:
+`SameSite` is evaluated on the registrable domain (eTLD+1), so **if the browser called the
+API directly**, this would be a hard constraint:
 
-- ✅ `app.example.com` (web) → `api.example.com` (API) — **same-site**, cookie is sent.
-- ✅ `example.com/api/*` behind one reverse proxy — same origin, no CORS needed at all.
-- ❌ `ourapp.vercel.app` (web) → `api.ourdomain.com` (API) — **cross-site**. `Strict` blocks
-  it, and `Lax` also blocks it (Lax permits top-level navigation, not `fetch` subresources).
-  Privy exposes no `SameSite=None`, so there is no configuration that makes this work.
+- ✅ `app.example.com` (web) → `api.example.com` (API) — same-site, cookie is sent.
+- ❌ `ourapp.vercel.app` (web) → `api.ourdomain.com` (API) — cross-site. `Strict` blocks it,
+  and `Lax` also blocks it (Lax permits top-level navigation, not `fetch` subresources).
+  Privy exposes no `SameSite=None`, so no configuration makes this work.
 
-**So: cookie auth commits us to serving web and API from one registrable domain in
-production.** If that's the plan, cookies are the better option and nothing below is a
-problem. If the frontend might land on a platform domain like `*.vercel.app` while the API
-sits elsewhere, this breaks at deploy time, not at review time — and the fallback is the
-Bearer header.
+### 2.1.1 The API rewrite dissolves it
+
+**The browser does not call the API directly.** `next.config.ts` rewrites `/api/v1/:path*` to
+the API server-side, so every request the browser makes is to the Next.js app's own origin:
+
+```
+browser ──same-origin──► Next.js ──server-to-server──► Hono API
+        (cookie always                (Next forwards the
+         sent; no CORS)                Cookie header)
+```
+
+Three consequences, and they are the reason this is worth doing:
+
+1. **The cookie is always same-origin.** `SameSite=Strict` is satisfied unconditionally.
+   There is no cross-site case left to reason about.
+2. **CORS stops applying.** No preflight, no `credentials` negotiation, no origin allowlist
+   for normal traffic. The API's CORS config becomes defence-in-depth for direct access
+   rather than load-bearing.
+3. **The API no longer needs to share a domain with the web app.** It can sit on any host.
+
+What remains is a much weaker requirement: **the web app must be on a domain you can
+DNS-verify with Privy**, because that is where Privy sets the cookie. A `*.vercel.app`
+frontend still cannot use cookie auth — you cannot verify a domain you do not own — but that
+is a constraint on one domain, not on the relationship between two.
+
+**Cost:** every API call takes an extra hop through the Next.js server, which on a serverless
+host is also an extra function invocation. Fine for request/response JSON. When a live market
+feed arrives later, that should bypass the rewrite rather than be tunnelled through it.
 
 ### 2.2 Operational cost of enabling cookies
 
-Cookie storage is opt-in; Privy's default is `localStorage`. Turning it on requires:
+Cookie storage is opt-in; Privy's default is `localStorage`. Turning it on requires **two
+separate Privy apps**, because a cookie-enabled production App ID "will only work in your
+production environment, and will error in all other environments." The App ID currently in
+`.env.example` (`cmu3mt6bp029x0cl5tnp2wku4`) becomes the dev one.
 
-1. **Two separate Privy apps** — one for development, one for production. Once cookies are
-   enabled on a production App ID it works *only* on its registered domain. The App ID
-   currently in `.env.example` (`cmu3mt6bp029x0cl5tnp2wku4`) becomes the dev one.
-2. **DNS domain verification** in the Privy dashboard for the production base domain
-   (registered without protocol or `www`). Propagation can take several hours — worth
-   starting before it's on the critical path.
+The two behave differently in a way worth understanding before testing locally:
+
+| | Development app ID | Production app ID |
+| --- | --- | --- |
+| Who sets the cookie | Privy's **client**, via JavaScript | Privy's **servers**, via `Set-Cookie` |
+| Where it lands | **any** domain, `localhost` included | only the DNS-verified domain + subdomains |
+| DNS verification | not required | required |
+| Cookie lifetime | 7 days | 30 days |
+
+Two consequences:
+
+- **No domain is needed to start.** Enable cookies on a dev app ID and `localhost:3000` works
+  immediately. DNS verification (registered without protocol or `www`, propagation measured in
+  hours) is a production-only task — but worth starting before it is on the critical path.
+- **`HttpOnly` only holds in production.** A cookie set by JavaScript cannot carry the
+  `HttpOnly` flag — `document.cookie` cannot set it; only a server can, via `Set-Cookie`.
+  Privy does not state this outright, but it follows from the platform rule and matches their
+  describing the shorter dev lifetime as "a security precaution". So the local cookie is
+  readable by page scripts. Everything else — cookie name, request flow, `requireAuth` — is
+  identical, so local testing still validates correctness; it just does not validate the
+  XSS property. Do not read "it works locally" as having proven that.
 
 ### 2.3 CSRF
 
@@ -112,8 +153,15 @@ Cookies are attached automatically, so the trade has to be paid for:
 - Our API is JSON-only, so state-changing requests carry `Content-Type: application/json`,
   which forces a CORS preflight that a strict `origin` allowlist rejects.
 
-Those two together are adequate here. But if `SameSite` is ever relaxed to `Lax`, this needs
-revisiting with a real CSRF token on state-changing routes.
+**The API rewrite changes the weight these carry.** Proxied calls are same-origin, so they are not
+preflighted — the second defence does not apply to them, and protection rests on
+`SameSite=Strict` alone. That is still sound: `Strict` withholds the cookie from any request
+initiated by another site, including a cross-origin `fetch` with `credentials: 'include'`
+aimed at our own rewrite path.
+
+But it means the margin is thinner than it looks. If `SameSite` is ever relaxed to `Lax` in
+the dashboard, this needs a real CSRF token on state-changing routes — there is no longer a
+preflight quietly backing it up.
 
 ---
 
@@ -192,7 +240,7 @@ export const requireAuth = createMiddleware<AppBinding>(async (c, next) => {
 
   let claims;
   try {
-    claims = await privy.utils().auth().verifyAccessToken({ access_token: token });
+    claims = await privy.utils().auth().verifyAccessToken(token);
   } catch {
     // Expired or forged. The client refreshes the session and retries — see 5.3.
     throw new ApiError(401, 'UNAUTHORIZED', 'Invalid or expired token');
@@ -201,8 +249,8 @@ export const requireAuth = createMiddleware<AppBinding>(async (c, next) => {
   // Just-in-time provisioning: Privy is the identity source of truth, so the first
   // authenticated request a user ever makes is what creates their local row.
   const user = await prisma.user.upsert({
-    where: { privyDid: claims.userId },
-    create: { privyDid: claims.userId },
+    where: { privyDid: claims.user_id },
+    create: { privyDid: claims.user_id },
     update: {},
   });
 
@@ -211,8 +259,18 @@ export const requireAuth = createMiddleware<AppBinding>(async (c, next) => {
 });
 ```
 
-Claims returned by `verifyAccessToken`: `userId` (the Privy DID, e.g. `did:privy:abc123`),
-`appId`, `sessionId`, `issuer` (always `privy.io`), `issuedAt`, `expiration`.
+Claims returned by `verifyAccessToken` are **snake_case**: `user_id` (the Privy DID, e.g.
+`did:privy:abc123`), `app_id`, `session_id`, `issuer` (always `privy.io`), `issued_at`,
+`expiration`.
+
+> ⚠️ **Privy's own docs are wrong here, in two ways.** They show
+> `verifyAccessToken({ access_token: token })` returning `claims.userId`. Against
+> `@privy-io/node@0.34.0`'s published types, the `privy.utils().auth()` method takes a **bare
+> string**, and the response type `VerifyAccessTokenResponse` is snake_case. Writing
+> `claims.userId` compiles to `undefined` and would silently provision every user with a null
+> DID. (The *standalone* `verifyAccessToken({ access_token, app_id, verification_key })` export
+> does take an object — that is the shape the docs are describing, but it is a different
+> function from the client method.) Verified by reading the package's `.d.ts`, not the docs.
 
 ### 4.4 Actually applying it
 
@@ -240,6 +298,10 @@ cors({
 })
 ```
 
+- **CORS is now defence-in-depth, not load-bearing.** Normal traffic arrives via the rewrite as
+  a server-to-server call, which CORS does not apply to at all. This config only governs a
+  browser reaching the API *directly* — keep it strict precisely because that is the path we
+  do not intend anyone to use.
 - **`origin` can never become `'*'`.** The browser rejects a wildcard origin on any
   credentialed request. If we ever need multiple frontends, pass a function that echoes back
   a match from an allowlist — never a wildcard.
@@ -294,14 +356,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   const queryClient = getQueryClient();
 
   return (
-    <PrivyProvider
-      appId={env.NEXT_PUBLIC_PRIVY_APP_ID}
-      clientId={env.NEXT_PUBLIC_PRIVY_CLIENT_ID}
-      config={{
-        loginMethods: ['email', 'wallet'],
-        embeddedWallets: { createOnLogin: 'users-without-wallets' },
-      }}
-    >
+    <PrivyProvider appId={env.NEXT_PUBLIC_PRIVY_APP_ID} clientId={env.NEXT_PUBLIC_PRIVY_CLIENT_ID}>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           {children}
@@ -312,8 +367,18 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 }
 ```
 
-`loginMethods` and `embeddedWallets` are the open question in section 7 — the values above
-are a placeholder, not a decision.
+**No `config` is passed, deliberately.** Two reasons, both verified against
+`@privy-io/react-auth@3.43.0`'s types:
+
+- `config.loginMethods` can only display a **subset of the methods already enabled in the
+  Privy dashboard** — it cannot add one. Omitting it keeps the dashboard as the single place
+  that decision lives, rather than splitting it across two.
+- `config.embeddedWallets` defaults to `'off'`, and enabling it is the product decision in
+  section 7.2. Its real shape is **per-chain**, not the flat form Privy's docs show:
+  `embeddedWallets: { ethereum: { createOnLogin: 'users-without-wallets' } }`.
+
+`clientId` is optional in the SDK, so `NEXT_PUBLIC_PRIVY_CLIENT_ID` is optional in
+`apps/web/env.ts` too — only some dashboard configurations issue one.
 
 ### 5.3 Sending the cookie with API calls
 
@@ -321,10 +386,12 @@ This is where the cookie approach pays off — there is no token plumbing at all
 
 ```ts
 // apps/web/utils/request.ts
+const API_BASE = '/api/v1';   // relative — the rewrite in next.config.ts forwards it
+
 export async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
-    credentials: 'include',        // ← the whole change
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
       ...options?.headers,
@@ -335,9 +402,9 @@ export async function request<T>(path: string, options?: RequestInit): Promise<T
 }
 ```
 
-`credentials: 'include'` is required even though the cookie is same-site: the default
-(`same-origin`) drops it, because `:3000` → `:4000` is a different *origin* even when it is
-the same *site*.
+The base is **relative**, which is what routes the call through the rewrite. A side benefit:
+`NEXT_PUBLIC_API_URL` is gone entirely — the API's address is now `API_URL` in
+`next.config.ts`, server-only, and no longer ships in the client bundle.
 
 Note the ordering fix while we're here: today `...options` comes *after* `headers`, so any
 caller passing `headers` silently wipes the `Content-Type`.
@@ -374,6 +441,62 @@ export function LoginButton() {
 `ready` guards against a flash of the signed-out state during rehydration — check it before
 reading `authenticated`.
 
+### 5.5 Public and protected routes
+
+Route groups split the tree without affecting URLs:
+
+```
+app/
+  layout.tsx              root — Providers (PrivyProvider lives here)
+  (public)/
+    page.tsx              /
+    login/page.tsx        /login
+  (protected)/
+    layout.tsx            client-side guard + app chrome
+    dashboard/page.tsx    /dashboard
+  refresh/page.tsx        /refresh — session-refresh bounce
+proxy.ts                  request gate (project root, beside app/)
+```
+
+> **Two different things are called "proxy" here.** Next 16 renamed the
+> `middleware.ts` convention to **`proxy.ts`** (the function must be named `proxy`; one
+> still named `middleware` is never called). That is unrelated to the **API rewrite** in
+> `next.config.ts` from section 2.1.1. Below, "Proxy" capitalised means `proxy.ts`;
+> "the rewrite" means the `next.config.ts` forwarding.
+
+Gating happens in three places, and it matters that only one of them is a security boundary:
+
+| Layer | Checks | Is it a security boundary? |
+| --- | --- | --- |
+| `proxy.ts` (Next's Proxy) | whether the `privy-token` cookie *exists* | **No** |
+| `(protected)/layout.tsx` | `usePrivy().authenticated` on the client | **No** |
+| `requireAuth` on the API | the token's ES256 signature | **Yes** |
+
+The first two only stop protected *chrome* from rendering to someone obviously signed out.
+Neither verifies anything — a cookie's presence is not proof it is valid. **Never render data
+that did not come back through the API**, which is the only layer that actually verifies.
+
+Proxy exists because a full page load would otherwise flash protected UI; the layout guard
+exists because a *client-side* navigation into the group does not re-run Proxy.
+
+Next's own documentation is blunt about this: Proxy "should not be used as a full session
+management or authorization solution". It is an optimistic check, and we treat it as one.
+
+**Server Functions are the trap.** They are not separate routes — they are POSTs to whichever
+route uses them, so a matcher that excludes a path excludes its Server Functions too, and
+moving one to a different route can silently drop Proxy coverage. Any Server Function added
+later must authorize itself rather than inherit protection from `proxy.ts`.
+
+**The `privy-session` case.** If `privy-token` is absent but `privy-session` is present, the
+access token expired while the session is still alive. Redirecting to `/login` there would
+sign out a user who is actually authenticated. Instead Proxy redirects to `/refresh`,
+which calls `getAccessToken()` — re-minting the token and rewriting the cookie — and then
+continues to the original destination, carried through as `?redirect_uri=`.
+
+**The matcher excludes `/api`.** Rewritten API calls must receive the Hono API's JSON 401. If
+Proxy redirected them, `fetch` would follow the redirect and get HTML with a 200 status,
+and `handleResponse` would throw on unparseable JSON instead of surfacing an auth error.
+
 ---
 
 ## 6. Database
@@ -400,21 +523,34 @@ model User {
 // emailVerified is deleted — Privy's linked-account state is the truth.
 ```
 
-**Why the tables are still in the repo:** dropping `session` / `account` / `verification`
-requires a destructive migration against the tables created by
-`20260906125454_phase1_trials_and_symbol_snapshots`. Doing that now, and then adding
-`privyDid` in a second migration once this doc is approved, means two destructive migrations
-where one will do. They land together with the Privy implementation.
+**The migration is not committed.** Both `schema.prisma` files carry the change above, but
+no migration SQL is in `prisma/migrations/`. That is deliberate: a hand-written migration
+that does not byte-match what Prisma generates causes drift-detection pain on the next
+`migrate dev`, and this change could not be generated here (no reachable database —
+`.env` still holds the `.env.example` placeholders). Generate it against a real database:
+
+```bash
+pnpm --filter @repo/prisma exec prisma migrate dev --name privy_auth
+```
+
+It will `DROP TABLE` session, account and verification, drop `user.emailVerified`, make
+`name`/`email` nullable, and add `user.privyDid` with a unique index. **`privyDid` is
+`NOT NULL` with no default**, so this fails if the `user` table has rows — which is fine
+pre-launch, and is the backfill question in section 7.3 otherwise.
+
+Note that `apps/server` generates its Prisma client from its *own* copy of the schema
+(`lib/prisma.ts` imports `../../prisma/generated/client.js`), so after migrating from the
+root package, `apps/server` still needs its own `db:generate`. That duplication is the
+Phase 4 merge described in `prisma/README.md`, not something this change introduces.
 
 ---
 
 ## 7. Open decisions
 
-1. **Where do web and API get deployed?** This is now the blocking question, not a detail.
-   Cookie auth requires both on one registrable domain (`app.x.com` + `api.x.com`, or one
-   host with the API behind a path). Confirm that before the DNS verification in 2.2 is
-   started, because a `*.vercel.app` frontend against a separately-domained API cannot use
-   the cookie at all and would force the Bearer-header variant instead.
+1. **What domain does the web app get?** Downgraded from blocking by the API rewrite in 2.1.1 —
+   the API can now live anywhere. What still matters is that the *web app* runs on a domain
+   you can DNS-verify with Privy, since that is where the cookie is set. A `*.vercel.app`
+   URL cannot be verified; a custom domain pointed at Vercel can.
 
 2. **What is Privy actually for here?** If it's just a login provider, `loginMethods:
    ['email']` and no embedded wallets. If the draw is the embedded wallet — signing, and
