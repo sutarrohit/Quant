@@ -1,6 +1,7 @@
 'use client';
 import { useQuery } from '@tanstack/react-query';
 
+import { WalletAddress } from '@/components/auth/wallet-address';
 import { onboardingStatusQueryOptions } from '@/lib/api/user/user-queries';
 
 // Minimal protected page. Its real purpose is to prove the full path end to end:
@@ -12,6 +13,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-2">
       <h1 className="text-xl font-semibold">Dashboard</h1>
+      <WalletAddress />
       {isPending && <p className="text-muted-foreground text-sm">Loading…</p>}
       {error && <p className="text-destructive text-sm">{error.message}</p>}
       {data && (

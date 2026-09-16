@@ -1,7 +1,9 @@
 # Privy auth integration (Hono backend + Next.js frontend)
 
-**Status:** proposal — nothing below is implemented yet. better-auth has been removed;
-this document is the replacement plan, written for review before any Privy code lands.
+**Status:** implemented and verified end to end against a live login. Written first as a
+plan, then corrected in place wherever the running system disagreed with Privy's docs —
+those corrections are called out inline, because most of them are the kind that fail
+silently.
 
 ---
 
@@ -18,12 +20,12 @@ better-auth was scaffolded but never actually wired up. What existed and has now
 
 The frontend never had any auth code at all.
 
-**Consequence right now:** `/api/v1/user/*` is unauthenticated and `c.get('user')` is
-`undefined` at runtime. That was already true before the removal — the routes were never
-guarded. It stays true until section 4 lands.
+Note what that list means: the removal deleted *dead code*, not working auth. Until section
+4 landed, `/api/v1/user/*` was unauthenticated and `c.get('user')` was `undefined` at
+runtime — and that was already true before better-auth was removed, because `requireAuth`
+was never applied to any route. `requireAuth` is now actually mounted (4.4).
 
-Still present, deliberately untouched (see section 6): the `session`, `account` and
-`verification` tables in `prisma/schema.prisma`.
+The `session`, `account` and `verification` tables are gone from both schemas (section 6).
 
 ---
 
@@ -40,12 +42,14 @@ never issues, stores, or refreshes a session. It only verifies a token on each r
   └────┬─────┘   access token     └────────────┘
        │         (ES256 JWT, ~1h)
        │
-       │  Cookie: privy-token=<jwt>   (HttpOnly, sent automatically)
+       │  Cookie: privy-token=<jwt>  (production)
+       │  Authorization: Bearer <jwt>  (fallback — see 4.3)
        ▼
   ┌──────────┐
-  │   Hono   │  verifyAccessToken(jwt)  →  { userId: "did:privy:...", sessionId, ... }
-  │ (server) │  upsert local User row keyed by privyDid
-  └──────────┘  → c.set('user', user)
+  │   Hono   │  verifyAccessToken(jwt) → { user_id: "did:privy:…", session_id, … }
+  │ (server) │  find-or-create local User row keyed by privyDid,
+  └──────────┘  fetching email/name from linked accounts on first sight
+               → c.set('user', user)
 ```
 
 Two things follow from this:
