@@ -67,6 +67,9 @@ RUN export LOG_LEVEL=info \
       DATABASE_URL=postgresql://placeholder:placeholder@localhost:5432/db \
       DIRECT_URL=postgresql://placeholder:placeholder@localhost:5432/db \
       PUBLIC_URL=http://localhost:4000 \
+      PRIVY_APP_ID=build-time-placeholder \
+      PRIVY_APP_SECRET=build-time-placeholder \
+      PRIVY_VERIFICATION_KEY=build-time-placeholder \
     && pnpm --filter @repo/api db:generate \
     && pnpm --filter @repo/api build
 

@@ -14,10 +14,15 @@ export default function createApp() {
   app.use(pinoLogger());
   app.use(rateLimiter);
 
+  // `credentials: true` is what lets the browser attach the privy-token cookie
+  // on a cross-origin call. It requires an exact `origin` -- the browser rejects
+  // a wildcard on any credentialed request, so FRONTEND_URL must never become '*'.
+  // For multiple frontends, pass a function that echoes a match from an allowlist.
   app.use(
     '*',
     cors({
       origin: env.FRONTEND_URL,
+      allowHeaders: ['Content-Type'],
       allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
       credentials: true,
     })

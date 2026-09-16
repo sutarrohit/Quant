@@ -17,6 +17,13 @@ const EnvSchema = z.object({
   DATABASE_URL: z.url(),
   DIRECT_URL: z.url(),
   PUBLIC_URL: z.url(), // public base URL used to register the webhook
+
+  // Privy. APP_ID must name the same Privy app the frontend uses, or every
+  // token fails its audience check. VERIFICATION_KEY is the app's public key
+  // from the dashboard; it makes verification local instead of a network call.
+  PRIVY_APP_ID: z.string().min(1),
+  PRIVY_APP_SECRET: z.string().min(1),
+  PRIVY_VERIFICATION_KEY: z.string().min(1),
 });
 
 export type env = z.infer<typeof EnvSchema>;

@@ -7,18 +7,19 @@ import type { PinoLogger } from 'hono-pino';
 // `c.get('logger')` are fully typed in route handlers.
 // ---------------------------------------------------------------------------
 
-// User shape set by the auth middleware on the Hono context.
+// Local user row attached by requireAuth. Mirrors the Prisma `User` model.
 //
-// NOTE: there is currently NO auth middleware. better-auth was removed and Privy
-// has not been wired up yet (see docs/privy-auth-integration.md), so `c.get('user')`
-// is undefined at runtime and every route below is unauthenticated. This interface
-// is a placeholder kept so the existing handlers still type-check; the Privy work
-// replaces it with a `privyDid`-keyed shape.
+// `name` and `email` are nullable because Privy identifies a user by DID, and a
+// wallet-only login carries neither. Never key domain data off `email`.
 export interface AuthUser {
   id: string;
-  name: string;
-  email: string;
-  image?: string | null;
+  privyDid: string;
+  name: string | null;
+  email: string | null;
+  image: string | null;
+  onboardingCompletedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 // Shared Hono/OpenAPI types used across the app and its routes.
