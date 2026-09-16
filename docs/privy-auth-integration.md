@@ -117,6 +117,9 @@ feed arrives later, that should bypass the rewrite rather than be tunnelled thro
 
 ### 2.2 Operational cost of enabling cookies
 
+Thanks to the Bearer fallback in 4.3, none of this blocks local development — it is required
+only for the production HttpOnly path.
+
 Cookie storage is opt-in; Privy's default is `localStorage`. Turning it on requires **two
 separate Privy apps**, because a cookie-enabled production App ID "will only work in your
 production environment, and will error in all other environments." The App ID currently in
@@ -235,7 +238,11 @@ import { prisma } from '../lib/prisma.js';
 import type { AppBinding } from '../types/index.js';
 
 export const requireAuth = createMiddleware<AppBinding>(async (c, next) => {
-  const token = getCookie(c, 'privy-token');
+  const cookieToken = getCookie(c, 'privy-token');
+  // Capture, don't strip: a bare `Authorization: Bearer` must not yield the
+  // literal string "Bearer" as the token.
+  const headerToken = c.req.header('authorization')?.match(/^Bearer\s+(\S.*)$/i)?.[1]?.trim();
+  const token = cookieToken || headerToken;
   if (!token) throw new ApiError(401, 'UNAUTHORIZED', 'Authentication required');
 
   let claims;
@@ -258,6 +265,46 @@ export const requireAuth = createMiddleware<AppBinding>(async (c, next) => {
   await next();
 });
 ```
+
+**Both a cookie and a Bearer header are accepted**, cookie first. The cookie is the
+production path; the header is what makes local development work before cookies are enabled
+in the Privy dashboard, since a fresh Privy app defaults to `localStorage` and sets no cookie
+at all. Accepting both adds no CSRF surface — a cross-origin attacker cannot set a custom
+header without our CORS approval — so this costs nothing and takes dashboard setup off the
+critical path.
+
+**The token carries no profile data.** Its claims are the DID and session metadata — no
+email, no name. So `requireAuth` provisions with a read-then-create rather than an upsert,
+and fetches the profile from Privy's API on first sight of a user:
+
+```ts
+let user = await prisma.user.findUnique({ where: { privyDid: claims.user_id } });
+if (!user) {
+  const privyUser = await privy.users()._get(claims.user_id);   // by DID
+  const profile = profileFromLinkedAccounts(privyUser.linked_accounts);
+  user = await prisma.user.create({ data: { privyDid: claims.user_id, ...profile } });
+}
+```
+
+Three things about that shape are deliberate:
+
+- **Read-then-create, not upsert.** The profile fetch must happen once per user lifetime, not
+  per request. Keying it off "row has no email" would re-fetch forever for wallet-only users,
+  who legitimately never have one.
+- **`_get`, with the underscore.** `PrivyUsersService` shadows the inherited `get()` with an
+  identity-token parser, so the by-DID lookup is exposed as `_get`. An identity token would
+  avoid the API call, but needs dashboard configuration and is explicitly documented as
+  possibly incomplete "due to the size constraints of the identity token".
+- **A failed lookup is non-fatal.** The token already verified, so the request *is*
+  authenticated; failing it because Privy's REST API blipped is worse than a row with null
+  profile fields. The create is also wrapped, because two concurrent first requests both see
+  no row and one loses the unique index.
+
+Profile fields come from *linked accounts*, whose shapes differ by login method — and this is
+the part that surprises: **an email-OTP login carries no name.** `LinkedAccountEmail` is just
+`{ type: 'email', address }`. Only OAuth providers carry `name`. So signing in with an
+`@gmail.com` address via email OTP yields an email and a null name; signing in via *Google*
+(`google_oauth`) yields both. Null name is correct behaviour, not a missing field.
 
 Claims returned by `verifyAccessToken` are **snake_case**: `user_id` (the Privy DID, e.g.
 `did:privy:abc123`), `app_id`, `session_id`, `issuer` (always `privy.io`), `issued_at`,
@@ -292,7 +339,7 @@ exactly what cookie auth needs. Two notes:
 ```ts
 cors({
   origin: env.FRONTEND_URL,       // MUST stay an exact origin
-  allowHeaders: ['Content-Type'],
+  allowHeaders: ['Content-Type', 'Authorization'],
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   credentials: true,
 })
@@ -380,9 +427,12 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 `clientId` is optional in the SDK, so `NEXT_PUBLIC_PRIVY_CLIENT_ID` is optional in
 `apps/web/env.ts` too — only some dashboard configurations issue one.
 
-### 5.3 Sending the cookie with API calls
+### 5.3 Sending credentials with API calls
 
-This is where the cookie approach pays off — there is no token plumbing at all. One line:
+`credentials: 'include'` carries the cookie; `getAccessToken()` supplies a Bearer header as a
+fallback for when Privy is still on its default `localStorage` storage and no cookie exists.
+Sending both means local development needs no dashboard setup, and production still uses the
+HttpOnly cookie path:
 
 ```ts
 // apps/web/utils/request.ts
@@ -394,6 +444,7 @@ export async function request<T>(path: string, options?: RequestInit): Promise<T
     credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options?.headers,
     },
   });
@@ -401,6 +452,9 @@ export async function request<T>(path: string, options?: RequestInit): Promise<T
   return handleResponse(res);
 }
 ```
+
+`getAccessToken()` is wrapped in a try/catch at the call site — it throws rather than
+returning `null` when reached during SSR or before Privy has rehydrated.
 
 The base is **relative**, which is what routes the call through the rewrite. A side benefit:
 `NEXT_PUBLIC_API_URL` is gone entirely — the API's address is now `API_URL` in
