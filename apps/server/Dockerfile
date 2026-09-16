@@ -66,8 +66,10 @@ COPY packages/typescript-config packages/typescript-config
 RUN export LOG_LEVEL=info \
       DATABASE_URL=postgresql://placeholder:placeholder@localhost:5432/db \
       DIRECT_URL=postgresql://placeholder:placeholder@localhost:5432/db \
-      BETTER_AUTH_SECRET=build-time-placeholder-secret-000 \
       PUBLIC_URL=http://localhost:4000 \
+      PRIVY_APP_ID=build-time-placeholder \
+      PRIVY_APP_SECRET=build-time-placeholder \
+      PRIVY_VERIFICATION_KEY=build-time-placeholder \
     && pnpm --filter @repo/api db:generate \
     && pnpm --filter @repo/api build
 

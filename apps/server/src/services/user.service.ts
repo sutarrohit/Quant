@@ -23,10 +23,11 @@ export class UserService {
   async getOnboardingStatus(userId: string): Promise<{ completed: boolean }> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
+      select: { onboardingCompletedAt: true },
     });
     if (!user) throw new ApiError(404, 'USER_NOT_FOUND', 'User not found');
 
-    return { completed: user.id ? true : false };
+    return { completed: user.onboardingCompletedAt !== null };
   }
 
   // Idempotent: the `null` guard means a repeated call can't move the timestamp,

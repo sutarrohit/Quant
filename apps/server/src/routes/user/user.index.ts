@@ -1,4 +1,5 @@
 import { createRouter } from '../../lib/create-app.js';
+import { requireAuth } from '../../middlewares/index.middleware.js';
 
 import { completeOnboardingHandler, getOnboardingStatusHandler } from './user.handler.js';
 import { completeOnboardingRoute, getOnboardingStatusRoute } from './user.route.js';
@@ -13,8 +14,17 @@ import { completeOnboardingRoute, getOnboardingStatusRoute } from './user.route.
 //   POST /api/v1/user/complete-onboarding → 204 No Content
 // ---------------------------------------------------------------------------
 
-const userRouter = createRouter()
+const userRouter = createRouter();
+
+// requireAuth runs before every route on this router, so `c.get('user')` is
+// always populated in the handlers below. Without this line the routes are
+// publicly readable -- which is exactly what the better-auth scaffold got wrong.
+//
+// Applied as its own statement rather than chained: Hono's `use()` is typed to
+// return `Hono<...>`, not `this`, so chaining it ahead of `.openapi()` would
+// erase the OpenAPIHono type that `.openapi()` lives on.
+userRouter.use('*', requireAuth);
+
+export default userRouter
   .openapi(getOnboardingStatusRoute, getOnboardingStatusHandler)
   .openapi(completeOnboardingRoute, completeOnboardingHandler);
-
-export default userRouter;
