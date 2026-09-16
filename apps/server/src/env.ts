@@ -16,7 +16,6 @@ const EnvSchema = z.object({
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']),
   DATABASE_URL: z.url(),
   DIRECT_URL: z.url(),
-  BETTER_AUTH_SECRET: z.string().min(16), // signing secret for better-auth sessions/tokens
   PUBLIC_URL: z.url(), // public base URL used to register the webhook
 });
 

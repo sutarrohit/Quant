@@ -24,7 +24,6 @@
     "@hono/zod-openapi": "^1.4.0",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
-    "better-auth": "^1.6.20",
     "dotenv": "^17.2.4",
     "dotenv-expand": "^12.0.3",
     "hono": "^4.12.23",

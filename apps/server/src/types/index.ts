@@ -7,8 +7,13 @@ import type { PinoLogger } from 'hono-pino';
 // `c.get('logger')` are fully typed in route handlers.
 // ---------------------------------------------------------------------------
 
-// User shape set by the auth middleware (better-auth) on the Hono context.
-// Adjust this interface to match the fields your auth middleware provides.
+// User shape set by the auth middleware on the Hono context.
+//
+// NOTE: there is currently NO auth middleware. better-auth was removed and Privy
+// has not been wired up yet (see docs/privy-auth-integration.md), so `c.get('user')`
+// is undefined at runtime and every route below is unauthenticated. This interface
+// is a placeholder kept so the existing handlers still type-check; the Privy work
+// replaces it with a `privyDid`-keyed shape.
 export interface AuthUser {
   id: string;
   name: string;
