@@ -22,7 +22,7 @@ export default function createApp() {
     '*',
     cors({
       origin: env.FRONTEND_URL,
-      allowHeaders: ['Content-Type'],
+      allowHeaders: ['Content-Type', 'Authorization'],
       allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
       credentials: true,
     })
