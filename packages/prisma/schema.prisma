@@ -31,9 +31,46 @@ model User {
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 
+  wallets Wallet[]
+
   @@unique([privyDid])
   @@unique([email])
   @@map("user")
+}
+
+// Wallets Privy has linked to the user, mirrored from its `linked_accounts` --
+// never from the browser. The server re-reads them from Privy's API and writes
+// what it finds; a client-supplied address is a claim, not a fact.
+//
+// A row per wallet rather than a column on `user`: apps/web sets
+// `embeddedWallets.ethereum.createOnLogin = 'all-users'`, so every user gets a
+// Privy-embedded wallet at first login, and a user who *also* connects an
+// external wallet (or a second chain) has more than one.
+//
+// `walletClient` is Privy's own discriminator, stored verbatim: `privy` is the
+// embedded wallet the platform can rely on existing, anything else is a wallet
+// the user connected. `privyWalletId` exists only for embedded wallets -- it is
+// the handle Privy's server-side wallet API takes, which an external wallet has
+// no equivalent of.
+//
+// Addresses are stored exactly as Privy returns them, which for Ethereum means
+// EIP-55 checksummed. Every write comes through that one source so the unique
+// index stays consistent, but a lookup by a hand-lowercased address will miss.
+model Wallet {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String    @map("user_id")
+  address         String
+  chainType       String    @map("chain_type")
+  walletClient    String    @map("wallet_client")
+  privyWalletId   String?   @map("privy_wallet_id")
+  firstVerifiedAt DateTime? @map("first_verified_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([chainType, address])
+  @@index([userId])
+  @@map("wallet")
 }
 
 // --- Phase 1 quant tables (VALID-01, DATA-03) ---

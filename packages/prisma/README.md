@@ -80,7 +80,8 @@ with no `@map` anywhere on them). Every multi-word field on the three quant mode
 explicit `@map("snake_case_name")` so the physical columns are snake_case, matching the
 hand-declared SQLAlchemy Core columns in `engine/persistence/`. `User` keeps its camelCase
 columns: it is `apps/server`'s live table, and renaming those columns is a migration of its own,
-not a side effect of this one.
+not a side effect of this one. Everything added since follows the snake_case convention, `wallet`
+included — `User` is the exception, not the pattern.
 
 ## No deduplication, ever
 

@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 
 import { LoginButton } from '@/components/auth/login-button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useWalletSync } from '@/hooks/use-wallet-sync';
 
 // Second layer behind proxy.ts, not a replacement for it.
 //
@@ -13,6 +14,13 @@ import { Skeleton } from '@/components/ui/skeleton';
 // the security boundary -- requireAuth on the API is.
 export default function ProtectedLayout({ children }: { children: ReactNode }) {
   const { ready, authenticated } = usePrivy();
+
+  // Here rather than on the dashboard: the wallet is created at first login, and
+  // this layout is the first protected thing that renders afterwards, whichever
+  // page the user lands on. It renders nothing and no-ops once the wallet is
+  // stored -- see the hook for why the browser only signals, never supplies the
+  // address.
+  useWalletSync();
 
   if (!ready) {
     return (

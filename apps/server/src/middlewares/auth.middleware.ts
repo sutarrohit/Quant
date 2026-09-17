@@ -2,8 +2,10 @@ import { getCookie } from 'hono/cookie';
 import { createMiddleware } from 'hono/factory';
 
 import { ApiError } from '../lib/api-error.js';
+import { walletService } from '../lib/container.js';
 import { prisma } from '../lib/prisma.js';
 import { profileFromLinkedAccounts } from '../lib/privy-profile.js';
+import { walletsFromLinkedAccounts, type PrivyWallet } from '../lib/privy-wallets.js';
 import { privy } from '../lib/privy.js';
 import type { AppBinding } from '../types/index.js';
 
@@ -63,9 +65,14 @@ export const requireAuth = createMiddleware<AppBinding>(async (c, next) => {
 
   if (!user) {
     let profile: { email: string | null; name: string | null } = { email: null, name: null };
+    let wallets: PrivyWallet[] = [];
     try {
       const privyUser = await privy.users()._get(claims.user_id);
       profile = profileFromLinkedAccounts(privyUser.linked_accounts);
+      // Same payload, no second call. Often empty at this point: the embedded
+      // wallet is created in the browser, so the first authenticated request can
+      // beat it. POST /user/wallets/sync is what closes that gap.
+      wallets = walletsFromLinkedAccounts(privyUser.linked_accounts);
     } catch (err) {
       // Non-fatal. The token already verified, so the request IS authenticated;
       // failing it because Privy's REST API blipped would be worse than a row
@@ -79,6 +86,17 @@ export const requireAuth = createMiddleware<AppBinding>(async (c, next) => {
       // Concurrent first requests race here: both see no row, both create, one
       // loses on the unique index. Re-read rather than surface a 500.
       user = await prisma.user.findUnique({ where: { privyDid: claims.user_id } });
+    }
+
+    if (user && wallets.length > 0) {
+      try {
+        await walletService.sync(user.id, wallets);
+      } catch (err) {
+        // Also non-fatal, and for the same reason: the wallet is Privy's to own
+        // and this sync is repeatable, so a failed write costs one round trip on
+        // the next sync rather than the user's session.
+        c.get('logger')?.warn({ err }, 'wallet sync failed during provisioning');
+      }
     }
   }
 

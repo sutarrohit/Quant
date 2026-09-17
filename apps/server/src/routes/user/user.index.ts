@@ -1,8 +1,18 @@
 import { createRouter } from '../../lib/create-app.js';
 import { requireAuth } from '../../middlewares/index.middleware.js';
 
-import { completeOnboardingHandler, getOnboardingStatusHandler } from './user.handler.js';
-import { completeOnboardingRoute, getOnboardingStatusRoute } from './user.route.js';
+import {
+  completeOnboardingHandler,
+  getOnboardingStatusHandler,
+  listWalletsHandler,
+  syncWalletsHandler,
+} from './user.handler.js';
+import {
+  completeOnboardingRoute,
+  getOnboardingStatusRoute,
+  listWalletsRoute,
+  syncWalletsRoute,
+} from './user.route.js';
 
 // ---------------------------------------------------------------------------
 // DEMO: This is the user router. It registers all user-related OpenAPI routes
@@ -12,6 +22,8 @@ import { completeOnboardingRoute, getOnboardingStatusRoute } from './user.route.
 // Example endpoints:
 //   GET  /api/v1/user/onboarding-status   → { completed: boolean }
 //   POST /api/v1/user/complete-onboarding → 204 No Content
+//   GET  /api/v1/user/wallets             → { wallets: [...] }
+//   POST /api/v1/user/wallets/sync        → { wallets: [...] } (re-read from Privy)
 // ---------------------------------------------------------------------------
 
 const userRouter = createRouter();
@@ -27,4 +39,6 @@ userRouter.use('*', requireAuth);
 
 export default userRouter
   .openapi(getOnboardingStatusRoute, getOnboardingStatusHandler)
-  .openapi(completeOnboardingRoute, completeOnboardingHandler);
+  .openapi(completeOnboardingRoute, completeOnboardingHandler)
+  .openapi(listWalletsRoute, listWalletsHandler)
+  .openapi(syncWalletsRoute, syncWalletsHandler);
