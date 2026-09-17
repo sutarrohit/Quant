@@ -600,6 +600,49 @@ After migrating, regenerate the shared client once — `pnpm --filter @repo/pris
 and `apps/server` picks it up: `lib/prisma.ts` imports `PrismaClient` from `@repo/prisma`
 and generates nothing of its own.
 
+### 6.1 Wallets
+
+`embeddedWallets.ethereum.createOnLogin = 'all-users'` means every user gets a Privy wallet
+at first login. That wallet is created **in the browser**, which is the whole difficulty:
+the server has already provisioned the user row by then, so it cannot simply store the
+address on the way past.
+
+```prisma
+model Wallet {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String    @map("user_id")
+  address         String
+  chainType       String    @map("chain_type")
+  walletClient    String    @map("wallet_client")   // 'privy' = embedded
+  privyWalletId   String?   @map("privy_wallet_id") // embedded only
+  firstVerifiedAt DateTime? @map("first_verified_at")
+
+  @@unique([chainType, address])
+  @@map("wallet")
+}
+```
+
+A table, not a column on `user`: a user can hold the embedded wallet *and* one they
+connected, on more than one chain.
+
+Two writers, both reading from Privy's `linked_accounts` and never from a request body:
+
+1. **`requireAuth`, at provisioning.** It already fetches the Privy user for `email`/`name`,
+   so wallets come out of the same payload at no extra cost. Usually empty at that moment —
+   the first API call can beat the browser to it.
+2. **`POST /api/v1/user/wallets/sync`.** Takes no body. `useWalletSync` (in the protected
+   layout) calls it when `useWallets()` reports an address that `GET /api/v1/user/wallets`
+   has not returned, which is exactly once per user in the normal case.
+
+**The address is never taken from the client.** The browser is trusted to say *when* to
+look, because it is what sees the wallet appear; it is not trusted to say *what* was found,
+because any page script can name any address. The sync handler re-reads the wallets from
+Privy's API under the authenticated user's DID and stores those.
+
+A wallet already recorded against a **different** user is skipped and logged, never
+reassigned — otherwise a second account could quietly take over an external wallet the
+first one linked. An embedded wallet cannot reach that branch; Privy mints one per user.
+
 ---
 
 ## 7. Open decisions

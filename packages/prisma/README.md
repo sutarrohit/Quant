@@ -23,9 +23,14 @@ JavaScript with declarations and never compile Prisma's output themselves:
 import { PrismaClient } from "@repo/prisma";
 ```
 
-`pnpm --filter @repo/prisma build` runs both steps. It needs no database: `prisma generate` never
-reads `datasource.url`, so `prisma.config.ts` attaches `DATABASE_URL` only when it is set and
-leaves the migrate commands to fail on their own when it is not.
+`pnpm --filter @repo/prisma build` runs both steps, and neither needs a database: `prisma
+generate` never reads `datasource.url`, which `prisma.config.ts` exposes as a getter so an absent
+`DATABASE_URL` is a problem only for the commands that actually connect.
+
+Two tsconfigs, on purpose. `tsconfig.json` covers the whole package -- `src/` *and*
+`prisma.config.ts` -- so the config file is typechecked and editors resolve `process` in it;
+`tsconfig.build.json` narrows to `src/` and is what emits, keeping the entry point at
+`dist/index.js` rather than `dist/src/index.js`.
 
 Consumers supply their own driver adapter and connection string — this package deliberately owns
 no connection. `apps/server` passes `@prisma/adapter-pg` with its validated `DATABASE_URL`; note
@@ -75,7 +80,8 @@ with no `@map` anywhere on them). Every multi-word field on the three quant mode
 explicit `@map("snake_case_name")` so the physical columns are snake_case, matching the
 hand-declared SQLAlchemy Core columns in `engine/persistence/`. `User` keeps its camelCase
 columns: it is `apps/server`'s live table, and renaming those columns is a migration of its own,
-not a side effect of this one.
+not a side effect of this one. Everything added since follows the snake_case convention, `wallet`
+included — `User` is the exception, not the pattern.
 
 ## No deduplication, ever
 

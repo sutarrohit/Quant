@@ -23,3 +23,32 @@ export async function getOnboardingStatus(): Promise<OnboardingStatusResponse> {
 export async function completeOnboarding(): Promise<void> {
   return request("/user/complete-onboarding", { method: "POST" });
 }
+
+// A wallet as the API returns it. `walletClient` is Privy's own discriminator:
+// 'privy' is the embedded wallet created at login, anything else is one the user
+// connected.
+export interface WalletResponse {
+  address: string;
+  chainType: string;
+  walletClient: string;
+  firstVerifiedAt: string | null;
+}
+
+export interface WalletListResponse {
+  wallets: WalletResponse[];
+}
+
+// Wallets already stored for the authenticated user.
+// Corresponds to GET /api/v1/user/wallets on the server.
+export async function getWallets(): Promise<WalletListResponse> {
+  return request("/user/wallets", { method: "GET" });
+}
+
+// Asks the server to re-read this user's wallets from Privy and store them.
+// Corresponds to POST /api/v1/user/wallets/sync.
+//
+// No body: the browser is what knows a wallet has appeared, but never what its
+// address is as far as the server is concerned -- the server asks Privy.
+export async function syncWallets(): Promise<WalletListResponse> {
+  return request("/user/wallets/sync", { method: "POST" });
+}

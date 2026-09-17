@@ -1,5 +1,5 @@
 import { mutationOptions, queryOptions } from "@tanstack/react-query";
-import { completeOnboarding, getOnboardingStatus } from "./user-apis";
+import { completeOnboarding, getOnboardingStatus, getWallets, syncWallets } from "./user-apis";
 
 // ---------------------------------------------------------------------------
 // DEMO: TanStack React Query options for user-related operations.
@@ -23,5 +23,21 @@ export function completeOnboardingMutationOptions() {
   return mutationOptions({
     mutationKey: ["user", "complete-onboarding"],
     mutationFn: () => completeOnboarding(),
+  });
+}
+
+// Query options for the wallets the server has stored.
+export function walletsQueryOptions() {
+  return queryOptions({
+    queryKey: ["user", "wallets"],
+    queryFn: () => getWallets(),
+  });
+}
+
+// Mutation options for syncing wallets from Privy.
+export function syncWalletsMutationOptions() {
+  return mutationOptions({
+    mutationKey: ["user", "wallets", "sync"],
+    mutationFn: () => syncWallets(),
   });
 }

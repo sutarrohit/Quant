@@ -1,6 +1,11 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
 
+  // Editor and `check-types` config: everything in the package, including
+  // prisma.config.ts, which is Node code (`process.env`) that lives outside the
+  // compiled output. It has to be in a project for `types: ["node"]` to reach it --
+  // outside one, an editor falls back to an inferred project and reports
+  // "Cannot find name 'process'". tsconfig.build.json is what emits dist/.
   "compilerOptions": {
     "declaration": true,
     "declarationMap": true,
@@ -16,12 +21,11 @@
     "strict": true,
     "target": "ES2022",
 
-    "rootDir": "src",
-    "outDir": "dist",
+    "noEmit": true,
 
     "types": ["node"]
   },
 
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*.ts", "prisma.config.ts"],
   "exclude": ["node_modules", "dist"]
 }

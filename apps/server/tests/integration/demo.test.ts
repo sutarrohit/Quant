@@ -6,5 +6,7 @@ describe('app routes', () => {
   it('builds typed user route paths through the Hono test client', () => {
     expect(client.api.v1.user['onboarding-status'].$path()).toBe('/api/v1/user/onboarding-status');
     expect(client.api.v1.user['complete-onboarding'].$path()).toBe('/api/v1/user/complete-onboarding');
+    expect(client.api.v1.user.wallets.$path()).toBe('/api/v1/user/wallets');
+    expect(client.api.v1.user.wallets.sync.$path()).toBe('/api/v1/user/wallets/sync');
   });
 });
