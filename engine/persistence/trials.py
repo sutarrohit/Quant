@@ -1,6 +1,6 @@
 """SQLAlchemy Core mirror of the Prisma-migrated `trials` table (D-11, VALID-01, RESEARCH Pattern 4).
 
-Hand-declared to mirror `prisma/schema.prisma`'s `Trial` model column-for-column. Parity is
+Hand-declared to mirror `packages/prisma/schema.prisma`'s `Trial` model column-for-column. Parity is
 asserted by `engine/tests/persistence/test_schema_parity.py`, never by reflecting the live table
 at import time — that would couple every import of this module to a live database and to
 Prisma's exact current column set.
@@ -12,7 +12,7 @@ invocation, an unreadable or invalid spec file, and an unreachable database each
 run is identifiable, and none of them have a `params_hash` to record a row under. That is not a
 lost run; there was no run. The one gap this recorder does not close is a hard kill (SIGKILL,
 power loss) mid-write; the upgrade path is write-ahead-then-update (D-15's known ceiling), which
-Phase 8 needs anyway for durable `clientOrderId` lineage. See `prisma/README.md` for the same
+Phase 8 needs anyway for durable `clientOrderId` lineage. See `packages/prisma/README.md` for the same
 boundary stated for a non-Python reader.
 """
 

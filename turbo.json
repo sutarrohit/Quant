@@ -11,6 +11,8 @@
         ".env*"
       ],
       "outputs": [
+        "dist/**",
+        "src/generated/**",
         ".next/**",
         "!.next/cache/**",
         "!.next/dev/**"
@@ -23,7 +25,7 @@
     },
     "check-types": {
       "dependsOn": [
-        "^check-types"
+        "^build"
       ]
     },
     "dev": {

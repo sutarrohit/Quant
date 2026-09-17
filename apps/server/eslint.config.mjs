@@ -13,5 +13,5 @@ export default [
   eslintConfigPrettier,
   ...tseslint.configs.recommended,
   { plugins: { onlyWarn } },
-  { ignores: ['dist/**', 'prisma/generated/**'] },
+  { ignores: ['dist/**'] },
 ];
