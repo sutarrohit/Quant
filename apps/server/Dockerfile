@@ -78,10 +78,7 @@ RUN export LOG_LEVEL=info \
 #
 # What lands here is decided by apps/server/package.json, not by this file:
 # `--prod` drops devDependencies, and the `files` field limits the copied sources
-# to dist/ and prisma/. That is what keeps the AWS CDK stack (infra/, lambda/,
-# cdk.json) and aws-cdk-lib itself out of the image -- they are deploy-time
-# tooling, so the running container has no cloud-provider baggage and the same
-# image runs on any host.
+# to dist/ and prisma/ -- so test and tooling files stay out of the image.
 #
 # --legacy is required, not optional: from pnpm 10 a plain `deploy` refuses any
 # workspace without `inject-workspace-packages=true`

@@ -11,7 +11,7 @@ This repo now holds **two** `schema.prisma` files that will not be reconciled un
   better-auth models (`User`, `Session`, `Account`, `Verification`, copied verbatim, unmodified)
   plus the three Phase 1 quant tables (`Trial`, `SnapshotCapture`, `SymbolListingSnapshot`).
 - **`apps/server/prisma/schema.prisma` — untouched, out of the workspace.** Still backs the
-  Hono/CDK/Better-Auth runtime in `apps/server`, which is de-listed from `pnpm-workspace.yaml`
+  Hono/Better-Auth runtime in `apps/server`, which is de-listed from `pnpm-workspace.yaml`
   until Phase 4 per D-09.
 
 Phase 4 must **merge** these two files rather than pick one — `apps/server` needs the

@@ -4,7 +4,6 @@
 **/dist
 **/.next
 **/.turbo
-**/cdk.out
 **/coverage
 **/.venv
 **/__pycache__
