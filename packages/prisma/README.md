@@ -1,4 +1,4 @@
-# @repo/prisma
+# @quant/prisma
 
 The repository's Prisma workspace package. Sole schema owner (D-11): no other tool migrates any
 table this package declares, and no other package generates a Prisma client.
@@ -10,7 +10,7 @@ the only thing that migrates the tables it declares. `apps/server` used to carry
 divergent `schema.prisma` of its own (the `User` model, plus its own `prisma.config.ts` and
 generated client); both copies had converged on the same `User` definition, so the merge that
 D-09 deferred to Phase 4 was a deletion — `apps/server` now consumes this package as
-`@repo/prisma` instead of generating a client of its own.
+`@quant/prisma` instead of generating a client of its own.
 
 ## What consumers import
 
@@ -20,10 +20,10 @@ with the one-line re-export in `src/index.ts`, to `dist/` — so consumers impor
 JavaScript with declarations and never compile Prisma's output themselves:
 
 ```ts
-import { PrismaClient } from "@repo/prisma";
+import { PrismaClient } from "@quant/prisma";
 ```
 
-`pnpm --filter @repo/prisma build` runs both steps, and neither needs a database: `prisma
+`pnpm --filter @quant/prisma build` runs both steps, and neither needs a database: `prisma
 generate` never reads `datasource.url`, which `prisma.config.ts` exposes as a getter so an absent
 `DATABASE_URL` is a problem only for the commands that actually connect.
 
@@ -41,7 +41,7 @@ that a consumer emitting declarations must annotate the instance (`const prisma:
 
 Paths inside `prisma.config.ts` resolve **relative to the config file's location**, not the
 directory the CLI is invoked from — per Prisma's own docs, and probed empirically with
-`pnpm --filter @repo/prisma exec prisma validate` before being encoded. `prisma.config.ts` sits
+`pnpm --filter @quant/prisma exec prisma validate` before being encoded. `prisma.config.ts` sits
 next to `schema.prisma` at the package root, so the config-relative form is correct here:
 
 ```ts
@@ -106,11 +106,11 @@ path is write-ahead-then-update, which Phase 8 needs anyway for durable `clientO
 ## Commands
 
 ```bash
-pnpm --filter @repo/prisma build         # prisma generate + tsc -> dist/ (what consumers import)
-pnpm --filter @repo/prisma db:migrate    # local dev migration
-pnpm --filter @repo/prisma db:deploy     # apply committed migrations (CI, hosted cron target)
-pnpm --filter @repo/prisma db:generate   # regenerate the client
-pnpm --filter @repo/prisma exec prisma validate
+pnpm --filter @quant/prisma build         # prisma generate + tsc -> dist/ (what consumers import)
+pnpm --filter @quant/prisma db:migrate    # local dev migration
+pnpm --filter @quant/prisma db:deploy     # apply committed migrations (CI, hosted cron target)
+pnpm --filter @quant/prisma db:generate   # regenerate the client
+pnpm --filter @quant/prisma exec prisma validate
 ```
 
 `DATABASE_URL` is read directly from the environment (see `.env.example`);

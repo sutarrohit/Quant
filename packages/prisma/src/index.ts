@@ -1,4 +1,4 @@
-// The public face of @repo/prisma.
+// The public face of @quant/prisma.
 //
 // `prisma generate` writes a TypeScript client into src/generated/ (Prisma 7's
 // `prisma-client` generator emits .ts, not .js), so this package compiles it to

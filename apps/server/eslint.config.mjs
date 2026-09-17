@@ -3,7 +3,7 @@ import eslintConfigPrettier from 'eslint-config-prettier';
 import onlyWarn from 'eslint-plugin-only-warn';
 import tseslint from 'typescript-eslint';
 
-// Inlined from the former @repo/eslint-config/base so this package installs
+// Inlined from the former @quant/eslint-config/base so this package installs
 // without the workspace (D-09). eslint-plugin-turbo from that shared config is
 // dropped deliberately: turbo does not manage this package while it is de-listed.
 

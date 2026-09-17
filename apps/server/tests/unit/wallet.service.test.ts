@@ -1,4 +1,4 @@
-import type { PrismaClient, Wallet } from '@repo/prisma';
+import type { PrismaClient, Wallet } from '@quant/prisma';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import type { PrivyWallet } from '../../src/lib/privy-wallets.js';

@@ -95,7 +95,7 @@ This IS a near-exact structural match — a Python package that joins the turbo 
 in the Prisma package, not here):**
 ```json
 {
-  "name": "@repo/engine",
+  "name": "@quant/engine",
   "version": "0.1.0",
   "private": true,
   "scripts": {

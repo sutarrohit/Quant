@@ -1,5 +1,5 @@
 {
-  "name": "@repo/fastapi-server",
+  "name": "@quant/fastapi-server",
   "version": "0.1.0",
   "private": true,
   "scripts": {

@@ -1,9 +1,9 @@
 # syntax=docker/dockerfile:1
 #
-# Hono API (@repo/api) — multi-stage build.
+# Hono API (@quant/api) — multi-stage build.
 #
 # IMPORTANT: the build context is the repository ROOT, not apps/server,
-# because this is a pnpm workspace and the package depends on @repo/* configs.
+# because this is a pnpm workspace and the package depends on @quant/* configs.
 # apps/server/docker-compose.yml sets `context: ../..` accordingly.
 #
 # Stages:
@@ -45,19 +45,19 @@ COPY packages/fastapi-server/package.json packages/fastapi-server/
 COPY engine/package.json engine/
 COPY schemas/package.json schemas/
 
-# @repo/prisma generates and compiles its client in a postinstall, so its schema,
+# @quant/prisma generates and compiles its client in a postinstall, so its schema,
 # config and entrypoint must be in the context before the install -- everything
 # else stays source-only, and this layer still survives an app-source change.
 COPY packages/prisma/schema.prisma packages/prisma/prisma.config.ts packages/prisma/tsconfig.json packages/prisma/
 COPY packages/prisma/src/index.ts packages/prisma/src/
 
-# The trailing "..." also installs the workspace packages @repo/api depends on.
+# The trailing "..." also installs the workspace packages @quant/api depends on.
 #
 # pnpm 10 does not run dependency lifecycle scripts unless the package is listed
 # in `pnpm.onlyBuiltDependencies` at the workspace root -- @prisma/engines and
 # prisma are there, without which the `prisma generate` below has no query engine.
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
-    pnpm install --frozen-lockfile --filter @repo/api...
+    pnpm install --frozen-lockfile --filter @quant/api...
 
 
 # ------------------------------------------------------------------ build
@@ -67,27 +67,27 @@ COPY apps/server apps/server
 COPY packages/prisma packages/prisma
 COPY packages/typescript-config packages/typescript-config
 
-# @repo/prisma is built first (prisma generate + tsc): @repo/api imports the
+# @quant/prisma is built first (prisma generate + tsc): @quant/api imports the
 # compiled client from it and no longer generates one of its own. Neither step
-# touches a database, and @repo/api's env validator runs at runtime rather than
+# touches a database, and @quant/api's env validator runs at runtime rather than
 # build time, so no placeholder configuration is needed here -- the runtime image
 # gets its real configuration from the environment, failing loudly if one is absent.
-RUN pnpm --filter @repo/prisma build \
-    && pnpm --filter @repo/api build
+RUN pnpm --filter @quant/prisma build \
+    && pnpm --filter @quant/api build
 
-# Collect @repo/api plus only its production dependencies into one self-contained
+# Collect @quant/api plus only its production dependencies into one self-contained
 # directory with a real (non-symlinked) node_modules.
 #
 # What lands here is decided by apps/server/package.json, not by this file:
 # `--prod` drops devDependencies, and the `files` field limits the copied sources
-# to dist/ -- so test and tooling files stay out of the image. @repo/prisma comes
+# to dist/ -- so test and tooling files stay out of the image. @quant/prisma comes
 # along as a production dependency, carrying its own dist/ (the generated client).
 #
 # --legacy is required, not optional: from pnpm 10 a plain `deploy` refuses any
 # workspace without `inject-workspace-packages=true`
 # (ERR_PNPM_DEPLOY_NONINJECTED_WORKSPACE). It selects the resolver, not the
 # output size.
-RUN pnpm --filter @repo/api --prod deploy --legacy /prod/api
+RUN pnpm --filter @quant/api --prod deploy --legacy /prod/api
 
 
 # ---------------------------------------------------------------- runtime

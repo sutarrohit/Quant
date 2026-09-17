@@ -1,5 +1,5 @@
 {
-  "name": "@repo/prisma",
+  "name": "@quant/prisma",
   "version": "0.1.0",
   "private": true,
   "type": "module",

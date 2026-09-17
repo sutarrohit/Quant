@@ -85,7 +85,7 @@ async function check() {
     ]) {
       if (!existsSync(committed)) {
         console.error(
-          `[schemas check] ${label} output missing at ${committed} -- run 'pnpm --filter @repo/schemas run build' first`,
+          `[schemas check] ${label} output missing at ${committed} -- run 'pnpm --filter @quant/schemas run build' first`,
         );
         drifted = true;
         continue;

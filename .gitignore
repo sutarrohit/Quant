@@ -48,7 +48,7 @@ yarn-error.log*
 engine/generated/
 schemas/generated/
 
-# Generated Prisma client (@repo/prisma owns it; `pnpm --filter @repo/prisma db:generate`)
+# Generated Prisma client (@quant/prisma owns it; `pnpm --filter @quant/prisma db:generate`)
 packages/prisma/src/generated/
 
 # Backtest run outputs (D-19, D-20)
