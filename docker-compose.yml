@@ -1,6 +1,6 @@
 # Single root Postgres for local development (D-10), replacing the two per-app template compose
 # files (apps/server/docker-compose.yml and packages/fastapi-server/docker-compose.yml, neither
-# of which shipped a Postgres service of its own). Prisma (prisma/) is the sole schema owner
+# of which shipped a Postgres service of its own). Prisma (packages/prisma/) is the sole schema owner
 # (D-11); Python writes into these tables via SQLAlchemy Core (engine/persistence/).
 
 services:

@@ -7,7 +7,7 @@
 **/coverage
 **/.venv
 **/__pycache__
-**/prisma/generated
+packages/prisma/src/generated
 
 # Never ship real secrets into the build context
 **/.env

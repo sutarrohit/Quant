@@ -17,14 +17,14 @@ import sqlalchemy as sa
 def engine_from_env() -> sa.Engine:
     """Build a SQLAlchemy Engine from the DATABASE_URL environment variable.
 
-    `DATABASE_URL` (shared with Prisma via `prisma/.env`) uses the plain `postgresql://` scheme,
+    `DATABASE_URL` (shared with Prisma via `packages/prisma/.env`) uses the plain `postgresql://` scheme,
     but this project's Python dependency is `psycopg` (v3), not the SQLAlchemy-default
     `psycopg2` — so a bare `postgresql://` URL is rewritten to `postgresql+psycopg://` here
     rather than requiring two different DATABASE_URL values for the two toolchains.
     """
     database_url = os.environ.get("DATABASE_URL")
     if not database_url:
-        raise RuntimeError("DATABASE_URL is required to connect to Postgres (see prisma/.env.example)")
+        raise RuntimeError("DATABASE_URL is required to connect to Postgres (see packages/prisma/.env.example)")
     if database_url.startswith("postgresql://"):
         database_url = database_url.replace("postgresql://", "postgresql+psycopg://", 1)
     return sa.create_engine(database_url)

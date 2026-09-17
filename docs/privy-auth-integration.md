@@ -211,11 +211,11 @@ validation keeps passing under `NODE_ENV=test`.
 The **verification key** is what makes this cheap: with it, token verification is a local
 signature check. Without it, every single request makes a network call to Privy. Set it.
 
-> **Don't miss the Dockerfile.** Its build stage exports placeholder values for every var in
-> the Zod schema, because `prisma generate` loads `prisma.config.ts`, which imports the strict
-> validator. Adding the three `PRIVY_*` vars to `env.ts` without also adding placeholders to
-> the `RUN export ...` block in `apps/server/Dockerfile` breaks the image build at
-> `db:generate`. (`BETTER_AUTH_SECRET` has already been removed from both.)
+> **The Dockerfile no longer needs placeholders for these.** It used to export a value for
+> every var in the Zod schema, because `apps/server`'s own `prisma.config.ts` imported the
+> strict validator at build time. That config is gone — Prisma lives in `@repo/prisma`, which
+> reads `DATABASE_URL` from the environment and needs none for `generate` — so `env.ts` is
+> validated at runtime only. (`BETTER_AUTH_SECRET` and `DIRECT_URL` are gone from both.)
 
 ### 4.2 The client — `src/lib/privy.ts` (replaces the deleted `auth.ts`)
 
@@ -559,9 +559,9 @@ and `handleResponse` would throw on unparseable JSON instead of surfacing an aut
 
 ## 6. Database
 
-Privy identifies users by DID, not email. `prisma/schema.prisma` is the authoritative
-schema (D‑11); `apps/server/prisma/schema.prisma` is the stale copy that gets merged in
-Phase 4 per `prisma/README.md`.
+Privy identifies users by DID, not email. `packages/prisma/schema.prisma` is the only schema
+(D‑11); the divergent copy `apps/server` used to carry has been deleted, and the server now
+imports the client from `@repo/prisma`.
 
 ```prisma
 model User {
@@ -581,8 +581,8 @@ model User {
 // emailVerified is deleted — Privy's linked-account state is the truth.
 ```
 
-**The migration is not committed.** Both `schema.prisma` files carry the change above, but
-no migration SQL is in `prisma/migrations/`. That is deliberate: a hand-written migration
+**The migration is not committed.** The schema carries the change above, but
+no migration SQL is in `packages/prisma/migrations/`. That is deliberate: a hand-written migration
 that does not byte-match what Prisma generates causes drift-detection pain on the next
 `migrate dev`, and this change could not be generated here (no reachable database —
 `.env` still holds the `.env.example` placeholders). Generate it against a real database:
@@ -596,10 +596,9 @@ It will `DROP TABLE` session, account and verification, drop `user.emailVerified
 `NOT NULL` with no default**, so this fails if the `user` table has rows — which is fine
 pre-launch, and is the backfill question in section 7.3 otherwise.
 
-Note that `apps/server` generates its Prisma client from its *own* copy of the schema
-(`lib/prisma.ts` imports `../../prisma/generated/client.js`), so after migrating from the
-root package, `apps/server` still needs its own `db:generate`. That duplication is the
-Phase 4 merge described in `prisma/README.md`, not something this change introduces.
+After migrating, regenerate the shared client once — `pnpm --filter @repo/prisma build` —
+and `apps/server` picks it up: `lib/prisma.ts` imports `PrismaClient` from `@repo/prisma`
+and generates nothing of its own.
 
 ---
 

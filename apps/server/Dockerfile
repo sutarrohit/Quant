@@ -38,16 +38,24 @@ FROM base AS deps
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/server/package.json apps/server/
-COPY apps/web/package.json apps/web/
+COPY packages/prisma/package.json packages/prisma/
 COPY packages/eslint-config/package.json packages/eslint-config/
 COPY packages/typescript-config/package.json packages/typescript-config/
 COPY packages/fastapi-server/package.json packages/fastapi-server/
+COPY engine/package.json engine/
+COPY schemas/package.json schemas/
+
+# @repo/prisma generates and compiles its client in a postinstall, so its schema,
+# config and entrypoint must be in the context before the install -- everything
+# else stays source-only, and this layer still survives an app-source change.
+COPY packages/prisma/schema.prisma packages/prisma/prisma.config.ts packages/prisma/tsconfig.json packages/prisma/
+COPY packages/prisma/src/index.ts packages/prisma/src/
 
 # The trailing "..." also installs the workspace packages @repo/api depends on.
 #
 # pnpm 10 does not run dependency lifecycle scripts unless the package is listed
 # in `pnpm.onlyBuiltDependencies` at the workspace root -- @prisma/engines and
-# prisma are there, without which `db:generate` below has no query engine.
+# prisma are there, without which the `prisma generate` below has no query engine.
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
     pnpm install --frozen-lockfile --filter @repo/api...
 
@@ -56,21 +64,15 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
 FROM deps AS build
 
 COPY apps/server apps/server
+COPY packages/prisma packages/prisma
 COPY packages/typescript-config packages/typescript-config
 
-# `prisma generate` loads prisma.config.ts, which imports the strict env
-# validator -- so placeholder values are needed at BUILD time. `export` applies
-# them to the whole RUN (inline `VAR=x cmd1 && cmd2` would only reach cmd1).
-# Nothing is persisted: this stage is discarded, and the runtime image gets its
-# real configuration from the environment, still failing loudly if one is absent.
-RUN export LOG_LEVEL=info \
-      DATABASE_URL=postgresql://placeholder:placeholder@localhost:5432/db \
-      DIRECT_URL=postgresql://placeholder:placeholder@localhost:5432/db \
-      PUBLIC_URL=http://localhost:4000 \
-      PRIVY_APP_ID=build-time-placeholder \
-      PRIVY_APP_SECRET=build-time-placeholder \
-      PRIVY_VERIFICATION_KEY=build-time-placeholder \
-    && pnpm --filter @repo/api db:generate \
+# @repo/prisma is built first (prisma generate + tsc): @repo/api imports the
+# compiled client from it and no longer generates one of its own. Neither step
+# touches a database, and @repo/api's env validator runs at runtime rather than
+# build time, so no placeholder configuration is needed here -- the runtime image
+# gets its real configuration from the environment, failing loudly if one is absent.
+RUN pnpm --filter @repo/prisma build \
     && pnpm --filter @repo/api build
 
 # Collect @repo/api plus only its production dependencies into one self-contained
@@ -78,7 +80,8 @@ RUN export LOG_LEVEL=info \
 #
 # What lands here is decided by apps/server/package.json, not by this file:
 # `--prod` drops devDependencies, and the `files` field limits the copied sources
-# to dist/ and prisma/ -- so test and tooling files stay out of the image.
+# to dist/ -- so test and tooling files stay out of the image. @repo/prisma comes
+# along as a production dependency, carrying its own dist/ (the generated client).
 #
 # --legacy is required, not optional: from pnpm 10 a plain `deploy` refuses any
 # workspace without `inject-workspace-packages=true`

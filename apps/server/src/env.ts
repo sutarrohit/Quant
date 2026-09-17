@@ -15,7 +15,6 @@ const EnvSchema = z.object({
   FRONTEND_URL: z.string().url().default('http://localhost:3000'),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']),
   DATABASE_URL: z.url(),
-  DIRECT_URL: z.url(),
   PUBLIC_URL: z.url(), // public base URL used to register the webhook
 
   // Privy. APP_ID must name the same Privy app the frontend uses, or every

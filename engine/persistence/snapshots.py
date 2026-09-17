@@ -1,7 +1,7 @@
 """SQLAlchemy Core mirrors of the Prisma-migrated `snapshot_capture` and
 `symbol_listing_snapshot` tables (D-11, DATA-03, RESEARCH Pattern 4).
 
-Hand-declared to mirror `prisma/schema.prisma`'s `SnapshotCapture` and `SymbolListingSnapshot`
+Hand-declared to mirror `packages/prisma/schema.prisma`'s `SnapshotCapture` and `SymbolListingSnapshot`
 models column-for-column; parity is asserted by
 `engine/tests/persistence/test_schema_parity.py`, never by reflecting the live table at import
 time. There is deliberately no child-only writer: a caller able to insert `symbol_listing_snapshot` rows without a

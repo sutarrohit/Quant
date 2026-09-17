@@ -1,5 +1,5 @@
 packages:
+  - "apps/server"
   - "packages/*"
   - "engine"
-  - "prisma"
   - "schemas"

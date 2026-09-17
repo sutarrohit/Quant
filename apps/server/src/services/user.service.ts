@@ -1,4 +1,4 @@
-import type { PrismaClient } from '@/prisma/generated/client.js';
+import type { PrismaClient } from '@repo/prisma';
 
 import { ApiError } from '../lib/api-error.js';
 
