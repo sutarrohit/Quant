@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+
+  // Emit config: src/ only. prisma.config.ts is deliberately out -- it is tooling
+  // the Prisma CLI loads from source, not part of the client consumers import, and
+  // including it would push the output down a level (dist/src/index.js).
+  "extends": "./tsconfig.json",
+
+  "compilerOptions": {
+    "noEmit": false,
+    "rootDir": "src",
+    "outDir": "dist"
+  },
+
+  "include": ["src/**/*.ts"]
+}
