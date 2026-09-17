@@ -1,5 +1,5 @@
-import { Prisma } from '@repo/prisma';
-import type { PrismaClient, Wallet } from '@repo/prisma';
+import { Prisma } from '@quant/prisma';
+import type { PrismaClient, Wallet } from '@quant/prisma';
 import type { PrivyClient } from '@privy-io/node';
 
 import { walletsFromLinkedAccounts, type PrivyWallet } from '../lib/privy-wallets.js';

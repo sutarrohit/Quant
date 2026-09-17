@@ -323,12 +323,12 @@ uv add langgraph langchain-core langchain-openai langchain-anthropic \
 uv add --dev pytest ruff datamodel-code-generator
 
 # --- Control plane (existing apps/server) ---
-pnpm --filter @repo/api add pg-boss @aws-sdk/client-kms
-pnpm --filter @repo/api up hono@4 zod@4 @hono/zod-openapi@1 better-auth@1
+pnpm --filter @quant/api add pg-boss @aws-sdk/client-kms
+pnpm --filter @quant/api up hono@4 zod@4 @hono/zod-openapi@1 better-auth@1
 # do NOT: pnpm up prisma@8  (RC)
 
 # --- Contract codegen (run in CI, commit the output) ---
-pnpm --filter @repo/contracts exec tsx scripts/emit-jsonschema.ts   # z.toJSONSchema()
+pnpm --filter @quant/contracts exec tsx scripts/emit-jsonschema.ts   # z.toJSONSchema()
 uvx datamodel-code-generator --input contracts/jsonschema \
     --input-file-type jsonschema --output services/ai/contracts \
     --output-model-type pydantic_v2.BaseModel

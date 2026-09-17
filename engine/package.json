@@ -1,9 +1,9 @@
 {
-  "name": "@repo/engine",
+  "name": "@quant/engine",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@repo/schemas": "workspace:*"
+    "@quant/schemas": "workspace:*"
   },
   "scripts": {
     "build": "uv sync --frozen",

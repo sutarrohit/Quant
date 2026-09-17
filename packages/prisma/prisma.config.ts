@@ -1,7 +1,7 @@
 import "dotenv/config";
 import { defineConfig } from "prisma/config";
 
-// @repo/prisma has no runtime src of its own beyond the generated client, so it reads
+// @quant/prisma has no runtime src of its own beyond the generated client, so it reads
 // DATABASE_URL directly rather than importing a consumer's env validator. D-10's local compose
 // Postgres has no connection pooler, so there is no pooled/direct URL split to carry over either
 // — a single DATABASE_URL is the whole contract, for apps/server as much as for engine/.

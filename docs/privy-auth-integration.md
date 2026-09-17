@@ -176,7 +176,7 @@ preflight quietly backing it up.
 
 ```bash
 # backend
-pnpm --filter @repo/api add @privy-io/node
+pnpm --filter @quant/api add @privy-io/node
 
 # frontend
 pnpm --filter apps add @privy-io/react-auth
@@ -213,7 +213,7 @@ signature check. Without it, every single request makes a network call to Privy.
 
 > **The Dockerfile no longer needs placeholders for these.** It used to export a value for
 > every var in the Zod schema, because `apps/server`'s own `prisma.config.ts` imported the
-> strict validator at build time. That config is gone — Prisma lives in `@repo/prisma`, which
+> strict validator at build time. That config is gone — Prisma lives in `@quant/prisma`, which
 > reads `DATABASE_URL` from the environment and needs none for `generate` — so `env.ts` is
 > validated at runtime only. (`BETTER_AUTH_SECRET` and `DIRECT_URL` are gone from both.)
 
@@ -561,7 +561,7 @@ and `handleResponse` would throw on unparseable JSON instead of surfacing an aut
 
 Privy identifies users by DID, not email. `packages/prisma/schema.prisma` is the only schema
 (D‑11); the divergent copy `apps/server` used to carry has been deleted, and the server now
-imports the client from `@repo/prisma`.
+imports the client from `@quant/prisma`.
 
 ```prisma
 model User {
@@ -588,7 +588,7 @@ that does not byte-match what Prisma generates causes drift-detection pain on th
 `.env` still holds the `.env.example` placeholders). Generate it against a real database:
 
 ```bash
-pnpm --filter @repo/prisma exec prisma migrate dev --name privy_auth
+pnpm --filter @quant/prisma exec prisma migrate dev --name privy_auth
 ```
 
 It will `DROP TABLE` session, account and verification, drop `user.emailVerified`, make
@@ -596,8 +596,8 @@ It will `DROP TABLE` session, account and verification, drop `user.emailVerified
 `NOT NULL` with no default**, so this fails if the `user` table has rows — which is fine
 pre-launch, and is the backfill question in section 7.3 otherwise.
 
-After migrating, regenerate the shared client once — `pnpm --filter @repo/prisma build` —
-and `apps/server` picks it up: `lib/prisma.ts` imports `PrismaClient` from `@repo/prisma`
+After migrating, regenerate the shared client once — `pnpm --filter @quant/prisma build` —
+and `apps/server` picks it up: `lib/prisma.ts` imports `PrismaClient` from `@quant/prisma`
 and generates nothing of its own.
 
 ### 6.1 Wallets

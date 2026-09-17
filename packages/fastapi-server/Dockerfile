@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 #
-# FastAPI blog API (@repo/fastapi-server) — multi-stage build.
+# FastAPI blog API (@quant/fastapi-server) — multi-stage build.
 #
 # IMPORTANT: the build context is THIS directory, not the repository root: the
 # package is self-contained (uv + pyproject.toml) and does not depend on the

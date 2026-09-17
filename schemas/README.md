@@ -1,4 +1,4 @@
-# @repo/schemas
+# @quant/schemas
 
 The single source of truth for the strategy contract (D-06, FOUND-04). Neither the generated
 Pydantic model nor the generated TypeScript type is authoritative -- both are build outputs of
@@ -14,9 +14,9 @@ Pydantic model nor the generated TypeScript type is authoritative -- both are bu
 - `guards/` -- the TypeScript and SQL float-in-money guard stubs (D-07), inert until Phase 4.
 
 Both `schemas/generated/` and `engine/generated/` are gitignored -- neither is ever a committed
-artifact (D-06). A clean checkout regenerates them automatically: `@repo/engine` declares
-`@repo/schemas` as a workspace dependency, so Turbo's `test`/`build` tasks (`dependsOn: ["^build"]`
-in `turbo.json`) run `@repo/schemas`'s `build` script before `@repo/engine`'s own tasks.
+artifact (D-06). A clean checkout regenerates them automatically: `@quant/engine` declares
+`@quant/schemas` as a workspace dependency, so Turbo's `test`/`build` tasks (`dependsOn: ["^build"]`
+in `turbo.json`) run `@quant/schemas`'s `build` script before `@quant/engine`'s own tasks.
 
 ## The window-ordering rule is semantic validation, not a schema constraint
 

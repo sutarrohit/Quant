@@ -35,7 +35,7 @@ importers:
       '@privy-io/node':
         specifier: ^0.34.0
         version: 0.34.0
-      '@repo/prisma':
+      '@quant/prisma':
         specifier: workspace:*
         version: link:../../packages/prisma
       dotenv:
@@ -105,7 +105,7 @@ importers:
 
   engine:
     dependencies:
-      '@repo/schemas':
+      '@quant/schemas':
         specifier: workspace:*
         version: link:../schemas
 

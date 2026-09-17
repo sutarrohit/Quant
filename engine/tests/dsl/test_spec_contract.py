@@ -3,7 +3,7 @@ validation, and the reproducibility hash.
 
 Run scoped: `uv run --project engine pytest engine/tests/dsl/test_spec_contract.py -q`. Requires
 `schemas/generated/ts/strategy-spec.d.ts` and `engine/generated/strategy_spec.py` to already
-exist -- run `pnpm --filter @repo/schemas run build` first (Turbo's `^build` edge does this
+exist -- run `pnpm --filter @quant/schemas run build` first (Turbo's `^build` edge does this
 automatically via `test`).
 """
 
@@ -148,7 +148,7 @@ def test_money_field_name_list_matches_schema():
 def test_generated_ts_trade_size_is_string():
     if not _GENERATED_TS_PATH.exists():
         pytest.fail(
-            f"{_GENERATED_TS_PATH} missing -- run 'pnpm --filter @repo/schemas run build' first"
+            f"{_GENERATED_TS_PATH} missing -- run 'pnpm --filter @quant/schemas run build' first"
         )
     ts = _GENERATED_TS_PATH.read_text()
     assert "trade_size: string;" in ts
