@@ -213,7 +213,8 @@ The repository is an **unmodified Turborepo template**. There is no quant code o
   aiosqlite, alembic, pwdlib/PyJWT auth. Python pinned to 3.13, managed by `uv`, ruff at
   line-length 120 with `E,F,I,UP,B,SIM,C4`.
 - `apps/server` — Prisma (`postgresql` provider) with better-auth models (`user`, `session`,
-  `account`), plus CDK, lambda, docker-compose, vitest.
+  `account`), plus docker-compose, vitest. (The CDK stack and the Lambda entry point that were
+  here have since been removed — the API is not going to Lambda.)
 - `apps/web` — Next.js with shadcn-style `components.json`.
 - Root `package.json` is still named `"template"`; pnpm 10.34.5, turbo 2.10.7, Node >= 18.
 - `docs/Architecture_Plan.md` and `docs/Quant-Phase.md` are in-tree here.
@@ -227,8 +228,6 @@ The repository is an **unmodified Turborepo template**. There is no quant code o
   one root compose per D-10.
 - **turbo task graph** (`build`, `dev`, `lint`, `check-types`, `test`) — the engine shim hooks
   straight into it per D-02/D-08.
-- **CDK stack** in `apps/server/infra` — not used in Phase 1 (cron is GitHub Actions per D-12),
-  but relevant when the secrets manager of D-16 is provisioned.
 
 ### Established Patterns
 - Python 3.13 + uv + ruff (line-length 120) is the existing Python convention — match it.

@@ -160,7 +160,7 @@ submission.** If the simulator and the live path ever diverge, or if an LLM can 
   Seeded from the `sutarrohit/Quant` template with no fork lineage. A scaffold, not a trading
   platform: root package named `template`. Turborepo +
   pnpm. `apps/server` is Hono 4 with `@hono/zod-openapi`, better-auth, Prisma 7 (pg adapter),
-  pino, rate limiting, Swagger UI, CDK deploy scripts, vitest — one route group (`user`).
+  pino, rate limiting, Swagger UI, vitest — one route group (`user`).
   `apps/server/prisma/schema.prisma` is 73 lines and four models (`User`, `Session`,
   `Account`, `Verification`), all better-auth tables, no trading domain.
   `apps/web` is Next.js + shadcn with only `layout.tsx` and `page.tsx`.

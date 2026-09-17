@@ -46,7 +46,7 @@ This changes every downstream recommendation and contradicts the framing of the 
 | **pnpm / Turborepo** | `10.34.5` / `2.10.7` | Monorepo | Already scaffolded. |
 | **pg-boss** | `12.30.0` | Transactional-outbox consumer + job layer | **Replaces Architecture_Plan's BullMQ.** See below. |
 | **LangGraph** | `1.2.11` (with `langchain-core 1.6.2`) | Research committee orchestration | Build the committee directly. See AI plane below. |
-| **AWS KMS + AWS CDK** | `aws-cdk-lib 2.257.0` (already a devDep) | Envelope encryption for exchange credentials | CDK is already in `apps/server`. Adding Vault or GCP KMS means a second cloud for a two-person team. |
+| **AWS KMS** | `@aws-sdk/client-kms` (not yet added) | Envelope encryption for exchange credentials | Adding Vault or GCP KMS means a second cloud for a two-person team. Note that nothing in the repo provisions AWS any more — `aws-cdk-lib` and the CDK deploy scripts went out with the Lambda deploy path — so KMS now needs a provisioning story of its own. |
 
 ### Supporting Libraries
 
@@ -203,7 +203,9 @@ This also matches PROJECT.md's sequencing decision (AI planes behind the determi
 
 ### 7. Secrets — **AWS KMS + envelope encryption in `node:crypto`. Not Vault.** Confidence: HIGH
 
-`apps/server` already carries `aws-cdk-lib` and CDK deploy scripts. Adding HashiCorp Vault means a stateful HA service two people must operate, seal/unseal, and back up; GCP KMS means a second cloud. Neither buys anything over KMS for this threat model.
+Adding HashiCorp Vault means a stateful HA service two people must operate, seal/unseal, and back up; GCP KMS means a second cloud. Neither buys anything over KMS for this threat model, and the client side is ~40 lines of `node:crypto` plus `@aws-sdk/client-kms`.
+
+> This recommendation previously also leaned on `aws-cdk-lib` and the CDK deploy scripts already sitting in `apps/server`. They were removed when the Lambda deploy path was dropped, so that leg of the argument is gone: KMS is still the answer, but the CMK and its IAM policy now need an owner — Terraform, the console, or CDK reintroduced deliberately for this and nothing else.
 
 ```
 per exchange account:
@@ -270,7 +272,7 @@ Nautilus supplies the inputs (`nautilus_trader.analysis`, `Portfolio.statistics(
 | **`pypbo`, `mlfinlab`, `vectorbt` PRO** | Unmaintained / license-encumbered / drags in a second backtest engine. On the path between a user and their own money. | Own `packages/validation/` on numpy + scipy |
 | **`float` for money anywhere** | PROJECT.md constraint. Nautilus's own `Price`/`Quantity`/`Money` are fixed-precision; JSON contracts use decimal strings. | `Decimal`, decimal strings |
 | **A crypto library for envelope encryption** | `node:crypto` AES-256-GCM plus `@aws-sdk/client-kms` is ~40 lines. | stdlib |
-| **HashiCorp Vault / GCP KMS** | A stateful HA service or a second cloud, for two people, when CDK+KMS is already in the repo. | AWS KMS |
+| **HashiCorp Vault / GCP KMS** | A stateful HA service or a second cloud, for two people, when KMS is one SDK call behind an IAM policy. | AWS KMS |
 | **A bespoke engine↔control-plane IPC** | `MessageBusConfig.external_streams` over Redis Streams is the supported, tested seam. | Redis Streams via `MessageBusConfig` |
 
 ---

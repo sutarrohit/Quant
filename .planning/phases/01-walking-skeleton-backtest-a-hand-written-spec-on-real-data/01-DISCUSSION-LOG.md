@@ -142,6 +142,11 @@
 | GH Actions → commit to repo | Zero infra, git-versioned history; criterion 4's SQL count unsatisfiable until loaded | |
 | EventBridge + Lambda | Uses the existing CDK; stands up AWS/VPC/RDS in week one | |
 
+> Since this discussion, the CDK stack and the Lambda entry point have been removed from
+> `apps/server` — the API is not being deployed to Lambda. The rejected option above is left as
+> written because it records what was weighed at the time; its "existing CDK" premise no longer
+> holds, which only strengthens the choice that was made.
+
 **User's choice:** GH Actions → hosted Postgres
 **Notes:** Tension raised — a compose-only Postgres cannot be written to by anything off the laptop, which defeats a non-backfillable daily history.
 
