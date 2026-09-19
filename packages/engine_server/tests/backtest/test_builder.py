@@ -7,14 +7,11 @@ from typing import Any
 
 import pytest
 
-from engine.backtest.builder import (
-    BacktestConfigError,
-    assert_no_cache_database,
-    build_run_config,
-)
+from engine.backtest.builder import assert_no_cache_database, build_run_config
 from engine.backtest.request import BacktestRequest
 from engine.dsl.hashing import spec_hash
 from engine.dsl.schema import StrategySpec
+from engine.errors import BacktestConfigError
 from engine.settings import Settings
 from engine.strategies.config import CONFIG_PATH, STRATEGY_PATH, strategy_config
 
@@ -75,9 +72,7 @@ def test_the_builder_is_pure(backtest_request: BacktestRequest, builder_settings
 # --- golden file ---------------------------------------------------------
 
 
-def test_matches_the_golden_config(
-    backtest_request: BacktestRequest, builder_settings: Settings
-) -> None:
+def test_matches_the_golden_config(backtest_request: BacktestRequest, builder_settings: Settings) -> None:
     """A diff here means the simulated conditions changed.
 
     That must be a deliberate act, not a side effect: every stored result was
@@ -95,17 +90,13 @@ def test_matches_the_golden_config(
 # --- costs ---------------------------------------------------------------
 
 
-def test_fees_and_slippage_reach_the_fee_model(
-    backtest_request: BacktestRequest, builder_settings: Settings
-) -> None:
+def test_fees_and_slippage_reach_the_fee_model(backtest_request: BacktestRequest, builder_settings: Settings) -> None:
     fee_model = build(backtest_request, builder_settings).venues[0].fee_model
     assert fee_model.fee_model_path == "engine.backtest.fees:BpsFeeModel"
     assert fee_model.config == {"maker_bps": "1", "taker_bps": "10", "slippage_bps": "5"}
 
 
-def test_costs_are_carried_as_strings(
-    request_dict: dict[str, Any], builder_settings: Settings
-) -> None:
+def test_costs_are_carried_as_strings(request_dict: dict[str, Any], builder_settings: Settings) -> None:
     # Floats would compound a rounding error across every notional.
     request_dict["fees"]["takerBps"] = "7.5"
     config = build(BacktestRequest.model_validate(request_dict), builder_settings)
@@ -113,9 +104,7 @@ def test_costs_are_carried_as_strings(
     assert all(isinstance(v, str) for v in config.venues[0].fee_model.config.values())
 
 
-def test_a_fee_model_is_always_configured(
-    request_dict: dict[str, Any], builder_settings: Settings
-) -> None:
+def test_a_fee_model_is_always_configured(request_dict: dict[str, Any], builder_settings: Settings) -> None:
     # Even at zero: an unset fee model and an explicit zero look the same in a
     # result, and only one of them was a decision.
     request_dict["fees"] = {"makerBps": "0", "takerBps": "0"}
@@ -127,9 +116,7 @@ def test_a_fee_model_is_always_configured(
 # --- no cache database ---------------------------------------------------
 
 
-def test_backtests_get_no_cache_database(
-    backtest_request: BacktestRequest, builder_settings: Settings
-) -> None:
+def test_backtests_get_no_cache_database(backtest_request: BacktestRequest, builder_settings: Settings) -> None:
     # Spec section 9.2: a cache DB adds a write per event and introduces shared
     # mutable state, which breaks the determinism guarantee.
     config = build(backtest_request, builder_settings)
@@ -156,9 +143,7 @@ def test_an_in_memory_cache_is_accepted() -> None:
     from nautilus_trader.backtest.config import BacktestEngineConfig, BacktestRunConfig
     from nautilus_trader.config import CacheConfig
 
-    config = BacktestRunConfig(
-        engine=BacktestEngineConfig(cache=CacheConfig()), venues=[], data=[]
-    )
+    config = BacktestRunConfig(engine=BacktestEngineConfig(cache=CacheConfig()), venues=[], data=[])
     assert_no_cache_database(config)
 
 
@@ -186,27 +171,21 @@ def test_the_strategy_config_comes_from_the_shared_factory(
     assert build(backtest_request, builder_settings).engine.strategies[0] == expected
 
 
-def test_the_strategy_paths_are_the_stored_ones(
-    backtest_request: BacktestRequest, builder_settings: Settings
-) -> None:
+def test_the_strategy_paths_are_the_stored_ones(backtest_request: BacktestRequest, builder_settings: Settings) -> None:
     # These strings live inside stored configs; changing them is a migration.
     strategy = build(backtest_request, builder_settings).engine.strategies[0]
     assert strategy.strategy_path == STRATEGY_PATH == "engine.strategies.dsl_strategy:DslStrategy"
     assert strategy.config_path == CONFIG_PATH
 
 
-def test_the_costs_travel_with_the_config(
-    backtest_request: BacktestRequest, builder_settings: Settings
-) -> None:
+def test_the_costs_travel_with_the_config(backtest_request: BacktestRequest, builder_settings: Settings) -> None:
     # Without this the strategy sizes a position it cannot pay the fee on, the
     # account overdraws, and the simulated exchange halts the whole run.
     config = build(backtest_request, builder_settings).engine.strategies[0].config
     assert config["cost_bps"] == "15"  # 10 bps taker + 5 bps slippage
 
 
-def test_the_spec_hash_travels_with_the_config(
-    backtest_request: BacktestRequest, builder_settings: Settings
-) -> None:
+def test_the_spec_hash_travels_with_the_config(backtest_request: BacktestRequest, builder_settings: Settings) -> None:
     spec = StrategySpec.model_validate(backtest_request.spec)
     config = build(backtest_request, builder_settings).engine.strategies[0].config
     assert config["spec_hash"] == spec_hash(spec)
@@ -216,9 +195,7 @@ def test_the_spec_hash_travels_with_the_config(
 # --- data and venue ------------------------------------------------------
 
 
-def test_the_data_window_matches_the_request(
-    backtest_request: BacktestRequest, builder_settings: Settings
-) -> None:
+def test_the_data_window_matches_the_request(backtest_request: BacktestRequest, builder_settings: Settings) -> None:
     data = build(backtest_request, builder_settings).data[0]
     assert data.instrument_id == "BTCUSDT.BINANCE"
     assert data.bar_types == ["BTCUSDT.BINANCE-15-MINUTE-LAST-EXTERNAL"]
@@ -231,26 +208,20 @@ def test_the_catalog_path_comes_from_settings(backtest_request: BacktestRequest)
     assert build(backtest_request, settings).data[0].catalog_path == "/srv/other-catalog"
 
 
-def test_the_venue_is_a_cash_account(
-    backtest_request: BacktestRequest, builder_settings: Settings
-) -> None:
+def test_the_venue_is_a_cash_account(backtest_request: BacktestRequest, builder_settings: Settings) -> None:
     venue = build(backtest_request, builder_settings).venues[0]
     assert venue.name == "BINANCE"
     assert str(venue.account_type) == "CASH"
     assert venue.starting_balances == ["10000 USDT"]
 
 
-def test_reports_can_be_read_after_the_run(
-    backtest_request: BacktestRequest, builder_settings: Settings
-) -> None:
+def test_reports_can_be_read_after_the_run(backtest_request: BacktestRequest, builder_settings: Settings) -> None:
     # dispose_on_completion defaults to True and clears the cache before run()
     # returns, which makes every report come back empty (D9).
     assert build(backtest_request, builder_settings).dispose_on_completion is False
 
 
-def test_different_requests_produce_different_configs(
-    request_dict: dict[str, Any], builder_settings: Settings
-) -> None:
+def test_different_requests_produce_different_configs(request_dict: dict[str, Any], builder_settings: Settings) -> None:
     baseline = summarise(build(BacktestRequest.model_validate(request_dict), builder_settings))
     request_dict["slippageBps"] = "25"
     changed = summarise(build(BacktestRequest.model_validate(request_dict), builder_settings))
@@ -290,9 +261,7 @@ def test_the_built_config_runs_and_charges_costs(builder_settings: Settings) -> 
             engine.dispose()
 
     window = {"start": "2024-01-01T00:00:00Z", "end": "2024-02-01T00:00:00Z"}
-    charged = total_commission(
-        BacktestRequest.model_validate({**REQUEST_FOR_RUN, **window})
-    )
+    charged = total_commission(BacktestRequest.model_validate({**REQUEST_FOR_RUN, **window}))
     free = total_commission(
         BacktestRequest.model_validate(
             {

@@ -22,13 +22,7 @@ from enum import StrEnum
 from pydantic import BaseModel, ConfigDict
 
 from engine.dsl.indicators import supported_operators, warmup_bars
-from engine.dsl.keys import (
-    BAR_DERIVED,
-    PERIODIC,
-    SMA_OPERATORS,
-    UnknownIndicatorError,
-    required_refs,
-)
+from engine.dsl.keys import BAR_DERIVED, PERIODIC, SMA_OPERATORS, required_refs
 from engine.dsl.schema import (
     AllGroup,
     AnyGroup,
@@ -39,6 +33,7 @@ from engine.dsl.schema import (
     StrategySpec,
     TakeProfitPercent,
 )
+from engine.errors import UnknownIndicatorError
 
 
 class SpecErrorCode(StrEnum):

@@ -7,7 +7,8 @@ import pytest
 from nautilus_trader.model import Bar, BarType
 from nautilus_trader.model.instruments import CurrencyPair
 
-from engine.data.catalog import Catalog, CatalogError
+from engine.data.catalog import Catalog
+from engine.errors import CatalogError
 from engine.settings import Settings
 from tests.data.conftest import FIFTEEN_MIN_NS, FIRST_CLOSE_NS
 

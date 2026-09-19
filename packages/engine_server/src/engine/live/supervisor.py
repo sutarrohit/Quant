@@ -37,6 +37,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Protocol
 
+from engine.errors import ReconciliationFailed
 from engine.live.desired_state import (
     DesiredState,
     DesiredStatus,
@@ -44,7 +45,6 @@ from engine.live.desired_state import (
     ObservedState,
     ObservedStatus,
 )
-from engine.live.recovery import ReconciliationFailed
 from engine.logging import log_context
 from engine.settings import Settings
 

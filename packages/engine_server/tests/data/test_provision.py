@@ -17,14 +17,10 @@ import pytest
 import respx
 
 from engine.data.catalog import Catalog
-from engine.data.provision import (
-    DataRangeUnavailable,
-    VenueUnsupported,
-    ensure_window,
-    source_for,
-)
-from engine.data.sources.binance import BinanceSpotSource, SymbolUnknownAtVenue
+from engine.data.provision import ensure_window, source_for
+from engine.data.sources.binance import BinanceSpotSource
 from engine.data.timeframes import Timeframe
+from engine.errors import DataRangeUnavailable, SymbolUnknownAtVenue, VenueUnsupported
 from engine.settings import Settings
 from tests.conftest import make_settings
 from tests.data.test_binance import EXCHANGE_INFO, EXCHANGE_INFO_BODY, KLINES, kline

@@ -29,8 +29,8 @@ import logging
 from redis.asyncio import Redis
 
 from engine.data.catalog import Catalog
-from engine.data.provision import VenueUnsupported, source_for
-from engine.data.sources.binance import SymbolUnknownAtVenue, UpstreamError
+from engine.data.provision import source_for
+from engine.errors import SymbolUnknownAtVenue, UpstreamError, VenueUnsupported
 from engine.settings import Settings
 
 logger = logging.getLogger(__name__)

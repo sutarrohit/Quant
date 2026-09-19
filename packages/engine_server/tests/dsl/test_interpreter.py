@@ -9,7 +9,7 @@ from typing import Any
 
 import pytest
 
-from engine.dsl.interpreter import EvalContext, InterpreterError, evaluate
+from engine.dsl.interpreter import EvalContext, evaluate
 from engine.dsl.schema import (
     AllGroup,
     AnyGroup,
@@ -20,6 +20,7 @@ from engine.dsl.schema import (
     TakeProfitPercent,
     VolumeCondition,
 )
+from engine.errors import InterpreterError
 
 
 def ctx(

@@ -37,7 +37,7 @@ from engine.data.raw import RawStore
 from engine.data.sources import MarketDataSource
 from engine.data.sources.binance import BinanceSpotSource
 from engine.data.timeframes import NANOS_PER_MILLI, Timeframe
-from engine.errors import EngineError, ErrorCode
+from engine.errors import DataRangeUnavailable, VenueUnsupported
 from engine.settings import Settings
 
 logger = logging.getLogger(__name__)
@@ -49,25 +49,6 @@ SOURCES: dict[str, type[BinanceSpotSource]] = {"BINANCE": BinanceSpotSource}
 
 #: Budget for a single "does this symbol exist" question on the request path.
 PROBE_TIMEOUT_SECONDS = 3.0
-
-
-class VenueUnsupported(EngineError):
-    """No data source exists for the venue the request names."""
-
-    code = ErrorCode.VENUE_UNSUPPORTED
-    http_status = 422
-
-
-class DataRangeUnavailable(EngineError):
-    """The venue cannot cover the window that was asked for.
-
-    Raised rather than silently shrinking the window. A backtest quietly run
-    over two years when seven were requested is a result the caller will read
-    as seven, and no amount of metadata further down makes that safe.
-    """
-
-    code = ErrorCode.DATA_RANGE_UNAVAILABLE
-    http_status = 422
 
 
 @dataclass(frozen=True, slots=True)

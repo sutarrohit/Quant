@@ -32,7 +32,6 @@ import fsspec
 from nautilus_trader.model import Bar
 
 from engine.data.timeframes import Timeframe
-from engine.errors import EngineError, ErrorCode
 
 # Trailing window for the outlier baseline. Long enough to be a stable median,
 # short enough to track a changing volatility regime.
@@ -46,11 +45,6 @@ DEFAULT_OUTLIER_MULTIPLE = Decimal("10")
 # Findings are capped per code so one broken day cannot produce a report larger
 # than the data. Full totals always live in `counts`.
 MAX_FINDINGS_PER_CODE = 50
-
-
-class QualityError(EngineError):
-    code = ErrorCode.DATA_QUALITY
-    http_status = 422
 
 
 class Severity(StrEnum):

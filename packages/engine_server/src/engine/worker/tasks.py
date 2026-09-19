@@ -12,9 +12,9 @@ import logging
 from typing import Any
 
 from engine.backtest.request import BacktestRequest
-from engine.backtest.runner import BacktestFailed, BacktestTimeout, run_isolated
+from engine.backtest.runner import run_isolated
 from engine.data.provision import ensure_window
-from engine.errors import EngineError, ErrorCode
+from engine.errors import BacktestFailed, BacktestTimeout, EngineError, ErrorCode
 from engine.logging import log_context
 from engine.settings import Settings
 from engine.store.artifacts import ArtifactStore

@@ -15,7 +15,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from engine.dsl.schema import Operator
-from engine.errors import EngineError, ErrorCode
+from engine.errors import UnknownIndicatorError
 
 #: Indicators whose `period` configures the indicator itself.
 PERIODIC = frozenset({"rsi", "sma", "ema", "atr"})
@@ -28,13 +28,6 @@ INDICATOR_NAMES = PERIODIC | BAR_DERIVED
 #: Operators that compare a subject against the moving average of itself, and
 #: therefore need a second series.
 SMA_OPERATORS = frozenset({Operator.GREATER_THAN_SMA, Operator.LESS_THAN_SMA})
-
-
-class UnknownIndicatorError(EngineError):
-    """Raised, never swallowed (spec section 5.3, rule 9)."""
-
-    code = ErrorCode.REQUEST_INVALID
-    http_status = 422
 
 
 @dataclass(frozen=True, slots=True)

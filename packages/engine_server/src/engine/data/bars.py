@@ -32,12 +32,7 @@ from collections.abc import Sequence
 from nautilus_trader.model import Bar
 
 from engine.data.timeframes import Timeframe
-from engine.errors import EngineError, ErrorCode
-
-
-class TimestampDisciplineError(EngineError):
-    code = ErrorCode.TIMESTAMP_DISCIPLINE
-    http_status = 422
+from engine.errors import TimestampDisciplineError
 
 
 def check_bars(

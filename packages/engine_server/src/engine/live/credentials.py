@@ -25,20 +25,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
 
-from engine.errors import EngineError, ErrorCode
+from engine.errors import CredentialUnavailable
 
 logger = logging.getLogger(__name__)
-
-
-class CredentialUnavailable(EngineError):
-    """The reference could not be resolved.
-
-    A node must refuse to start rather than trade without credentials, and
-    must say so without quoting the reference back into a log.
-    """
-
-    code = ErrorCode.CREDENTIAL_UNAVAILABLE
-    http_status = 502
 
 
 @dataclass(frozen=True, slots=True)

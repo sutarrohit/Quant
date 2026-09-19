@@ -15,7 +15,7 @@ from enum import StrEnum
 
 from nautilus_trader.model import BarType
 
-from engine.errors import EngineError, ErrorCode
+from engine.errors import UnsupportedTimeframe
 
 NANOS_PER_MILLI = 1_000_000
 
@@ -70,13 +70,6 @@ class Timeframe(StrEnum):
         raise UnsupportedTimeframe(
             f"{aggregation} is not a supported timeframe; supported: {', '.join(tf.value for tf in cls)}"
         )
-
-
-class UnsupportedTimeframe(EngineError):
-    """A bar type naming an interval outside the closed set."""
-
-    code = ErrorCode.REQUEST_INVALID
-    http_status = 422
 
 
 _DURATIONS: dict[Timeframe, timedelta] = {

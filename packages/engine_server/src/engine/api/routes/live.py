@@ -33,9 +33,8 @@ from engine.api.deps import RedisDep, SettingsDep
 from engine.dsl.hashing import spec_hash
 from engine.dsl.schema import StrategySpec
 from engine.dsl.validator import validate_spec
-from engine.errors import SpecInvalid
+from engine.errors import AccountNotFound, SpecInvalid
 from engine.live.desired_state import (
-    AccountNotFound,
     DesiredState,
     DesiredStatus,
     LiveStateStore,

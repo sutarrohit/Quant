@@ -18,8 +18,8 @@ from pathlib import Path
 
 import pytest
 
+from engine.errors import CredentialUnavailable
 from engine.live.credentials import (
-    CredentialUnavailable,
     EnvironmentCredentialResolver,
     NoCredentialsResolver,
     SecretsFileResolver,

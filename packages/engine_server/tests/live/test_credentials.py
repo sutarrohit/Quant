@@ -2,12 +2,8 @@ from __future__ import annotations
 
 import pytest
 
-from engine.live.credentials import (
-    CredentialUnavailable,
-    EnvironmentCredentialResolver,
-    NoCredentialsResolver,
-    VenueCredentials,
-)
+from engine.errors import CredentialUnavailable
+from engine.live.credentials import EnvironmentCredentialResolver, NoCredentialsResolver, VenueCredentials
 
 
 def test_a_key_never_appears_in_its_own_repr() -> None:

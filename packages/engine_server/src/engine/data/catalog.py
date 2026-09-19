@@ -21,13 +21,8 @@ from nautilus_trader.model import Bar, BarType
 from nautilus_trader.model.instruments import Instrument
 from nautilus_trader.persistence.catalog import ParquetDataCatalog
 
-from engine.errors import EngineError, ErrorCode
+from engine.errors import CatalogError
 from engine.settings import Settings
-
-
-class CatalogError(EngineError):
-    code = ErrorCode.CATALOG_INVALID
-    http_status = 500
 
 
 @dataclass(frozen=True, slots=True)

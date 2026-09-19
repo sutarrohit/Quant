@@ -30,17 +30,12 @@ from nautilus_trader.model import Bar
 from engine.backtest.request import BacktestRequest
 from engine.dsl.hashing import spec_hash
 from engine.dsl.schema import StrategySpec
-from engine.errors import EngineError, ErrorCode
+from engine.errors import BacktestConfigError
 from engine.settings import Settings
 from engine.strategies.config import strategy_config
 
 FEE_MODEL_PATH = "engine.backtest.fees:BpsFeeModel"
 FEE_CONFIG_PATH = "engine.backtest.fees:BpsFeeModelConfig"
-
-
-class BacktestConfigError(EngineError):
-    code = ErrorCode.REQUEST_INVALID
-    http_status = 422
 
 
 def assert_no_cache_database(config: BacktestRunConfig) -> None:

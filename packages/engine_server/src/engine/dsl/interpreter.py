@@ -35,15 +35,10 @@ from engine.dsl.schema import (
     StopLossPercent,
     TakeProfitPercent,
 )
-from engine.errors import EngineError, ErrorCode
+from engine.errors import InterpreterError
 
 # Anything with an `indicator` attribute, structurally.
 _INDICATOR_ATTRIBUTES = ("indicator", "operator")
-
-
-class InterpreterError(EngineError):
-    code = ErrorCode.REQUEST_INVALID
-    http_status = 422
 
 
 @dataclass(frozen=True, slots=True)

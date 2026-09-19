@@ -18,12 +18,7 @@ from nautilus_trader.model import InstrumentId, Price, Quantity, Symbol, Venue
 from nautilus_trader.model.instruments import CurrencyPair
 from nautilus_trader.model.objects import Currency, Money
 
-from engine.errors import EngineError, ErrorCode
-
-
-class InstrumentError(EngineError):
-    code = ErrorCode.INSTRUMENT_INVALID
-    http_status = 422
+from engine.errors import InstrumentError
 
 
 def precision_of(increment: Decimal) -> int:

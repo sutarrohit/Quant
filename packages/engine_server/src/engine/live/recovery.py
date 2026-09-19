@@ -29,18 +29,13 @@ from decimal import Decimal
 from enum import StrEnum
 from typing import Any, Protocol
 
-from engine.errors import EngineError, ErrorCode
+from engine.errors import ReconciliationFailed
 
 logger = logging.getLogger(__name__)
 
 #: Balances drift by fractions between two reads as fees settle. Positions and
 #: orders do not, and are compared exactly.
 DEFAULT_BALANCE_TOLERANCE = Decimal("0.00000001")
-
-
-class ReconciliationFailed(EngineError):
-    code = ErrorCode.RECONCILIATION_FAILED
-    http_status = 409
 
 
 @dataclass(frozen=True, slots=True)
