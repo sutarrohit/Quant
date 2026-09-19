@@ -13,6 +13,7 @@ from typing import Any
 
 from engine.backtest.request import BacktestRequest
 from engine.backtest.runner import BacktestFailed, BacktestTimeout, run_isolated
+from engine.data.provision import ensure_window
 from engine.errors import EngineError, ErrorCode
 from engine.logging import log_context
 from engine.settings import Settings
@@ -40,8 +41,8 @@ async def run_backtest(ctx: dict[str, Any], job_id: str) -> str:
         return "missing"
 
     with log_context(job_id=job_id, request_id=record.request_id):
-        claimed = await store.mark_running(job_id)
-        if claimed.status is not JobStatus.RUNNING:
+        claimed = await store.mark_fetching_data(job_id)
+        if claimed.status is not JobStatus.FETCHING_DATA:
             # Cancelled between enqueue and pickup, or already finished. The
             # transition is compare-and-set, so this is the losing side of that
             # race and must not run.
@@ -56,6 +57,35 @@ async def run_backtest(ctx: dict[str, Any], job_id: str) -> str:
             logger.exception("stored request is unreadable")
             await store.mark_failed(job_id, ErrorCode.REQUEST_INVALID.value, str(exc)[:200])
             return "failed"
+
+        # Fetch anything the catalog is missing before the run. Blocking and
+        # network-bound, so it happens in a thread: arq keeps its heartbeat and
+        # the worker stays cancellable while the venue pages.
+        try:
+            provisioned = await asyncio.to_thread(
+                ensure_window,
+                bar_type=request.bar_type,
+                start=request.start,
+                end=request.end,
+                settings=settings,
+            )
+        except EngineError as exc:
+            # An unlisted symbol, an unsupported venue, a window the venue
+            # cannot cover: the caller's problem, named precisely.
+            logger.warning("could not provision data", extra={"code": exc.code.value})
+            await store.mark_failed(job_id, exc.code.value, exc.message)
+            return "failed"
+        except Exception as exc:  # noqa: BLE001 -- a job must always terminate
+            logger.exception("data provisioning failed")
+            await store.mark_failed(job_id, ErrorCode.UPSTREAM_UNAVAILABLE.value, type(exc).__name__)
+            return "failed"
+
+        logger.info("data ready", extra={"provisioned": provisioned.describe()})
+
+        running = await store.mark_running(job_id)
+        if running.status is not JobStatus.RUNNING:
+            logger.info("job not runnable", extra={"status": running.status.value})
+            return running.status.value.lower()
 
         logger.info("backtest started")
         try:

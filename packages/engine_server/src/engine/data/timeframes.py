@@ -13,6 +13,10 @@ from __future__ import annotations
 from datetime import timedelta
 from enum import StrEnum
 
+from nautilus_trader.model import BarType
+
+from engine.errors import EngineError, ErrorCode
+
 NANOS_PER_MILLI = 1_000_000
 
 
@@ -46,6 +50,33 @@ class Timeframe(StrEnum):
         ``"BTCUSDT.BINANCE-15-MINUTE-LAST-EXTERNAL"``.
         """
         return _AGGREGATIONS[self]
+
+    @classmethod
+    def from_bar_type(cls, bar_type: BarType | str) -> Timeframe:
+        """The timeframe a Nautilus ``BarType`` names.
+
+        The inverse of :attr:`aggregation`, and derived from the same table so
+        the two cannot drift. A bar type outside the closed set is refused
+        rather than approximated: an unsupported interval reaching ingest would
+        produce bars nothing else in the system can read.
+        """
+        spec = str(bar_type).split("-")
+        if len(spec) < 3:
+            raise UnsupportedTimeframe(f"{bar_type} is not a bar type this service understands")
+        aggregation = f"{spec[1]}-{spec[2]}"
+        for timeframe, candidate in _AGGREGATIONS.items():
+            if candidate == aggregation:
+                return timeframe
+        raise UnsupportedTimeframe(
+            f"{aggregation} is not a supported timeframe; supported: {', '.join(tf.value for tf in cls)}"
+        )
+
+
+class UnsupportedTimeframe(EngineError):
+    """A bar type naming an interval outside the closed set."""
+
+    code = ErrorCode.REQUEST_INVALID
+    http_status = 422
 
 
 _DURATIONS: dict[Timeframe, timedelta] = {

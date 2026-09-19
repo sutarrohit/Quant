@@ -15,9 +15,10 @@ from fastapi import APIRouter, Depends, Request, Response, status
 from pydantic import ValidationError
 
 from engine.api.auth import InternalAuth
-from engine.api.deps import JobStoreDep, SettingsDep
+from engine.api.deps import JobStoreDep, RedisDep, SettingsDep
 from engine.backtest.queue import JobQueue
 from engine.backtest.request import BacktestRequest
+from engine.data.availability import SymbolAvailability
 from engine.data.catalog import Catalog
 from engine.data.timeframes import Timeframe
 from engine.dsl.schema import StrategySpec
@@ -88,15 +89,19 @@ async def submit(
     settings: SettingsDep,
     jobs: JobStoreDep,
     queue: QueueDep,
+    redis: RedisDep,
     response: Response,
 ) -> dict[str, Any]:
     spec = parse_spec(payload.spec)
 
-    catalog = Catalog.from_settings(settings)
+    # Knowable, not "already ingested": the worker fetches what the catalog is
+    # missing, so a symbol the venue lists is a valid request even on a cold
+    # catalog. Only a symbol nobody can produce data for is a spec error.
+    availability = SymbolAvailability(Catalog.from_settings(settings), settings, redis)
     errors = validate_spec(
         spec,
         available_bars=available_bars(payload, spec.market.timeframe),
-        known_instruments=catalog.backtestable_instrument_ids(),
+        known_instruments=await availability.knowable(spec.market.instrument_ids),
     )
     if errors:
         # Rejected before the queue is touched: a bad spec costs the caller a

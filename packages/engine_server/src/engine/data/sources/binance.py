@@ -63,6 +63,18 @@ class UpstreamError(EngineError):
     http_status = 502
 
 
+class SymbolUnknownAtVenue(UpstreamError):
+    """The venue has no such symbol.
+
+    A 4xx that names the request, not the venue's health -- and the difference
+    matters: an unknown symbol is the caller's typo and must be reported as
+    such, while an outage must never be reported as "that coin does not exist".
+    """
+
+    code = ErrorCode.SYMBOL_UNKNOWN_AT_VENUE
+    http_status = 422
+
+
 class UpstreamRateLimited(UpstreamError):
     code = ErrorCode.UPSTREAM_RATE_LIMITED
     http_status = 429
@@ -71,6 +83,21 @@ class UpstreamRateLimited(UpstreamError):
 class UpstreamResponseInvalid(UpstreamError):
     code = ErrorCode.UPSTREAM_RESPONSE_INVALID
     http_status = 502
+
+
+#: Binance's own code for an unrecognised symbol, returned with a 400. Matched
+#: on the code rather than the message, which is prose and not a contract.
+_INVALID_SYMBOL_CODE = -1121
+
+
+def _is_unknown_symbol(response: httpx.Response) -> bool:
+    if response.status_code != 400:
+        return False
+    try:
+        body = response.json()
+    except ValueError:
+        return False
+    return isinstance(body, dict) and body.get("code") == _INVALID_SYMBOL_CODE
 
 
 def _to_millis(moment: datetime) -> int:
@@ -177,6 +204,8 @@ class BinanceSpotSource:
             if response.status_code >= 400:
                 # A 4xx that is not a rate limit is a bad request; retrying it
                 # just burns quota against an error we caused.
+                if _is_unknown_symbol(response):
+                    raise SymbolUnknownAtVenue(f"{params.get('symbol', '?')} is not listed on Binance spot")
                 raise UpstreamError(f"{response.status_code} from {path}: {response.text[:200]}")
 
             try:

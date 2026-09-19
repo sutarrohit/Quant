@@ -240,9 +240,13 @@ def test_terminal_statuses(status: JobStatus, terminal: bool) -> None:
 
 
 def test_the_documented_status_set(store: JobStore) -> None:
-    # Spec section 7.2 fixes these five; the TypeScript caller branches on them.
+    # Spec section 7.2 fixed five; automatic data provisioning added
+    # FETCHING_DATA as a sixth (ADR-003). The TypeScript caller branches on
+    # these, so the list is asserted rather than left to drift -- and the four
+    # terminal-vs-live semantics below are what it actually branches on.
     assert [s.value for s in JobStatus] == [
         "QUEUED",
+        "FETCHING_DATA",
         "RUNNING",
         "SUCCEEDED",
         "FAILED",
