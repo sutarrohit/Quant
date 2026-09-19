@@ -62,6 +62,11 @@ _JSON_FIELDS = ("request", "error", "result")
 
 class JobStatus(StrEnum):
     QUEUED = "QUEUED"
+    #: Fetching market data the catalog does not hold yet. A state of its own
+    #: rather than part of RUNNING: a cold two-year window is minutes of paging
+    #: against the venue, and a caller watching a progress bar deserves to know
+    #: the difference between "downloading history" and "computing".
+    FETCHING_DATA = "FETCHING_DATA"
     RUNNING = "RUNNING"
     SUCCEEDED = "SUCCEEDED"
     FAILED = "FAILED"
@@ -153,9 +158,7 @@ class JobStore:
 
     # --- claiming --------------------------------------------------------
 
-    async def claim(
-        self, request_id: str, payload_hash: str, request: dict[str, Any]
-    ) -> tuple[JobRecord, bool]:
+    async def claim(self, request_id: str, payload_hash: str, request: dict[str, Any]) -> tuple[JobRecord, bool]:
         """Get or create the job for a ``requestId``.
 
         Returns ``(record, created)``. ``created`` is False when this
@@ -214,11 +217,24 @@ class JobStore:
 
     # --- transitions -----------------------------------------------------
 
+    async def mark_fetching_data(self, job_id: str) -> JobRecord:
+        """Claim the job for data provisioning.
+
+        ``started_at`` is stamped here rather than at RUNNING, because from the
+        caller's side the job started when the worker picked it up. The wait for
+        data is part of what it cost.
+        """
+        return await self._transition_to(
+            job_id,
+            {"status": JobStatus.FETCHING_DATA.value, "started_at": self._now().isoformat()},
+            allowed_from=[JobStatus.QUEUED],
+        )
+
     async def mark_running(self, job_id: str) -> JobRecord:
         return await self._transition_to(
             job_id,
             {"status": JobStatus.RUNNING.value, "started_at": self._now().isoformat()},
-            allowed_from=[JobStatus.QUEUED],
+            allowed_from=[JobStatus.QUEUED, JobStatus.FETCHING_DATA],
         )
 
     async def mark_succeeded(self, job_id: str, result: dict[str, Any]) -> JobRecord:
@@ -245,7 +261,7 @@ class JobStore:
                 "finished_at": self._now().isoformat(),
                 "error": {"code": code, "message": message},
             },
-            allowed_from=[JobStatus.QUEUED, JobStatus.RUNNING],
+            allowed_from=[JobStatus.QUEUED, JobStatus.FETCHING_DATA, JobStatus.RUNNING],
         )
 
     async def cancel(self, job_id: str) -> JobRecord:
@@ -275,9 +291,7 @@ class JobStore:
     ) -> JobRecord:
         flat: list[str] = []
         for field, value in changes.items():
-            flat.extend(
-                [field, json.dumps(value) if field in _JSON_FIELDS else str(value)]
-            )
+            flat.extend([field, json.dumps(value) if field in _JSON_FIELDS else str(value)])
 
         status = await self._transition(
             keys=[JOB_KEY.format(job_id=job_id)],

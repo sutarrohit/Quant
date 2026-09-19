@@ -156,8 +156,7 @@ def _check_condition(node: object, path: str) -> Iterator[SpecError]:
             path=f"{path}.value",
             code=SpecErrorCode.MISSING_THRESHOLD,
             message=(
-                f"{operator.value!r} compares against something, and neither a "
-                "`value` nor a `reference` was given"
+                f"{operator.value!r} compares against something, and neither a `value` nor a `reference` was given"
             ),
         )
 
@@ -249,8 +248,7 @@ def validate_spec(
                         path=path,
                         code=SpecErrorCode.EMPTY_CONDITION_GROUP,
                         message=(
-                            "an empty group has no meaning: `all` of nothing is "
-                            "true, which would fire on every bar"
+                            "an empty group has no meaning: `all` of nothing is true, which would fire on every bar"
                         ),
                     )
                 )
@@ -310,7 +308,7 @@ def validate_spec(
                     SpecError(
                         path=f"market.symbols[{index}]",
                         code=SpecErrorCode.SYMBOL_NOT_IN_CATALOG,
-                        message=f"{instrument_id} is not in the catalog",
+                        message=(f"{instrument_id} is not in the catalog and is not listed at the venue"),
                         observed=instrument_id,
                     )
                 )

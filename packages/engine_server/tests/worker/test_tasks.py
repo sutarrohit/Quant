@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 from decimal import Decimal
 from typing import Any
@@ -7,6 +8,8 @@ from typing import Any
 import pytest
 
 from engine.backtest.runner import BacktestFailed, BacktestTimeout
+from engine.data.provision import DataRangeUnavailable, ProvisionResult
+from engine.data.sources.binance import SymbolUnknownAtVenue
 from engine.store.jobs import JobStatus, JobStore
 from engine.worker import tasks
 from engine.worker.tasks import run_backtest
@@ -55,6 +58,116 @@ async def test_a_job_runs_to_succeeded(
     assert record.started_at is not None
     assert record.finished_at is not None
     assert record.error is None
+
+
+# --- data provisioning (ADR-003) -----------------------------------------
+
+
+async def test_data_is_provisioned_before_the_run(
+    ctx: dict[str, Any], store: JobStore, submission: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The catalog is filled first, and the job says so while it happens."""
+    seen: list[str] = []
+
+    def provision(**kwargs: Any) -> ProvisionResult:
+        seen.append("provision")
+        return ProvisionResult(kwargs["bar_type"], fetched=True, bars_written=96)
+
+    def run(*args: object, **kwargs: object) -> dict[str, Any]:
+        seen.append("run")
+        return stub_result()
+
+    monkeypatch.setattr(tasks, "ensure_window", provision)
+    monkeypatch.setattr(tasks, "run_isolated", run)
+    job_id = await claim(store, submission)
+
+    assert await run_backtest(ctx, job_id) == "succeeded"
+    # Order is the whole point: a run that starts before its data is there
+    # fails with NO_DATA_FOR_WINDOW for no reason.
+    assert seen == ["provision", "run"]
+
+
+async def test_the_job_is_visibly_fetching_while_it_fetches(
+    ctx: dict[str, Any], store: JobStore, submission: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # A caller polling a cold two-year window waits minutes. FETCHING_DATA is
+    # how they learn it is downloading history rather than wedged.
+    observed: list[JobStatus] = []
+    job_id = await claim(store, submission)
+
+    def provision(**kwargs: Any) -> ProvisionResult:
+        record = asyncio.run_coroutine_threadsafe(store.get(job_id), loop).result()
+        observed.append(record.status)
+        return ProvisionResult(kwargs["bar_type"], fetched=True, bars_written=1)
+
+    loop = asyncio.get_running_loop()
+    monkeypatch.setattr(tasks, "ensure_window", provision)
+    monkeypatch.setattr(tasks, "run_isolated", lambda *a, **k: stub_result())
+
+    await run_backtest(ctx, job_id)
+
+    assert observed == [JobStatus.FETCHING_DATA]
+
+
+async def test_a_symbol_the_venue_does_not_list_fails_the_job(
+    ctx: dict[str, Any], store: JobStore, submission: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def unknown(**kwargs: object) -> ProvisionResult:
+        raise SymbolUnknownAtVenue("NOTACOIN is not listed on Binance spot")
+
+    monkeypatch.setattr(tasks, "ensure_window", unknown)
+    job_id = await claim(store, submission)
+
+    assert await run_backtest(ctx, job_id) == "failed"
+
+    record = await store.require(job_id)
+    assert record.status is JobStatus.FAILED
+    assert record.error is not None
+    # A code the TypeScript caller can branch on, not prose.
+    assert record.error["code"] == "SYMBOL_UNKNOWN_AT_VENUE"
+
+
+async def test_a_window_the_venue_cannot_cover_fails_the_job(
+    ctx: dict[str, Any], store: JobStore, submission: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def short(**kwargs: object) -> ProvisionResult:
+        raise DataRangeUnavailable("SOLUSDT.BINANCE has no data before 2020-08-11")
+
+    monkeypatch.setattr(tasks, "ensure_window", short)
+    job_id = await claim(store, submission)
+
+    assert await run_backtest(ctx, job_id) == "failed"
+    record = await store.require(job_id)
+    assert record.error is not None
+    assert record.error["code"] == "DATA_RANGE_UNAVAILABLE"
+
+
+async def test_a_backtest_never_runs_on_a_window_that_could_not_be_filled(
+    ctx: dict[str, Any], store: JobStore, submission: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The failure mode worth a test of its own.
+
+    Provisioning failing and the run proceeding anyway would produce a result
+    over whatever subset happened to be on disk -- a number that looks like an
+    answer to the question that was asked, and is not.
+    """
+    ran = False
+
+    def never(*args: object, **kwargs: object) -> dict[str, Any]:
+        nonlocal ran
+        ran = True
+        return stub_result()
+
+    def fails(**kwargs: object) -> ProvisionResult:
+        raise DataRangeUnavailable("no data for that window")
+
+    monkeypatch.setattr(tasks, "ensure_window", fails)
+    monkeypatch.setattr(tasks, "run_isolated", never)
+    job_id = await claim(store, submission)
+
+    await run_backtest(ctx, job_id)
+
+    assert not ran
 
 
 # --- failures ------------------------------------------------------------
@@ -119,9 +232,7 @@ async def test_an_unexpected_error_still_terminates_the_job(
     }
 
 
-async def test_an_unreadable_stored_request_fails_the_job(
-    ctx: dict[str, Any], store: JobStore
-) -> None:
+async def test_an_unreadable_stored_request_fails_the_job(ctx: dict[str, Any], store: JobStore) -> None:
     record, _ = await store.claim("req_1", "hash_a", {"not": "a request"})
 
     assert await run_backtest(ctx, record.job_id) == "failed"
@@ -186,7 +297,6 @@ async def test_a_real_backtest_runs_through_the_task(
     assert record.result["fills"] > 0
     assert record.result["closedPositions"] > 0
     assert Decimal(record.result["totalCommission"]) > 0
-
 
 
 async def test_artifacts_are_written_and_referenced(

@@ -112,7 +112,12 @@ essay with headings. The goal is that the answer is understood on one read.
     is dead and marked so. If something seems to need a `TradeIntent`, the
     question is whether Option B is still the decision — not whether to add the
     bridge back quietly.
-15. **A live node's failure mode is a process that looks fine.** Four separate
+15. **Unit tests never reach a venue.** `run_backtest` provisions missing data
+    before running (ADR-003), so a test that exercises it with real settings
+    downloads from Binance into the developer's own `./catalog`. That is what
+    `tests/worker/conftest.py`'s `no_venue_calls` fixture is for; a test that
+    wants the provisioning path patches `ensure_window` itself.
+16. **A live node's failure mode is a process that looks fine.** Four separate
     defects (D17–D19) each produced a running, healthy-looking node that did
     nothing, or a stopped node that would not exit. None raised. Configuration
     tests cannot see any of them: the object graph is only assembled at
@@ -149,8 +154,11 @@ uv run fastapi dev src/engine/api/app.py --port 8000
 uv run arq engine.worker.main.WorkerSettings
 uv run python -m engine.live.main
 uv run python -m engine.data.ingest --exchange binance --symbol BTCUSDT \
-  --market spot --timeframe 15m --start 2023-01-01 --end 2025-01-01
+  --market spot --timeframe 15m --start 2023-01-01 --end 2025-01-01  # optional
 ```
+
+Ingest is a pre-warm, not a precondition: the worker fetches whatever window a
+backtest names and the catalog lacks (ADR-003).
 
 ## Conventions
 
