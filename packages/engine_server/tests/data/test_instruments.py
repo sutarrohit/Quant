@@ -5,12 +5,8 @@ from decimal import Decimal
 
 import pytest
 
-from engine.data.instruments import (
-    InstrumentError,
-    SpotInstrumentSpec,
-    build_spot_instrument,
-    precision_of,
-)
+from engine.data.instruments import SpotInstrumentSpec, build_spot_instrument, precision_of
+from engine.errors import InstrumentError
 
 
 @pytest.mark.parametrize(

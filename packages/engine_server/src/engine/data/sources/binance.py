@@ -26,7 +26,12 @@ from nautilus_trader.model.instruments import Instrument
 from engine.data.instruments import SpotInstrumentSpec
 from engine.data.sources import KlinePage
 from engine.data.timeframes import NANOS_PER_MILLI, Timeframe
-from engine.errors import EngineError, ErrorCode
+from engine.errors import (
+    SymbolUnknownAtVenue,
+    UpstreamError,
+    UpstreamRateLimited,
+    UpstreamResponseInvalid,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -56,33 +61,6 @@ _INTERVALS: dict[Timeframe, str] = {
     Timeframe.D1: "1d",
 }
 assert set(_INTERVALS) == set(Timeframe)
-
-
-class UpstreamError(EngineError):
-    code = ErrorCode.UPSTREAM_UNAVAILABLE
-    http_status = 502
-
-
-class SymbolUnknownAtVenue(UpstreamError):
-    """The venue has no such symbol.
-
-    A 4xx that names the request, not the venue's health -- and the difference
-    matters: an unknown symbol is the caller's typo and must be reported as
-    such, while an outage must never be reported as "that coin does not exist".
-    """
-
-    code = ErrorCode.SYMBOL_UNKNOWN_AT_VENUE
-    http_status = 422
-
-
-class UpstreamRateLimited(UpstreamError):
-    code = ErrorCode.UPSTREAM_RATE_LIMITED
-    http_status = 429
-
-
-class UpstreamResponseInvalid(UpstreamError):
-    code = ErrorCode.UPSTREAM_RESPONSE_INVALID
-    http_status = 502
 
 
 #: Binance's own code for an unrecognised symbol, returned with a 400. Matched

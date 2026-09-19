@@ -34,7 +34,7 @@ from typing import Any, Self
 from pydantic import BaseModel, ConfigDict, Field
 from redis.asyncio import Redis
 
-from engine.errors import EngineError, ErrorCode
+from engine.errors import AccountNotFound
 from engine.live.risk import RiskLimits
 from engine.settings import Settings
 
@@ -96,11 +96,6 @@ class TradingMode(StrEnum):
 
     SIMULATION = "SIMULATION"
     LIVE = "LIVE"
-
-
-class AccountNotFound(EngineError):
-    code = ErrorCode.ACCOUNT_NOT_FOUND
-    http_status = 404
 
 
 class RiskLimitsModel(BaseModel):

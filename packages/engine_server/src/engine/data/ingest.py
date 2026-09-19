@@ -31,12 +31,12 @@ from nautilus_trader.model import BarType
 from engine.data.bars import check_bars
 from engine.data.catalog import Catalog
 from engine.data.instruments import build_spot_instrument
-from engine.data.quality import QualityError, QualityReport, check_quality, write_report
+from engine.data.quality import QualityReport, check_quality, write_report
 from engine.data.raw import RawRecord, RawStore
 from engine.data.sources import MarketDataSource
 from engine.data.sources.binance import BinanceSpotSource
 from engine.data.timeframes import NANOS_PER_MILLI, Timeframe
-from engine.errors import EngineError, ErrorCode
+from engine.errors import EngineError, IngestError, QualityError
 from engine.logging import configure_logging, log_context
 from engine.settings import Settings, get_settings
 
@@ -45,11 +45,6 @@ logger = logging.getLogger(__name__)
 EXCHANGES = {"binance": BinanceSpotSource}
 MARKETS = {"spot"}
 VENUES = {"binance": "BINANCE"}
-
-
-class IngestError(EngineError):
-    code = ErrorCode.REQUEST_INVALID
-    http_status = 422
 
 
 @dataclass(frozen=True, slots=True)

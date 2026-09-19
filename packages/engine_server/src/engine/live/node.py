@@ -34,17 +34,12 @@ from nautilus_trader.config import (
 )
 from nautilus_trader.model.identifiers import TraderId
 
-from engine.errors import EngineError, ErrorCode
+from engine.errors import CacheNotIsolated, LiveNotPermitted, ReconciliationFailed
 from engine.live.credentials import CredentialResolver, NoCredentialsResolver
 from engine.live.desired_state import DesiredState, LiveStateStore, TradingMode
 from engine.live.kill_switch import KillSwitch
 from engine.live.mandate import MandateStore
-from engine.live.recovery import (
-    CacheReader,
-    ReconciliationFailed,
-    VenueReader,
-    ensure_reconciled,
-)
+from engine.live.recovery import CacheReader, VenueReader, ensure_reconciled
 from engine.logging import log_context
 from engine.settings import Settings
 from engine.simulation.node import clients as simulation_clients
@@ -56,20 +51,6 @@ logger = logging.getLogger(__name__)
 #: Nautilus state, none of which survive a fork intact. The backtest runner
 #: makes the same choice for the same reason.
 _CONTEXT = multiprocessing.get_context("spawn")
-
-class LiveNotPermitted(EngineError):
-    """Live trading is gated on ADR-001's conditions, none of which are met."""
-
-    code = ErrorCode.LIVE_NOT_PERMITTED
-    http_status = 409
-
-
-class CacheNotIsolated(EngineError):
-    """The Nautilus cache and the arq queue share a Redis instance."""
-
-    code = ErrorCode.CACHE_NOT_ISOLATED
-    http_status = 500
-
 
 def assert_cache_is_isolated(cache_url: str, queue_url: str) -> None:
     """The live cache must not share Redis with the job queue.

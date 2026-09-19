@@ -7,9 +7,8 @@ from typing import Any
 
 import pytest
 
-from engine.backtest.runner import BacktestFailed, BacktestTimeout
-from engine.data.provision import DataRangeUnavailable, ProvisionResult
-from engine.data.sources.binance import SymbolUnknownAtVenue
+from engine.data.provision import ProvisionResult
+from engine.errors import BacktestFailed, BacktestTimeout, DataRangeUnavailable, SymbolUnknownAtVenue
 from engine.store.jobs import JobStatus, JobStore
 from engine.worker import tasks
 from engine.worker.tasks import run_backtest

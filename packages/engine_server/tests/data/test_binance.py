@@ -9,14 +9,9 @@ import pytest
 import respx
 
 from engine.data.sources import KlinePage, MarketDataSource
-from engine.data.sources.binance import (
-    MAX_LIMIT,
-    BinanceSpotSource,
-    UpstreamError,
-    UpstreamRateLimited,
-    UpstreamResponseInvalid,
-)
+from engine.data.sources.binance import MAX_LIMIT, BinanceSpotSource
 from engine.data.timeframes import Timeframe
+from engine.errors import UpstreamError, UpstreamRateLimited, UpstreamResponseInvalid
 
 BASE = "https://api.binance.com"
 KLINES = f"{BASE}/api/v3/klines"

@@ -44,7 +44,7 @@ from engine.dsl.indicators import Series, build
 from engine.dsl.interpreter import EvalContext, evaluate
 from engine.dsl.keys import SeriesRef, required_refs
 from engine.dsl.schema import RiskPercentSizing, StopLossPercent, StrategySpec
-from engine.errors import EngineError, ErrorCode
+from engine.errors import StrategySetupError
 from engine.live.gate import NoGate
 from engine.live.risk import AccountRisk, Decision, OrderIntent
 from engine.strategies.sizing import InstrumentLimits, SizingOutcome, size_by_risk
@@ -56,11 +56,6 @@ class RiskGateLike(Protocol):
     """What the order path needs from a gate: a synchronous answer."""
 
     def check(self, intent: OrderIntent, account: AccountRisk, now_ns: int) -> Decision: ...
-
-
-class StrategySetupError(EngineError):
-    code = ErrorCode.REQUEST_INVALID
-    http_status = 422
 
 
 class DslStrategyConfig(StrategyConfig, frozen=True):

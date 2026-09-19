@@ -30,7 +30,7 @@ from typing import Any, Self
 from pydantic import BaseModel, ConfigDict
 from redis.asyncio import Redis
 
-from engine.errors import EngineError, ErrorCode
+from engine.errors import JobNotCancellable, JobNotFound, RequestIdConflict
 from engine.settings import Settings
 
 JOB_KEY = "job:{job_id}"
@@ -75,25 +75,6 @@ class JobStatus(StrEnum):
     @property
     def terminal(self) -> bool:
         return self in (JobStatus.SUCCEEDED, JobStatus.FAILED, JobStatus.CANCELLED)
-
-
-class RequestIdConflict(EngineError):
-    """The same requestId was submitted with a different payload."""
-
-    code = ErrorCode.REQUEST_ID_CONFLICT
-    http_status = 409
-
-
-class JobNotFound(EngineError):
-    code = ErrorCode.JOB_NOT_FOUND
-    http_status = 404
-
-
-class JobNotCancellable(EngineError):
-    """Already running or finished. Cancelling would be a lie."""
-
-    code = ErrorCode.JOB_NOT_CANCELLABLE
-    http_status = 409
 
 
 class JobRecord(BaseModel):

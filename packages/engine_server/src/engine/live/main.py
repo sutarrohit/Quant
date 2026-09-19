@@ -48,7 +48,7 @@ import redis.asyncio as aioredis
 from redis.asyncio import Redis
 from redis.exceptions import RedisError
 
-from engine.errors import EngineError, ErrorCode
+from engine.errors import PreflightFailed
 from engine.live.credentials import (
     CredentialResolver,
     EnvironmentCredentialResolver,
@@ -72,13 +72,6 @@ DEFAULT_INTERVAL_SECONDS = 5.0
 #: How long a Redis is given to answer PING at boot. Short: this is a liveness
 #: question, not a slow query.
 PREFLIGHT_TIMEOUT_SECONDS = 5.0
-
-
-class PreflightFailed(EngineError):
-    """A dependency the control plane cannot start without."""
-
-    code = ErrorCode.CACHE_NOT_ISOLATED
-    http_status = 503
 
 
 def holder_id() -> str:

@@ -39,30 +39,13 @@ from typing import Any, Self
 from pydantic import BaseModel, ConfigDict, Field
 from redis.asyncio import Redis
 
-from engine.errors import EngineError, ErrorCode
+from engine.errors import MandateMissing, MandateRevoked
 from engine.live.desired_state import RiskLimitsModel
 from engine.live.risk import RiskLimits
 
 logger = logging.getLogger(__name__)
 
 MANDATE_KEY = "live:mandate:{account_id}"
-
-
-class MandateMissing(EngineError):
-    """No mandate for an account that needs one.
-
-    A refusal, not a warning. Absent is not permissive.
-    """
-
-    code = ErrorCode.LIVE_NOT_PERMITTED
-    http_status = 409
-
-
-class MandateRevoked(EngineError):
-    """The mandate exists and its authority has been withdrawn."""
-
-    code = ErrorCode.LIVE_NOT_PERMITTED
-    http_status = 409
 
 
 class Mandate(BaseModel):

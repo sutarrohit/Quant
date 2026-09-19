@@ -33,7 +33,7 @@ from nautilus_trader.model.instruments import Instrument
 from engine.data.instruments import SpotInstrumentSpec
 from engine.data.sources import KlinePage
 from engine.data.timeframes import NANOS_PER_MILLI, Timeframe
-from engine.errors import EngineError, ErrorCode
+from engine.errors import CsvSourceError
 
 # Column positions after parsing, mirroring the exchange row layout so the
 # ingest path does not care which source produced them.
@@ -56,11 +56,6 @@ def _register_ticker(code: str) -> None:
             currency_type=CurrencyType.CRYPTO,
         )
     )
-
-
-class CsvSourceError(EngineError):
-    code = ErrorCode.UPSTREAM_RESPONSE_INVALID
-    http_status = 422
 
 
 class CsvSource:

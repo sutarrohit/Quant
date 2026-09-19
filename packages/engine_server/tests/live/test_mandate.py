@@ -15,13 +15,9 @@ import fakeredis
 import fakeredis.aioredis
 import pytest
 
+from engine.errors import MandateMissing, MandateRevoked
 from engine.live.desired_state import RiskLimitsModel
-from engine.live.mandate import (
-    Mandate,
-    MandateMissing,
-    MandateRevoked,
-    MandateStore,
-)
+from engine.live.mandate import Mandate, MandateStore
 
 
 @pytest.fixture

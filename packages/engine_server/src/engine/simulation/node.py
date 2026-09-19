@@ -32,25 +32,13 @@ from __future__ import annotations
 
 from typing import Any
 
-from engine.errors import EngineError, ErrorCode
+from engine.errors import VenueNotSupported
 from engine.live.desired_state import DesiredState
 
 #: What a simulated account starts with. Fixed rather than configurable: a
 #: simulation's balance is not a number anyone should be tuning to make a
 #: result look better.
 STARTING_BALANCES = ["10_000 USDT"]
-
-
-class VenueNotSupported(EngineError):
-    """No adapter for this venue.
-
-    Raised rather than logged. Nautilus's own behaviour here is to log at ERROR
-    and carry on, which produces a node that trades nothing and reports itself
-    healthy -- the exact failure this module exists to prevent.
-    """
-
-    code = ErrorCode.REQUEST_INVALID
-    http_status = 422
 
 
 def data_factory(venue: str) -> type:

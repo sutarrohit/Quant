@@ -5,8 +5,9 @@ from collections.abc import Callable
 import pytest
 from nautilus_trader.model import Bar, BarType, Price, Quantity
 
-from engine.data.bars import TimestampDisciplineError, check_bars
+from engine.data.bars import check_bars
 from engine.data.timeframes import Timeframe
+from engine.errors import TimestampDisciplineError
 from tests.data.conftest import FIFTEEN_MIN_NS, FIRST_CLOSE_NS
 
 MakeBars = Callable[..., list[Bar]]

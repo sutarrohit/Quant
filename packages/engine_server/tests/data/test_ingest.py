@@ -10,12 +10,12 @@ import pytest
 import respx
 from nautilus_trader.model import BarType
 
-from engine.data.bars import TimestampDisciplineError
 from engine.data.catalog import Catalog
-from engine.data.ingest import IngestError, ingest, main, parse_day
+from engine.data.ingest import ingest, main, parse_day
 from engine.data.raw import RawStore
 from engine.data.sources.binance import BinanceSpotSource
 from engine.data.timeframes import NANOS_PER_MILLI, Timeframe
+from engine.errors import IngestError, TimestampDisciplineError
 from engine.settings import Settings
 from tests.data.test_binance import EXCHANGE_INFO, EXCHANGE_INFO_BODY, KLINES, kline
 

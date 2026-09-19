@@ -162,6 +162,12 @@ backtest names and the catalog lacks (ADR-003).
 
 ## Conventions
 
+- **Errors live in `src/engine/errors/`**, one file per area, named for the
+  package that raises them (`errors/live.py` for `engine.live`). `base.py` holds
+  `ErrorCode`, `EngineError` and the two response shapes. Import from the
+  package -- `from engine.errors import NoDataForWindow` -- and add every new
+  class to `__all__`. Codes are append-only: the TypeScript caller branches on
+  them. See `docs/explanations/error-handling.md`.
 - Package `engine`, `src/` layout. `strategy_path` strings look like
   `engine.strategies.dsl_strategy:DslStrategy` and end up embedded in stored
   configs — renaming the package later is expensive.

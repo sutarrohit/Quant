@@ -5,13 +5,8 @@ from typing import Any
 
 import pytest
 
-from engine.store.jobs import (
-    JobNotCancellable,
-    JobNotFound,
-    JobStatus,
-    JobStore,
-    RequestIdConflict,
-)
+from engine.errors import JobNotCancellable, JobNotFound, RequestIdConflict
+from engine.store.jobs import JobStatus, JobStore
 from tests.store.conftest import Clock
 
 #: A stand-in submission. The store does not interpret it; it carries it.

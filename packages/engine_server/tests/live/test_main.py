@@ -15,16 +15,10 @@ import fakeredis
 import fakeredis.aioredis
 import pytest
 
+from engine.errors import PreflightFailed
 from engine.live.desired_state import LiveStateStore, ObservedStatus
 from engine.live.kill_switch import CompositeKillSwitch, FileKillSwitch, RedisKillSwitch
-from engine.live.main import (
-    Components,
-    PreflightFailed,
-    build_components,
-    holder_id,
-    preflight,
-    run,
-)
+from engine.live.main import Components, build_components, holder_id, preflight, run
 from engine.live.supervisor import Supervisor
 from engine.settings import Settings
 from tests.live.conftest import Clock, RecordingRunner, desired
