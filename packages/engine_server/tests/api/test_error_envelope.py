@@ -62,6 +62,40 @@ def test_validation_error_uses_the_errors_list_shape() -> None:
     assert errors[0]["message"]
 
 
+def test_a_500_still_carries_the_request_id() -> None:
+    """The failure hardest to debug must still be traceable.
+
+    Starlette installs the `Exception` handler on ServerErrorMiddleware, which
+    sits *above* our middleware. Left to run there, the exception has already
+    blown past the block that binds `log_context` and stamps the header, so a
+    500 arrived with no id at either end -- on the one error where a developer
+    most needs to find the log line.
+    """
+    response = build().get("/boom", headers={"x-request-id": "req_traced"})
+
+    assert response.status_code == 500
+    assert response.headers["x-request-id"] == "req_traced"
+
+
+def test_a_500_logs_its_traceback_against_the_request_id() -> None:
+    client = build()
+    stream = io.StringIO()
+    configure_logging("INFO", stream=stream)
+
+    client.get("/boom", headers={"x-request-id": "req_traced"})
+
+    logged = [
+        json.loads(line)
+        for line in stream.getvalue().splitlines()
+        if json.loads(line).get("message") == "unhandled exception"
+    ]
+    assert logged, "the traceback was not logged at all"
+    record = logged[0]
+    assert record["request_id"] == "req_traced"
+    # The traceback goes to the log, and only to the log.
+    assert "secret internal detail" in record["exception"]
+
+
 def test_request_id_reaches_handler_logs() -> None:
     # The point of the middleware: a caller-supplied id must appear on records
     # emitted deep inside request handling, not just on the response header.

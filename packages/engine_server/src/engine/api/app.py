@@ -10,7 +10,7 @@ backtest pins a CPU for minutes and would block the event loop (spec 7.1).
 from __future__ import annotations
 
 import logging
-from collections.abc import AsyncIterator, Awaitable, Callable
+from collections.abc import AsyncGenerator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from typing import Any
 from uuid import uuid4
@@ -31,6 +31,14 @@ from engine.settings import Settings, get_settings
 logger = logging.getLogger(__name__)
 
 
+def internal_error_response() -> JSONResponse:
+    """The only 500 body this service returns."""
+    return JSONResponse(
+        status_code=500,
+        content={"code": ErrorCode.INTERNAL.value, "message": "internal server error"},
+    )
+
+
 def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or get_settings()
     configure_logging(settings.log_level)
@@ -38,7 +46,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     settings.require_internal_api_key()
 
     @asynccontextmanager
-    async def lifespan(instance: FastAPI) -> AsyncIterator[None]:
+    async def lifespan(instance: FastAPI) -> AsyncGenerator[None]:
         # One Redis pool for the process. A client per request would open a
         # connection per request and exhaust the server under load.
         # redis-py ships types but leaves from_url unannotated.
@@ -58,6 +66,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         version=__version__,
         lifespan=lifespan,
     )
+    
     app.state.settings = settings
     app.include_router(health.router)
     app.include_router(backtests.router)
@@ -72,7 +81,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         # Honour a caller-supplied id so a request can be traced across services.
         request_id = request.headers.get("x-request-id") or f"req_{uuid4().hex}"
         with log_context(request_id=request_id):
-            response = await call_next(request)
+            try:
+                response = await call_next(request)
+            except Exception as exc:  # noqa: BLE001 -- see below
+                logger.exception("unhandled exception", exc_info=exc)
+                response = internal_error_response()
         response.headers["x-request-id"] = request_id
         return response
 
@@ -105,12 +118,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @app.exception_handler(Exception)
     async def handle_unexpected(_: Request, exc: Exception) -> JSONResponse:
-        # The traceback is logged, never returned (spec section 7.4).
         logger.exception("unhandled exception", exc_info=exc)
-        return JSONResponse(
-            status_code=500,
-            content={"code": ErrorCode.INTERNAL.value, "message": "internal server error"},
-        )
+        return internal_error_response()
 
     return app
 
