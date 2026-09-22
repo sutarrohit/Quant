@@ -12,16 +12,54 @@ Settings for a later phase arrive in the step that needs them, not as stubs now:
 
 from __future__ import annotations
 
+import os
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
+from dotenv import dotenv_values
 from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from engine.errors import ConfigurationError
 
 LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+
+
+def env_file() -> str:
+    """Which env file this process reads.
+
+    One file per environment, all of them beside each other. ``NT_ENV`` picks --
+    and is read from the real environment rather than from a file, because a file
+    cannot name itself.
+    """
+    return ".env.production" if os.getenv("NT_ENV") == "production" else ".env"
+
+
+def export_unprefixed(path: str) -> None:
+    """Put the file's non-``NT_`` variables into the process environment.
+
+    Some settings are not read through this class at all. ``AWS_ACCESS_KEY_ID``
+    and friends are read by botocore straight out of ``os.environ``, and
+    pydantic-settings parses the file itself without ever populating it -- so an
+    ``s3://`` artifact path fails with ``NoCredentialsError`` while the keys sit
+    in the very file that was just loaded.
+
+    **Only the unprefixed ones.** ``NT_*`` belongs to pydantic-settings, and
+    exporting those would make ``Settings(_env_file=None)`` -- how a test asks
+    for the declared defaults -- read the developer's ``.env`` instead. Three
+    tests catch exactly that.
+
+    ``setdefault``, so a real environment variable always wins over the file and
+    a container's injected credentials are never shadowed by a stale checkout.
+    """
+    for key, value in dotenv_values(path).items():
+        if value is None or key.startswith("NT_"):
+            continue
+        os.environ.setdefault(key, value)
+
+
+export_unprefixed(env_file())
 
 
 def is_remote_uri(value: str) -> bool:
@@ -45,7 +83,7 @@ def as_local_path(value: str) -> Path:
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="NT_",
-        env_file=".env",
+        env_file=env_file(),
         env_file_encoding="utf-8",
         extra="ignore",
     )

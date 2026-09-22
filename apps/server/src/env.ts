@@ -3,9 +3,17 @@ import { expand } from 'dotenv-expand';
 import path from 'node:path';
 import { z } from 'zod';
 
+// One file per NODE_ENV, all three sitting beside each other. `.env` is the
+// development default because that is what an unset NODE_ENV means everywhere
+// else in this app.
+const ENV_FILES: Record<string, string> = {
+  test: '.env.test',
+  production: '.env.production',
+};
+
 expand(
   config({
-    path: path.resolve(process.cwd(), process.env.NODE_ENV === 'test' ? '.env.test' : '.env'),
+    path: path.resolve(process.cwd(), ENV_FILES[process.env.NODE_ENV ?? ''] ?? '.env'),
   })
 );
 

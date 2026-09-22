@@ -5,8 +5,10 @@ node_modules
 .pnp
 .pnp.js
 
-# Local env files
+# Local env files. Every project keeps .env, .env.example and .env.production
+# side by side; only .env.example is ever committed.
 .env
+.env.production
 .env.local
 .env.development.local
 .env.test.local

@@ -14,6 +14,9 @@ dependencies = [
     "pandas>=2.2",
     "pyarrow>=18.0",
     "httpx>=0.28.1",
+    # NT_ARTIFACT_PATH / NT_CATALOG_PATH accept an s3:// URI; fsspec cannot open one
+    # without this, and fails at write time with "Install s3fs to access S3".
+    "s3fs>=2024.10.0",
 ]
 
 [dependency-groups]
