@@ -32,6 +32,7 @@ from enum import StrEnum
 from typing import Any, Self
 
 from pydantic import BaseModel, ConfigDict, Field
+from pydantic.alias_generators import to_camel
 from redis.asyncio import Redis
 
 from engine.errors import AccountNotFound
@@ -98,7 +99,27 @@ class TradingMode(StrEnum):
     LIVE = "LIVE"
 
 
-class RiskLimitsModel(BaseModel):
+class WireModel(BaseModel):
+    """A model that is both stored in Redis and accepted from an HTTP body.
+
+    `RiskLimitsModel` and `VenueFees` are reached two ways: the store writes
+    them, and `LiveRequest` nests them. The second is why they carry an alias
+    generator -- without one they were the only snake_case objects on an
+    otherwise camelCase surface, so `makerBps` inside `fees` was a 422 while
+    `strategyVersionId` beside it was fine. The backtest contract had this from
+    the start (`backtest/request.py`); this brings live into line.
+
+    `populate_by_name` keeps the snake_case spelling working, which matters for
+    more than politeness: records already in Redis were written with field
+    names, and reading one back must not become a validation error.
+    """
+
+    model_config = ConfigDict(
+        frozen=True, extra="forbid", alias_generator=to_camel, populate_by_name=True
+    )
+
+
+class RiskLimitsModel(WireModel):
     """Account-level limits, as JSON.
 
     Account-level rather than per strategy: five strategies that are all
@@ -107,8 +128,6 @@ class RiskLimitsModel(BaseModel):
 
     Decimal from strings, because these compare against money.
     """
-
-    model_config = ConfigDict(frozen=True, extra="forbid")
 
     max_order_notional: Decimal | None = Field(default=None, gt=0)
     max_position_notional: Decimal | None = Field(default=None, gt=0)
@@ -124,7 +143,7 @@ class RiskLimitsModel(BaseModel):
         )
 
 
-class VenueFees(BaseModel):
+class VenueFees(WireModel):
     """What the venue charges this account, in basis points.
 
     **Required, and never defaulted to zero** -- the same rule a backtest lives
@@ -140,8 +159,6 @@ class VenueFees(BaseModel):
 
     Decimal from strings, because these multiply notionals.
     """
-
-    model_config = ConfigDict(frozen=True, extra="forbid")
 
     maker_bps: Decimal = Field(ge=0, le=10_000)
     taker_bps: Decimal = Field(ge=0, le=10_000)

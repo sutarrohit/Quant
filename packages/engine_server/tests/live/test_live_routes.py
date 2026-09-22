@@ -316,6 +316,96 @@ def test_zero_fees_are_allowed_but_must_be_said(api: TestClient) -> None:
     assert response.status_code == 200
 
 
+# --- one casing across both endpoints -------------------------------------
+
+
+def test_camel_case_is_accepted_inside_fees_and_risk(api: TestClient) -> None:
+    """The wire is camelCase, including the nested objects.
+
+    `risk` and `fees` were the only snake_case objects on an otherwise
+    camelCase surface, so a caller that moved a working backtest across got a
+    422 on `makerBps` while `strategyVersionId` beside it was fine.
+    """
+    response = api.put(
+        "/v1/live/acct_1",
+        json=body(
+            risk={"maxOrderNotional": "2000", "maxOpenPositions": 1},
+            fees={"makerBps": "1", "takerBps": "10", "slippageBps": "5"},
+        ),
+        headers=AUTH,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["fees"]["taker_bps"] == "10"
+    assert response.json()["risk"]["max_order_notional"] == "2000"
+
+
+def test_snake_case_is_still_accepted(api: TestClient) -> None:
+    """Both spellings, deliberately.
+
+    Records already in Redis were written with field names, so reading one back
+    must not become a validation error -- and a caller mid-migration should not
+    have to switch in one commit.
+    """
+    response = api.put(
+        "/v1/live/acct_1",
+        json=body(fees={"maker_bps": "1", "taker_bps": "10", "slippage_bps": "5"}),
+        headers=AUTH,
+    )
+
+    assert response.status_code == 200
+
+
+def test_the_two_spellings_record_the_same_thing(api: TestClient) -> None:
+    camel = api.put(
+        "/v1/live/acct_camel",
+        json=body(fees={"makerBps": "1", "takerBps": "10", "slippageBps": "5"}),
+        headers=AUTH,
+    ).json()
+    snake = api.put(
+        "/v1/live/acct_snake",
+        json=body(fees={"maker_bps": "1", "taker_bps": "10", "slippage_bps": "5"}),
+        headers=AUTH,
+    ).json()
+
+    assert camel["fees"] == snake["fees"]
+
+
+def test_a_typo_is_still_rejected_in_either_spelling(api: TestClient) -> None:
+    # `extra="forbid"` survives the alias generator: a silently ignored fee
+    # field is the zero rule 5 exists to forbid.
+    for fees in (
+        {"makerBps": "1", "takerBps": "10", "slipageBps": "5"},
+        {"maker_bps": "1", "taker_bps": "10", "slipage_bps": "5"},
+    ):
+        response = api.put("/v1/live/acct_1", json=body(fees=fees), headers=AUTH)
+        assert response.status_code == 422
+
+
+def test_responses_stay_snake_case(api: TestClient) -> None:
+    """The response shape is unchanged, and that is not an oversight.
+
+    `api-control` reads these keys today. Accepting camelCase on the way in is
+    additive; renaming what comes back is a migration with a caller on the
+    other side of it.
+    """
+    document = api.put("/v1/live/acct_1", json=body(), headers=AUTH).json()
+
+    assert set(document["fees"]) == {"maker_bps", "taker_bps", "slippage_bps"}
+    assert "makerBps" not in document["fees"]
+
+
+def test_a_mandate_takes_camel_case_limits(api: TestClient) -> None:
+    granted = api.put(
+        "/v1/live/acct_1/mandate",
+        json={"mandateId": "m_1", "issuedBy": "trading-core", "limits": {"maxOrderNotional": "5000"}},
+        headers=AUTH,
+    )
+
+    assert granted.status_code == 200
+    assert granted.json()["limits"]["max_order_notional"] == "5000"
+
+
 # --- mandates (ADR-002) --------------------------------------------------
 
 
