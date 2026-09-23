@@ -27,7 +27,8 @@ export function backtestQueryOptions(id: string) {
   return queryOptions({
     queryKey: backtestKeys.detail(id),
     queryFn: () => getBacktest(id),
-    refetchInterval: ({ state }) => (state.data && isTerminal(state.data.status) ? false : POLL_MS),
+    // Only once loaded: polling a first load that is still retrying restarts the retries, and it never fails.
+    refetchInterval: ({ state }) => (!state.data || isTerminal(state.data.status) ? false : POLL_MS),
   });
 }
 

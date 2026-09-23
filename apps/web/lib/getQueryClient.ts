@@ -1,11 +1,16 @@
 import { QueryClient, defaultShouldDehydrateQuery } from "@tanstack/react-query";
 import { environmentManager } from "@tanstack/react-query";
 
+import { ApiError } from "@/utils/api-error";
+
 function makeQueryClient() {
   return new QueryClient({
     defaultOptions: {
       queries: {
-        staleTime: 60 * 1000
+        staleTime: 60 * 1000,
+        // A 4xx will not change on retry, so it shows at once; a 5xx or network failure gets two quick retries.
+        retry: (failures, error) => !(error instanceof ApiError && error.status < 500) && failures < 2,
+        retryDelay: (attempt) => 500 * 2 ** attempt,
       },
       dehydrate: {
         // include pending queries in dehydration

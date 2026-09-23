@@ -158,12 +158,12 @@ export function JsonEditorDialog({
             </div>
           )}
           {result.kind === 'ok' && result.warnings.length === 0 && (
-            <p className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+            <p className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400">
               <RiCheckboxCircleLine className="size-4" /> Valid and runnable.
             </p>
           )}
           {result.kind === 'ok' && result.warnings.length > 0 && (
-            <div className="flex flex-col gap-1 text-amber-600 dark:text-amber-400">
+            <div className="flex flex-col gap-1 text-amber-700 dark:text-amber-400">
               <p className="flex items-center gap-1.5 font-medium">
                 <RiErrorWarningLine className="size-4" /> Can be applied, but must be fixed before saving:
               </p>

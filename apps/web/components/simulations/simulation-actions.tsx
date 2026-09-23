@@ -19,6 +19,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
+import { toastError } from '@/utils/toast-error';
 import {
   killMutationOptions,
   startSimulationMutationOptions,
@@ -30,7 +31,7 @@ type Confirm = 'stop' | 'kill' | null;
 /** Start / switch version, Stop, and Kill. Stop and kill are different verbs and look it. */
 export function SimulationActions({ sim, versions }: { sim: Simulation; versions: StrategyVersion[] }) {
   const client = useQueryClient();
-  const onError = (e: Error) => toast.error(e.message);
+  const onError = (e: Error) => toastError(e);
   const start = useMutation({ ...startSimulationMutationOptions(client, sim.id), onError });
   const stop = useMutation({ ...stopSimulationMutationOptions(client, sim.id), onError });
   const kill = useMutation({ ...killMutationOptions(client, sim.id), onError });
@@ -107,7 +108,7 @@ export function SimulationActions({ sim, versions }: { sim: Simulation; versions
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                 <AlertDialogAction onClick={() => stop.mutate(undefined, { onSuccess: () => setConfirm(null) })}>
-                  Stop signalling
+                  Stop it
                 </AlertDialogAction>
               </AlertDialogFooter>
             </>

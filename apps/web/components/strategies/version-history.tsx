@@ -59,7 +59,10 @@ export function VersionHistory({
               v{v.version}
               {v.version === head && <Badge variant="secondary">latest</Badge>}
             </span>
-            <span className="text-xs text-muted-foreground" title={v.createdAt}>
+            <span
+              className={cn('text-xs', v.version === current ? 'text-foreground/80' : 'text-muted-foreground')}
+              title={v.createdAt}
+            >
               {timeAgo(v.createdAt)}
             </span>
           </button>

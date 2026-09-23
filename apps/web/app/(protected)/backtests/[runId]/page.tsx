@@ -5,7 +5,6 @@ import { RiErrorWarningLine, RiPulseLine, RiRepeatLine } from '@remixicon/react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { toast } from 'sonner';
 
 import { EquityChart } from '@/components/backtests/equity-chart';
 import { StatusBadge, StatusTimeline } from '@/components/backtests/run-status';
@@ -14,6 +13,7 @@ import { TradeTable } from '@/components/backtests/trade-table';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ErrorState } from '@/components/page-states';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   backtestQueryOptions,
@@ -21,19 +21,19 @@ import {
   equityQueryOptions,
 } from '@/lib/api/backtests/backtest-queries';
 import { utcDate } from '@/lib/format';
-import { ApiError } from '@/utils/api-error';
+import { toastError } from '@/utils/toast-error';
 
 const quoteOf = (balances: string[]) => balances[0]?.split(' ')[1] ?? '';
 
 export default function BacktestRunPage() {
   const { runId } = useParams<{ runId: string }>();
   const client = useQueryClient();
-  const { data: run, isPending, error } = useQuery(backtestQueryOptions(runId));
+  const { data: run, isPending, error, refetch } = useQuery(backtestQueryOptions(runId));
   const succeeded = run?.status === 'SUCCEEDED';
   const equity = useQuery(equityQueryOptions(runId, succeeded));
   const cancel = useMutation({
     ...cancelBacktestMutationOptions(client),
-    onError: (e) => toast.error(e.message),
+    onError: (e) => toastError(e),
   });
 
   if (isPending) {
@@ -47,15 +47,14 @@ export default function BacktestRunPage() {
   }
 
   if (error || !run) {
-    const missing = error instanceof ApiError && error.code === 'RUN_NOT_FOUND';
     return (
-      <div className="mx-auto flex max-w-md flex-col items-center gap-3 py-16 text-center">
-        <p className="font-medium">{missing ? 'Run not found' : 'Could not load this run'}</p>
-        {!missing && <p className="text-sm text-muted-foreground">{error?.message}</p>}
-        <Link href="/backtests" className="text-sm underline underline-offset-2">
-          Back to backtests
-        </Link>
-      </div>
+      <ErrorState
+        error={error}
+        title="Could not load this run"
+        onRetry={() => void refetch()}
+        back={{ href: '/backtests', label: 'Back to backtests' }}
+        notFound={{ code: 'RUN_NOT_FOUND', title: 'Run not found', description: 'It may belong to another account.' }}
+      />
     );
   }
 
@@ -80,10 +79,10 @@ export default function BacktestRunPage() {
             {run.fees.makerBps}/{run.fees.takerBps} bps maker/taker · slippage {run.slippageBps} bps
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {run.status === 'QUEUED' && (
             <Button variant="outline" size="sm" disabled={cancel.isPending} onClick={() => cancel.mutate(run.id)}>
-              {cancel.isPending ? 'Cancelling…' : 'Cancel'}
+              {cancel.isPending ? 'Cancelling…' : 'Cancel run'}
             </Button>
           )}
           {finished && (

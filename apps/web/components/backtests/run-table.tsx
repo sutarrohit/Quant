@@ -51,7 +51,7 @@ export function RunTable({ runs, showStrategy = true }: { runs: BacktestRun[]; s
               <TableCell
                 className={cn(
                   'text-right tabular-nums',
-                  ret !== null && ret > 0 && 'text-emerald-600 dark:text-emerald-400',
+                  ret !== null && ret > 0 && 'text-emerald-700 dark:text-emerald-400',
                   ret !== null && ret < 0 && 'text-destructive'
                 )}
               >

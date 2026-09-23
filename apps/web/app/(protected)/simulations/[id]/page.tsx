@@ -9,11 +9,11 @@ import { SimulationActions } from '@/components/simulations/simulation-actions';
 import { StateBadge, simState } from '@/components/simulations/state-badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ErrorState } from '@/components/page-states';
 import { Skeleton } from '@/components/ui/skeleton';
 import { simulationQueryOptions } from '@/lib/api/simulations/simulation-queries';
 import { strategyQueryOptions } from '@/lib/api/strategies/strategy-queries';
 import { money, timeAgo, utcDateTime } from '@/lib/format';
-import { ApiError } from '@/utils/api-error';
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -26,7 +26,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 
 export default function SimulationPage() {
   const { id } = useParams<{ id: string }>();
-  const { data: sim, isPending, error } = useQuery(simulationQueryOptions(id));
+  const { data: sim, isPending, error, refetch } = useQuery(simulationQueryOptions(id));
   const strategy = useQuery({ ...strategyQueryOptions(sim?.strategyId ?? ''), enabled: !!sim });
 
   if (isPending) {
@@ -40,15 +40,18 @@ export default function SimulationPage() {
   }
 
   if (error || !sim) {
-    const missing = error instanceof ApiError && error.code === 'SIMULATION_NOT_FOUND';
     return (
-      <div className="mx-auto flex max-w-md flex-col items-center gap-3 py-16 text-center">
-        <p className="font-medium">{missing ? 'Simulation not found' : 'Could not load this simulation'}</p>
-        {!missing && <p className="text-sm text-muted-foreground">{error?.message}</p>}
-        <Link href="/simulations" className="text-sm underline underline-offset-2">
-          Back to simulations
-        </Link>
-      </div>
+      <ErrorState
+        error={error}
+        title="Could not load this simulation"
+        onRetry={() => void refetch()}
+        back={{ href: '/simulations', label: 'Back to simulations' }}
+        notFound={{
+          code: 'SIMULATION_NOT_FOUND',
+          title: 'Simulation not found',
+          description: 'It may belong to another account.',
+        }}
+      />
     );
   }
 

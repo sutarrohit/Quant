@@ -14,6 +14,9 @@ import {
 // 5s, and only while the tab is visible -- TanStack's default for refetchInterval.
 const POLL_MS = 5_000;
 
+// Only once loaded: polling a first load that is still retrying restarts the retries, and it never fails.
+const pollOnceLoaded = ({ state }: { state: { data: unknown } }) => (state.data ? POLL_MS : false);
+
 export const simulationKeys = {
   all: ['simulations'] as const,
   list: () => [...simulationKeys.all, 'list'] as const,
@@ -21,7 +24,7 @@ export const simulationKeys = {
 };
 
 export function simulationsQueryOptions() {
-  return queryOptions({ queryKey: simulationKeys.list(), queryFn: getSimulations, refetchInterval: POLL_MS });
+  return queryOptions({ queryKey: simulationKeys.list(), queryFn: getSimulations, refetchInterval: pollOnceLoaded });
 }
 
 // A simulation is never "finished", so the poll never stops by itself.
@@ -29,7 +32,7 @@ export function simulationQueryOptions(id: string) {
   return queryOptions({
     queryKey: simulationKeys.detail(id),
     queryFn: () => getSimulation(id),
-    refetchInterval: POLL_MS,
+    refetchInterval: pollOnceLoaded,
   });
 }
 

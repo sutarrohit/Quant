@@ -4,16 +4,12 @@ import * as React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
-  RiDatabase2Line,
   RiFlaskLine,
-  RiLifebuoyLine,
   RiLineChartLine,
   RiPulseLine,
-  RiSettings3Line,
 } from "@remixicon/react"
 
 import { NavMain } from "@/components/nav-main"
-import { NavSecondary } from "@/components/nav-secondary"
 import { NavUser } from "@/components/nav-user"
 import {
   Sidebar,
@@ -48,17 +44,6 @@ const NAV = [
     icon: <RiPulseLine />,
     items: [{ title: "Accounts", url: "/simulations" }],
   },
-  {
-    title: "Data",
-    url: "/catalog",
-    icon: <RiDatabase2Line />,
-    items: [{ title: "Catalog", url: "/catalog" }],
-  },
-]
-
-const SECONDARY = [
-  { title: "Settings", url: "/settings", icon: <RiSettings3Line /> },
-  { title: "Support", url: "/support", icon: <RiLifebuoyLine /> },
 ]
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -91,7 +76,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={items} />
-        <NavSecondary items={SECONDARY} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={user} />

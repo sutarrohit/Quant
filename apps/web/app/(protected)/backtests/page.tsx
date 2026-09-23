@@ -6,8 +6,8 @@ import Link from 'next/link';
 import { useState } from 'react';
 
 import { RunTable } from '@/components/backtests/run-table';
+import { EmptyState, ErrorState, TableSkeleton } from '@/components/page-states';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
 import { backtestsQueryOptions } from '@/lib/api/backtests/backtest-queries';
 
 const PAGE_SIZE = 20;
@@ -25,34 +25,22 @@ export default function BacktestsPage() {
         </p>
       </div>
 
-      {isPending && (
-        <div className="flex flex-col gap-2">
-          {[0, 1, 2].map((i) => (
-            <Skeleton key={i} className="h-12 w-full" />
-          ))}
-        </div>
-      )}
+      {isPending && <TableSkeleton />}
 
-      {error && (
-        <div className="flex flex-col items-start gap-3 rounded-lg border border-destructive/40 p-4">
-          <p className="text-sm text-destructive">Could not load runs: {error.message}</p>
-          <Button variant="outline" size="sm" onClick={() => void refetch()}>
-            Try again
-          </Button>
-        </div>
-      )}
+      {error && <ErrorState error={error} title="Could not load runs" onRetry={() => void refetch()} />}
 
       {data && data.pagination.total === 0 && (
-        <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed px-6 py-16 text-center">
-          <RiFlaskLine className="size-8 text-muted-foreground" />
-          <div>
-            <p className="font-medium">No backtests yet</p>
-            <p className="text-sm text-muted-foreground">Open a strategy and run it over past data.</p>
-          </div>
-          <Link href="/strategies" className={buttonVariants()}>
-            Go to strategies
-          </Link>
-        </div>
+        <EmptyState
+          icon={<RiFlaskLine />}
+          title="No backtests yet"
+          description="Open a strategy and run it over past data."
+          action={
+            <Link href="/strategies" className={buttonVariants()}>
+              {' '}
+              Go to strategies{' '}
+            </Link>
+          }
+        />
       )}
 
       {data && data.data.length > 0 && (
