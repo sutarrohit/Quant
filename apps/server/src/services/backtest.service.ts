@@ -5,10 +5,10 @@ import type { BacktestRun as RunRow, PrismaClient, Strategy, StrategyVersion } f
 import { ApiError } from '../lib/api-error.js';
 import { lttb } from '../lib/downsample.js';
 import { engineFetch } from '../lib/engine-client.js';
+import { assertMatchesSpec } from '../lib/market.js';
 import type { EngineJob, EngineSeriesPage, EngineSubmitted } from '../types/engine.js';
 import type { StrategySpec } from '@quant/contracts/spec';
 import {
-  TIMEFRAME_AGGREGATION,
   isTerminal,
   type CreateBacktest,
   type EquityPoint,
@@ -27,10 +27,6 @@ const ENGINE_PAGE = 10_000; // The engine's max page.
 const CACHE_SIZE = 20;
 
 const include = { version: { include: { strategy: true } } } as const;
-
-/** Nautilus spells a pair "SOLUSDT.BINANCE"; the spec spells it "SOL/USDT". */
-const instrumentIdOf = (spec: StrategySpec, symbol: string) =>
-  `${symbol.replace('/', '').toUpperCase()}.${spec.market.exchange.toUpperCase()}`;
 
 /**
  * Backtest runs: our durable record of the engine's jobs (D1).
@@ -266,21 +262,4 @@ export class BacktestService {
     });
     return this.prisma.backtestRun.findUniqueOrThrow({ where: { id: run.id }, include });
   }
-}
-
-/**
- * The market fields must name something the spec trades, or the run tests a
- * different strategy than the one saved.
- */
-function assertMatchesSpec(spec: StrategySpec, input: CreateBacktest): void {
-  const instruments = spec.market.symbols.map((symbol) => instrumentIdOf(spec, symbol));
-  const barType = `${input.instrumentId}-${TIMEFRAME_AGGREGATION[spec.market.timeframe]}-LAST-EXTERNAL`;
-
-  const problem = !instruments.includes(input.instrumentId)
-    ? { path: 'instrumentId', message: `must be one of ${instruments.join(', ')}` }
-    : input.barType !== barType
-      ? { path: 'barType', message: `must be ${barType} for a ${spec.market.timeframe} strategy` }
-      : null;
-
-  if (problem) throw new ApiError(422, 'REQUEST_INVALID', problem.message, [problem]);
 }
