@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
 // Everything not listed here is public.
-const PROTECTED_PREFIXES = ['/dashboard'];
+const PROTECTED_PREFIXES = ['/dashboard', '/strategies', '/backtests', '/simulations', '/catalog', '/settings'];
 
 // A UX gate, not a security boundary: this checks only that a cookie is present,
 // never its signature. requireAuth on the Hono API is the real boundary.

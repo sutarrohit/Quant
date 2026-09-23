@@ -7,7 +7,7 @@ export const WalletSchema = z.object({
   address: z.string(),
   chainType: z.string(),
   walletClient: z.string(), // Privy's discriminator: 'privy' is the wallet created at login.
-  firstVerifiedAt: z.string().datetime().nullable(),
+  firstVerifiedAt: z.iso.datetime().nullable(),
 });
 
 export const WalletListSchema = z.object({ wallets: z.array(WalletSchema) });

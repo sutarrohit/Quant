@@ -2,8 +2,11 @@
 import { usePrivy } from '@privy-io/react-auth';
 import type { ReactNode } from 'react';
 
+import { AppSidebar } from '@/components/app-sidebar';
 import { LoginButton } from '@/components/auth/login-button';
+import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
+import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { useWalletSync } from '@/hooks/use-wallet-sync';
 
 // Covers the gap proxy.ts leaves: a client-side navigation into this group never
@@ -35,12 +38,18 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="flex items-center justify-between border-b px-6 py-3">
-        <span className="text-sm font-medium">Quant Platform</span>
-        <LoginButton />
-      </header>
-      <main className="flex-1 p-6">{children}</main>
-    </div>
+    <SidebarProvider>
+      <AppSidebar />
+      <SidebarInset>
+        <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
+          <SidebarTrigger className="-ml-1" />
+          <Separator orientation="vertical" className="mr-2 h-4" />
+          <div className="ml-auto">
+            <LoginButton />
+          </div>
+        </header>
+        <main className="flex-1 p-6">{children}</main>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }

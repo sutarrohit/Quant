@@ -18,7 +18,7 @@ expand(
 const EnvSchema = z.object({
   NODE_ENV: z.string().default('development'),
   PORT: z.coerce.number().default(4000),
-  FRONTEND_URL: z.string().url().default('http://localhost:3000'),
+  FRONTEND_URL: z.url().default('http://localhost:3000'),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']),
   DATABASE_URL: z.url(),
   PUBLIC_URL: z.url(), // this API's own public base URL
@@ -27,7 +27,7 @@ const EnvSchema = z.object({
   PRIVY_APP_SECRET: z.string().min(1),
   PRIVY_VERIFICATION_KEY: z.string().min(1), // Dashboard public key; verifies tokens locally.
 
-  ENGINE_URL: z.string().url().default('http://localhost:8000'),
+  ENGINE_URL: z.url().default('http://localhost:8000'),
   ENGINE_INTERNAL_API_KEY: z.string().min(1), // Must equal the engine's NT_INTERNAL_API_KEY.
 });
 

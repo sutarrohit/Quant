@@ -60,6 +60,10 @@ runs/
 # Local data catalog cache (D-23)
 catalog/
 .data-cache/
+# ...but never a source directory that happens to share the name. Unanchored,
+# `catalog/` swallowed apps/server/src/routes/catalog/ and main shipped without it.
+!**/src/**/catalog/
+!**/src/**/runs/
 
 # Python bytecode caches (no per-directory .gitignore of their own, unlike .venv/.pytest_cache/.ruff_cache)
 __pycache__/

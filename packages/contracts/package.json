@@ -1,0 +1,48 @@
+{
+  "name": "@quant/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./spec": {
+      "types": "./dist/spec.d.ts",
+      "default": "./dist/spec.js"
+    },
+    "./spec-tree": {
+      "types": "./dist/spec-tree.d.ts",
+      "default": "./dist/spec-tree.js"
+    },
+    "./spec-validate": {
+      "types": "./dist/spec-validate.d.ts",
+      "default": "./dist/spec-validate.js"
+    },
+    "./spec-hash": {
+      "types": "./dist/spec-hash.d.ts",
+      "default": "./dist/spec-hash.js"
+    },
+    "./strategy": {
+      "types": "./dist/strategy.d.ts",
+      "default": "./dist/strategy.js"
+    },
+    "./error": {
+      "types": "./dist/error.d.ts",
+      "default": "./dist/error.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "postinstall": "tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json",
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@asteasolutions/zod-to-openapi": "^9.1.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.41",
+    "typescript": "^5.8.3"
+  }
+}
