@@ -6,20 +6,13 @@ import { LoginButton } from '@/components/auth/login-button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useWalletSync } from '@/hooks/use-wallet-sync';
 
-// Second layer behind proxy.ts, not a replacement for it.
-//
-// Proxy runs on the server for full page loads, but a client-side
-// navigation into this group does not re-run it. This guard covers that gap and
-// prevents a flash of protected chrome while Privy rehydrates. Neither layer is
-// the security boundary -- requireAuth on the API is.
+// Covers the gap proxy.ts leaves: a client-side navigation into this group never
+// re-runs it. Neither layer is the security boundary -- requireAuth on the API is.
 export default function ProtectedLayout({ children }: { children: ReactNode }) {
   const { ready, authenticated } = usePrivy();
 
-  // Here rather than on the dashboard: the wallet is created at first login, and
-  // this layout is the first protected thing that renders afterwards, whichever
-  // page the user lands on. It renders nothing and no-ops once the wallet is
-  // stored -- see the hook for why the browser only signals, never supplies the
-  // address.
+  // Here rather than on the dashboard: this is the first protected thing that
+  // renders after login, whichever page the user lands on.
   useWalletSync();
 
   if (!ready) {
@@ -31,9 +24,7 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
     );
   }
 
-  // Middleware normally redirects before this renders. Reaching it means a
-  // client-side navigation got here without a session; say so rather than
-  // rendering an empty shell.
+  // Reaching this means a client-side navigation got here without a session.
   if (!authenticated) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4">

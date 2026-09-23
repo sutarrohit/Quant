@@ -4,9 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { WalletAddress } from '@/components/auth/wallet-address';
 import { onboardingStatusQueryOptions } from '@/lib/api/user/user-queries';
 
-// Minimal protected page. Its real purpose is to prove the full path end to end:
-// proxy.ts lets the request through, the rewrite forwards the privy-token cookie,
-// and requireAuth on the API verifies it and resolves the local user row.
+// Proves the full path: proxy.ts, the rewrite, and requireAuth on the API.
 export default function DashboardPage() {
   const { data, isPending, error } = useQuery(onboardingStatusQueryOptions());
 

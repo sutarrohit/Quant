@@ -11,8 +11,7 @@ function LoginInner() {
   const router = useRouter();
   const params = useSearchParams();
 
-  // `redirect_uri` is set by proxy.ts when it turns someone away from a
-  // protected route, so they land where they were headed rather than on `/`.
+  // Set by proxy.ts, so they land where they were headed rather than on `/`.
   const target = params.get('redirect_uri') ?? '/dashboard';
 
   useEffect(() => {
@@ -35,8 +34,7 @@ function LoginInner() {
 }
 
 export default function LoginPage() {
-  // useSearchParams needs a Suspense boundary to avoid opting the whole route
-  // into client-side rendering.
+  // useSearchParams needs a Suspense boundary, or the whole route goes client-side.
   return (
     <Suspense fallback={null}>
       <LoginInner />
