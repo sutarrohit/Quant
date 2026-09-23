@@ -1,7 +1,7 @@
 import { createRoute } from '@hono/zod-openapi';
 import * as HttpStatusCodes from 'stoker/http-status-codes';
 import jsonContent from 'stoker/openapi/helpers/json-content';
-import { ApiErrorSchema } from '../../types/error.js';
+import { ApiErrorSchema } from '@quant/contracts/error';
 import { OnboardingStatusSchema, WalletListSchema } from '../../types/user.js';
 
 // The web dashboard reads this to decide the first-login redirect.

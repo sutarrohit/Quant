@@ -3,7 +3,7 @@ import * as HttpStatusCodes from 'stoker/http-status-codes';
 import jsonContent from 'stoker/openapi/helpers/json-content';
 import jsonContentRequired from 'stoker/openapi/helpers/json-content-required';
 
-import { ApiErrorSchema } from '../../types/error.js';
+import { ApiErrorSchema } from '@quant/contracts/error';
 import {
   CreateStrategySchema,
   CreateVersionSchema,

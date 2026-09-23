@@ -63,5 +63,10 @@ export const ValidateSpecSchema = z.object({ spec: z.unknown() });
 
 export type SpecErrorCode = (typeof SPEC_ERROR_CODES)[number];
 export type SpecError = z.infer<typeof SpecErrorSchema>;
+export type SpecValidation = z.infer<typeof SpecValidationSchema>;
 export type Strategy = z.infer<typeof StrategySchema>;
+export type StrategyDetail = z.infer<typeof StrategyDetailSchema>;
+export type StrategyList = z.infer<typeof StrategyListSchema>;
 export type StrategyVersion = z.infer<typeof StrategyVersionSchema>;
+export type CreateStrategyInput = z.input<typeof CreateStrategySchema>;
+export type CreateVersionInput = z.input<typeof CreateVersionSchema>;

@@ -23,12 +23,17 @@
     "./strategy": {
       "types": "./dist/strategy.d.ts",
       "default": "./dist/strategy.js"
+    },
+    "./error": {
+      "types": "./dist/error.d.ts",
+      "default": "./dist/error.js"
     }
   },
   "files": [
     "dist"
   ],
   "scripts": {
+    "postinstall": "tsc -p tsconfig.build.json",
     "build": "tsc -p tsconfig.build.json",
     "check-types": "tsc --noEmit"
   },

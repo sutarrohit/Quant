@@ -88,7 +88,7 @@ export const SeriesReferenceSchema = z.object({
   period: period.optional(),
 });
 
-const conditionLeaf = z.object({
+export const IndicatorConditionSchema = z.object({
   indicator: z.enum(INDICATORS),
   operator: z.enum(OPERATORS),
   period: period.optional(),
@@ -107,7 +107,7 @@ export type ConditionNode =
   | { all: ConditionNode[] }
   | { any: ConditionNode[] }
   | { not: ConditionNode }
-  | z.infer<typeof conditionLeaf>
+  | z.infer<typeof IndicatorConditionSchema>
   | z.infer<typeof ExitConditionSchema>;
 
 // Named, so OpenAPI emits a $ref. A recursive schema cannot be inlined, and
@@ -118,7 +118,7 @@ export const ConditionNodeSchema: z.ZodType<ConditionNode> = z
       z.object({ all: z.array(ConditionNodeSchema) }),
       z.object({ any: z.array(ConditionNodeSchema) }),
       z.object({ not: ConditionNodeSchema }),
-      conditionLeaf,
+      IndicatorConditionSchema,
       ExitConditionSchema,
     ])
   )
@@ -166,4 +166,7 @@ export const StrategySpecSchema = z
   });
 
 export type StrategySpec = z.infer<typeof StrategySpecSchema>;
+export type StrategySpecInput = z.input<typeof StrategySpecSchema>; // What a form holds: money may still be a number.
 export type Market = z.infer<typeof MarketSchema>;
+export type IndicatorCondition = z.input<typeof IndicatorConditionSchema>;
+export type ExitCondition = z.input<typeof ExitConditionSchema>;

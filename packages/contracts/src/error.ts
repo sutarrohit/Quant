@@ -1,4 +1,4 @@
-import { z } from '@hono/zod-openapi';
+import { z } from 'zod';
 
 /** The shape onError returns for every failure. Clients branch on `code`. */
 export const ApiErrorSchema = z.object({
