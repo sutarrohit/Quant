@@ -1,7 +1,7 @@
 'use client';
 
 import { isTerminal } from '@quant/contracts/backtest';
-import { RiErrorWarningLine, RiRepeatLine } from '@remixicon/react';
+import { RiErrorWarningLine, RiPulseLine, RiRepeatLine } from '@remixicon/react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
@@ -92,6 +92,14 @@ export default function BacktestRunPage() {
               className={buttonVariants({ variant: 'outline', size: 'sm' })}
             >
               <RiRepeatLine /> Run again
+            </Link>
+          )}
+          {succeeded && (
+            <Link
+              href={`/strategies/${run.strategyId}/simulate?version=${run.versionId}`}
+              className={buttonVariants({ size: 'sm' })}
+            >
+              <RiPulseLine /> Paper trade this version
             </Link>
           )}
         </div>

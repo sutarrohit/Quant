@@ -31,6 +31,10 @@
     "./backtest": {
       "types": "./dist/backtest.d.ts",
       "default": "./dist/backtest.js"
+    },
+    "./simulation": {
+      "types": "./dist/simulation.d.ts",
+      "default": "./dist/simulation.js"
     }
   },
   "files": [

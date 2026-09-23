@@ -2,7 +2,7 @@
 
 import type { StrategySpec, StrategySpecInput } from '@quant/contracts/spec';
 import type { SpecError } from '@quant/contracts/strategy';
-import { RiCodeLine, RiPlayLine } from '@remixicon/react';
+import { RiCodeLine, RiPlayLine, RiPulseLine } from '@remixicon/react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
@@ -96,6 +96,12 @@ export default function StrategyPage() {
             title={draft ? 'Runs the saved version, without your unsaved edits' : undefined}
           >
             <RiPlayLine /> Run backtest
+          </Link>
+          <Link
+            href={`/strategies/${id}/simulate?version=${current.id}`}
+            className={buttonVariants({ variant: 'outline', size: 'sm' })}
+          >
+            <RiPulseLine /> Paper trade
           </Link>
         </div>
       </div>

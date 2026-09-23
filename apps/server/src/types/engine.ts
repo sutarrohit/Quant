@@ -40,3 +40,28 @@ export interface EngineSeriesPage<T> {
   offset: number;
   limit: number;
 }
+
+/** `GET /v1/live/{accountId}`, camelized. Desired is ours to set; observed is the supervisor's report. */
+export interface EngineLiveState {
+  desired: {
+    status: 'RUNNING' | 'STOPPED';
+    revision: number;
+    specHash: string;
+    strategyVersionId: string;
+    updatedAt: string;
+  };
+  observed: {
+    status: 'STARTING' | 'RECONCILING' | 'RUNNING' | 'STOPPED' | 'FAILED' | 'HALTED';
+    revision: number;
+    startedAt: string | null;
+    heartbeatAt: string | null;
+    error: Record<string, unknown> | null;
+  } | null;
+  leaseHolder: string | null;
+}
+
+/** `GET|POST|DELETE /v1/live/{accountId}/kill`. */
+export interface EngineKill {
+  accountId: string;
+  killSwitch: 'ENGAGED' | 'RELEASED';
+}
