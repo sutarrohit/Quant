@@ -1,12 +1,12 @@
 import { createHash } from 'node:crypto';
 
 /**
- * Canonical JSON: object keys sorted at every depth, no incidental whitespace.
+ * Canonical JSON: object keys sorted at every depth.
  *
- * Two specs that differ only in key order are the same strategy, and must hash
- * the same or the version history lies about what changed.
+ * Two specs differing only in key order are the same strategy. Everything that
+ * asks "are these the same?" goes through this, or the answers disagree.
  */
-function canonical(value: unknown): unknown {
+export function canonical(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(canonical);
   if (value === null || typeof value !== 'object') return value;
 

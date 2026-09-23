@@ -189,3 +189,34 @@ describe('the schema bounds the tree', () => {
     expect(StrategySpecSchema.safeParse(edit({ entry: node })).success).toBe(false);
   });
 });
+
+describe('duplicate detection agrees with the hash', () => {
+  it('catches a duplicate whose keys are in a different order', () => {
+    // specHash canonicalises key order, so the validator has to as well --
+    // otherwise the two disagree about what "the same condition" is.
+    const a = { indicator: 'rsi', period: 14, operator: 'greaterThan', value: 30 };
+    const b = { operator: 'greaterThan', value: 30, indicator: 'rsi', period: 14 };
+
+    expect(codes(edit({ entry: { all: [a, b] } }))).toContain('DUPLICATE_CONDITION');
+  });
+
+  it('still catches one nested at a different depth', () => {
+    const leaf = { indicator: 'ema', period: 50, operator: 'lessThan', value: 10 };
+    const spec = edit({ entry: { all: [leaf, { any: [leaf] }] } });
+
+    expect(codes(spec)).toContain('DUPLICATE_CONDITION');
+  });
+
+  it('does not flag two conditions that only look alike', () => {
+    const spec = edit({
+      entry: {
+        all: [
+          { indicator: 'rsi', period: 14, operator: 'greaterThan', value: 30 },
+          { indicator: 'rsi', period: 14, operator: 'greaterThan', value: 70 },
+        ],
+      },
+    });
+
+    expect(codes(spec)).not.toContain('DUPLICATE_CONDITION');
+  });
+});

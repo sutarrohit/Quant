@@ -7,6 +7,7 @@ import {
   type StrategySpec,
 } from '../types/spec.js';
 import type { SpecError, SpecErrorCode } from '../types/strategy.js';
+import { canonical } from './spec-hash.js';
 import { isGroup, walk } from './spec-tree.js';
 
 // The semantic rules, mirroring engine/dsl/validator.py. A spec can parse
@@ -123,7 +124,9 @@ function checkTree(root: ConditionNode, name: 'entry' | 'exit'): SpecError[] {
     out.push(...checkLeaf(node, path));
 
     // The identical condition stated twice in one tree is always a mistake.
-    const key = JSON.stringify(node);
+    // Canonical, so this agrees with specHash about what "the same" means --
+    // raw stringify would miss a duplicate whose keys are in another order.
+    const key = JSON.stringify(canonical(node));
     const first = seen.get(key);
     if (first !== undefined) {
       out.push(err(path, 'DUPLICATE_CONDITION', `the same condition is already at ${first}`));
