@@ -21,10 +21,16 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { archiveStrategyMutationOptions } from '@/lib/api/strategies/strategy-queries';
 import { timeAgo } from '@/lib/format';
+import { toastError } from '@/utils/toast-error';
 
 // `spec` is untyped on the wire; parse just the market so an odd stored spec shows "—" rather than crashing.
 function marketOf(spec: unknown) {
@@ -44,7 +50,7 @@ export function StrategyTable({ strategies }: { strategies: Strategy[] }) {
       toast.success(`Archived “${archiving?.name}”`);
       setArchiving(null);
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => toastError(error),
   });
 
   return (
@@ -56,7 +62,9 @@ export function StrategyTable({ strategies }: { strategies: Strategy[] }) {
             <TableHead>Market</TableHead>
             <TableHead>Version</TableHead>
             <TableHead>Updated</TableHead>
-            <TableHead className="w-10" />
+            <TableHead className="w-10">
+              <span className="sr-only">Actions</span>
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -89,7 +97,9 @@ export function StrategyTable({ strategies }: { strategies: Strategy[] }) {
                       <RiMore2Line />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => router.push(`/strategies/${strategy.id}`)}>Open</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => router.push(`/strategies/${strategy.id}`)}>
+                        Open
+                      </DropdownMenuItem>
                       <DropdownMenuItem variant="destructive" onClick={() => setArchiving(strategy)}>
                         Archive
                       </DropdownMenuItem>

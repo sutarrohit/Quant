@@ -14,9 +14,7 @@ function pinoLogger() {
       env.NODE_ENV === 'production' ? undefined : pretty()
     ),
 
-    http: {
-      reqId: () => crypto.randomUUID(),
-    },
+    http: { referRequestIdKey: 'requestId' }, // Hono's requestId middleware sets it first.
   });
 }
 

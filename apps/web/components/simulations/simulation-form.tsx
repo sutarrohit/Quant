@@ -8,7 +8,6 @@ import type { StrategyDetail } from '@quant/contracts/strategy';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { useForm, useWatch } from 'react-hook-form';
-import { toast } from 'sonner';
 import { z } from 'zod';
 
 import { Choice } from '@/components/strategies/choice';
@@ -18,6 +17,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from '@/components/ui/input';
 import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from '@/components/ui/input-group';
 import { createSimulationMutationOptions } from '@/lib/api/simulations/simulation-queries';
+import { toastError } from '@/utils/toast-error';
 
 const blankable = <T extends z.ZodType>(schema: T) => z.union([z.literal(''), schema]); // Blank means unlimited.
 const limits = RiskLimitsSchema.shape;
@@ -94,7 +94,7 @@ export function SimulationForm({ strategy, versionId }: { strategy: StrategyDeta
       });
       router.push(`/simulations/${sim.id}`);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Could not start the simulation');
+      toastError(e, 'Could not start the simulation');
     }
   };
 

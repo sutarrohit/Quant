@@ -10,7 +10,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
-import { toast } from 'sonner';
 import { z } from 'zod';
 
 import { Choice } from '@/components/strategies/choice';
@@ -22,6 +21,7 @@ import { Input } from '@/components/ui/input';
 import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from '@/components/ui/input-group';
 import { createBacktestMutationOptions } from '@/lib/api/backtests/backtest-queries';
 import { ApiError } from '@/utils/api-error';
+import { toastError } from '@/utils/toast-error';
 
 const bps = FeesSchema.shape.makerBps;
 const today = () => new Date().toISOString().slice(0, 10);
@@ -112,7 +112,7 @@ export function BacktestForm({ strategy, versionId }: { strategy: StrategyDetail
         setSpecErrors(e.specErrors); // About the strategy, not this form -- listed, with a way to fix it.
         return;
       }
-      toast.error(e instanceof Error ? e.message : 'Could not start the run');
+      toastError(e, 'Could not start the run');
     }
   };
 

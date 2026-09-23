@@ -1,10 +1,10 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
 
 import { SimulationForm } from '@/components/simulations/simulation-form';
+import { ErrorState } from '@/components/page-states';
 import { Skeleton } from '@/components/ui/skeleton';
 import { strategyQueryOptions } from '@/lib/api/strategies/strategy-queries';
 import { useStrategyBuilderStore } from '@/stores/strategy-builder';
@@ -12,7 +12,7 @@ import { useStrategyBuilderStore } from '@/stores/strategy-builder';
 export default function NewSimulationPage() {
   const { id } = useParams<{ id: string }>();
   const versionId = useSearchParams().get('version') ?? undefined; // Preselected from a backtest or version link.
-  const { data, isPending, error } = useQuery(strategyQueryOptions(id));
+  const { data, isPending, error, refetch } = useQuery(strategyQueryOptions(id));
   const hasDraft = useStrategyBuilderStore((s) => !!s.drafts[id]);
 
   if (isPending) {
@@ -26,13 +26,17 @@ export default function NewSimulationPage() {
 
   if (error || !data || data.versions.length === 0) {
     return (
-      <div className="mx-auto flex max-w-md flex-col items-center gap-3 py-16 text-center">
-        <p className="font-medium">Could not load this strategy</p>
-        <p className="text-sm text-muted-foreground">{error?.message ?? 'It has no saved version.'}</p>
-        <Link href="/strategies" className="text-sm underline underline-offset-2">
-          Back to strategies
-        </Link>
-      </div>
+      <ErrorState
+        error={error ?? new Error('It has no saved version.')}
+        title="Could not load this strategy"
+        onRetry={() => void refetch()}
+        back={{ href: '/strategies', label: 'Back to strategies' }}
+        notFound={{
+          code: 'STRATEGY_NOT_FOUND',
+          title: 'Strategy not found',
+          description: 'It may have been archived.',
+        }}
+      />
     );
   }
 

@@ -15,6 +15,7 @@ import { createStrategyMutationOptions } from '@/lib/api/strategies/strategy-que
 import { slugify, starterSpec } from '@/lib/strategies/tree';
 import { useStrategyBuilderStore } from '@/stores/strategy-builder';
 import { ApiError } from '@/utils/api-error';
+import { toastError } from '@/utils/toast-error';
 
 const NEW = 'new'; // Store key for the not-yet-created strategy's draft.
 
@@ -35,7 +36,7 @@ export default function NewStrategyPage() {
       router.replace(`/strategies/${created.id}`);
     } catch (error) {
       if (error instanceof ApiError) setServerErrors(error.specErrors);
-      toast.error(error instanceof Error ? error.message : 'Could not create the strategy');
+      toastError(error, 'Could not create the strategy');
     }
   };
 

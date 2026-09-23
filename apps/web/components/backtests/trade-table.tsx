@@ -58,7 +58,7 @@ export function TradeTable({ runId }: { runId: string }) {
                 <TableCell
                   className={cn(
                     'text-right',
-                    pnl > 0 && 'text-emerald-600 dark:text-emerald-400',
+                    pnl > 0 && 'text-emerald-700 dark:text-emerald-400',
                     pnl < 0 && 'text-destructive'
                   )}
                 >

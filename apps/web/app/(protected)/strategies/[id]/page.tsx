@@ -13,15 +13,17 @@ import { FormFooter } from '@/components/strategies/form-footer';
 import { StrategyForm } from '@/components/strategies/strategy-form';
 import { VersionHistory } from '@/components/strategies/version-history';
 import { Button, buttonVariants } from '@/components/ui/button';
+import { ErrorState } from '@/components/page-states';
 import { Skeleton } from '@/components/ui/skeleton';
 import { createVersionMutationOptions, strategyQueryOptions } from '@/lib/api/strategies/strategy-queries';
 import { useStrategyBuilderStore } from '@/stores/strategy-builder';
 import { ApiError } from '@/utils/api-error';
+import { toastError } from '@/utils/toast-error';
 
 export default function StrategyPage() {
   const { id } = useParams<{ id: string }>();
   const client = useQueryClient();
-  const { data, isPending, error } = useQuery(strategyQueryOptions(id));
+  const { data, isPending, error, refetch } = useQuery(strategyQueryOptions(id));
   const save = useMutation(createVersionMutationOptions(client, id));
   const [serverErrors, setServerErrors] = useState<SpecError[]>([]);
 
@@ -42,15 +44,18 @@ export default function StrategyPage() {
   }
 
   if (error || !data) {
-    const missing = error instanceof ApiError && error.code === 'STRATEGY_NOT_FOUND';
     return (
-      <div className="mx-auto flex max-w-md flex-col items-center gap-3 py-16 text-center">
-        <p className="font-medium">{missing ? 'Strategy not found' : 'Could not load this strategy'}</p>
-        <p className="text-sm text-muted-foreground">{missing ? 'It may have been archived.' : error?.message}</p>
-        <Link href="/strategies" className="text-sm underline underline-offset-2">
-          Back to strategies
-        </Link>
-      </div>
+      <ErrorState
+        error={error}
+        title="Could not load this strategy"
+        onRetry={() => void refetch()}
+        back={{ href: '/strategies', label: 'Back to strategies' }}
+        notFound={{
+          code: 'STRATEGY_NOT_FOUND',
+          title: 'Strategy not found',
+          description: 'It may have been archived.',
+        }}
+      />
     );
   }
 
@@ -65,7 +70,7 @@ export default function StrategyPage() {
       toast.success(saved.version === head?.version ? 'No changes to save' : `Saved as v${saved.version}`);
     } catch (e) {
       if (e instanceof ApiError) setServerErrors(e.specErrors);
-      toast.error(e instanceof Error ? e.message : 'Could not save');
+      toastError(e, 'Could not save');
     }
   };
 
@@ -86,7 +91,7 @@ export default function StrategyPage() {
             {draft && ' · unsaved changes'}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={() => setPreviewOpen(!previewOpen)}>
             <RiCodeLine /> {previewOpen ? 'Hide JSON' : 'Show JSON'}
           </Button>

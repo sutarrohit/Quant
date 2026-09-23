@@ -12,7 +12,7 @@ function Tile({ label, value, hint, tone }: { label: string; value: string; hint
       <span
         className={cn(
           'text-lg font-semibold tabular-nums',
-          tone === 'up' && 'text-emerald-600 dark:text-emerald-400',
+          tone === 'up' && 'text-emerald-700 dark:text-emerald-400',
           tone === 'down' && 'text-destructive'
         )}
       >

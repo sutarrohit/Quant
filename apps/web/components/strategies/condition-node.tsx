@@ -8,6 +8,7 @@ import {
   type ConditionNode,
 } from '@quant/contracts/spec';
 import { RiAddLine, RiArrowDownSLine, RiArrowRightSLine, RiCloseLine, RiNodeTree } from '@remixicon/react';
+import { useRef } from 'react';
 
 import { Choice } from '@/components/strategies/choice';
 import { ErrorList, useErrorMap, useErrorsAt } from '@/components/strategies/spec-errors';
@@ -78,12 +79,23 @@ function GroupEditor({ node, path, level, allowExit, atLeafLimit, storeKey, onCh
     onChange(
       kind === 'not' ? { not: next } : ({ [kind]: children.map((c, j) => (j === i ? next : c)) } as ConditionNode)
     );
-  const removeChild = (i: number) => onChange({ [kind]: children.filter((_, j) => j !== i) } as ConditionNode);
+  const box = useRef<HTMLDivElement>(null);
+  const removeChild = (i: number) => {
+    onChange({ [kind]: children.filter((_, j) => j !== i) } as ConditionNode);
+    // The removed row took focus with it; land on this group's add button rather than <body>.
+    requestAnimationFrame(() =>
+      (
+        box.current?.querySelector<HTMLElement>('[data-group-add]:not(:disabled)') ??
+        box.current?.querySelector('button')
+      )?.focus()
+    );
+  };
   const add = (child: ConditionNode) => onChange({ [kind]: [...children, child] } as ConditionNode);
   const childPath = (i: number) => (kind === 'not' ? `${path}.not` : `${path}.${kind}.${i}`);
 
   return (
     <div
+      ref={box}
       className="flex flex-col gap-2 rounded-lg border bg-muted/30 p-3"
       data-invalid={errors.length > 0 || undefined}
     >
@@ -131,7 +143,7 @@ function GroupEditor({ node, path, level, allowExit, atLeafLimit, storeKey, onCh
 
           {kind !== 'not' && (
             <div className="flex flex-wrap gap-2">
-              <Button variant="outline" size="sm" disabled={atLeafLimit} onClick={() => add(newLeaf())}>
+              <Button variant="outline" size="sm" data-group-add disabled={atLeafLimit} onClick={() => add(newLeaf())}>
                 <RiAddLine /> Condition
               </Button>
               {allowExit && (
