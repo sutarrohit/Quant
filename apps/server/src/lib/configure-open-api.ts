@@ -1,4 +1,4 @@
-import type { AppBinding, AppOpenAPI } from '../types/index.js';
+import type { AppBinding, AppOpenAPI } from '../types/app.js';
 import { swaggerUI } from '@hono/swagger-ui';
 import packageJSON from '../../package.json' with { type: 'json' };
 import { Context } from 'hono';

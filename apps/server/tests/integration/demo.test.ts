@@ -9,4 +9,8 @@ describe('app routes', () => {
     expect(client.api.v1.user.wallets.$path()).toBe('/api/v1/user/wallets');
     expect(client.api.v1.user.wallets.sync.$path()).toBe('/api/v1/user/wallets/sync');
   });
+
+  it('builds the catalog route path', () => {
+    expect(client.api.v1.catalog.instruments.$path()).toBe('/api/v1/catalog/instruments');
+  });
 });

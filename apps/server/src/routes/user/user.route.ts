@@ -1,13 +1,10 @@
-import { createRoute, z } from '@hono/zod-openapi';
+import { createRoute } from '@hono/zod-openapi';
 import * as HttpStatusCodes from 'stoker/http-status-codes';
 import jsonContent from 'stoker/openapi/helpers/json-content';
 import { ApiErrorSchema } from '../../types/error.js';
+import { OnboardingStatusSchema, WalletListSchema } from '../../types/user.js';
 
-// Schema for the onboarding status response.
-export const OnboardingStatusSchema = z.object({ completed: z.boolean() });
-
-// DEMO: GET route — returns whether the authenticated user has completed
-// onboarding. The web dashboard reads this to decide the first-login redirect.
+// The web dashboard reads this to decide the first-login redirect.
 export const getOnboardingStatusRoute = createRoute({
   method: 'get',
   path: '/onboarding-status',
@@ -18,9 +15,7 @@ export const getOnboardingStatusRoute = createRoute({
   },
 });
 
-// DEMO: POST route — marks onboarding as complete for the current user.
-// This operation is idempotent: calling it multiple times won't change the
-// timestamp after the first completion.
+// Idempotent: repeat calls do not move the timestamp.
 export const completeOnboardingRoute = createRoute({
   method: 'post',
   path: '/complete-onboarding',
@@ -31,21 +26,7 @@ export const completeOnboardingRoute = createRoute({
   },
 });
 
-// The wallet as the API hands it out. Deliberately not the row: `id` and `userId`
-// are internal, and `walletClient` is the field a client actually needs -- 'privy'
-// is the embedded wallet created at login, anything else the user connected.
-export const WalletSchema = z.object({
-  address: z.string(),
-  chainType: z.string(),
-  walletClient: z.string(),
-  firstVerifiedAt: z.string().datetime().nullable(),
-});
-
-export const WalletListSchema = z.object({ wallets: z.array(WalletSchema) });
-
-// GET route -- the wallets already stored for the authenticated user. This is what
-// the platform will key off, so reading it back is how a client tells "Privy made a
-// wallet" from "we have recorded it".
+// Reading this back is how a client tells "Privy made a wallet" from "we stored it".
 export const listWalletsRoute = createRoute({
   method: 'get',
   path: '/wallets',
@@ -56,14 +37,8 @@ export const listWalletsRoute = createRoute({
   },
 });
 
-// POST route -- re-read the user's wallets from Privy and store what it reports.
-//
-// It takes no body on purpose. The embedded wallet is created in the browser, so
-// the client is what knows *when* a wallet appeared; it is never what says which
-// address it is. The server asks Privy and believes only that.
-//
-// Idempotent, and safe to call whenever the client sees a wallet the server has
-// not returned yet.
+// No body on purpose: the client knows *when* a wallet appeared, never which
+// address it is. Idempotent, so call it whenever a wallet is missing.
 export const syncWalletsRoute = createRoute({
   method: 'post',
   path: '/wallets/sync',

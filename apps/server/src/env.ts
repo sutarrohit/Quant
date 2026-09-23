@@ -3,9 +3,7 @@ import { expand } from 'dotenv-expand';
 import path from 'node:path';
 import { z } from 'zod';
 
-// One file per NODE_ENV, all three sitting beside each other. `.env` is the
-// development default because that is what an unset NODE_ENV means everywhere
-// else in this app.
+// One file per NODE_ENV; `.env` is the default.
 const ENV_FILES: Record<string, string> = {
   test: '.env.test',
   production: '.env.production',
@@ -23,14 +21,14 @@ const EnvSchema = z.object({
   FRONTEND_URL: z.string().url().default('http://localhost:3000'),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']),
   DATABASE_URL: z.url(),
-  PUBLIC_URL: z.url(), // public base URL used to register the webhook
+  PUBLIC_URL: z.url(), // this API's own public base URL
 
-  // Privy. APP_ID must name the same Privy app the frontend uses, or every
-  // token fails its audience check. VERIFICATION_KEY is the app's public key
-  // from the dashboard; it makes verification local instead of a network call.
-  PRIVY_APP_ID: z.string().min(1),
+  PRIVY_APP_ID: z.string().min(1), // Must match the web app's, or tokens fail their audience check.
   PRIVY_APP_SECRET: z.string().min(1),
-  PRIVY_VERIFICATION_KEY: z.string().min(1),
+  PRIVY_VERIFICATION_KEY: z.string().min(1), // Dashboard public key; verifies tokens locally.
+
+  ENGINE_URL: z.string().url().default('http://localhost:8000'),
+  ENGINE_INTERNAL_API_KEY: z.string().min(1), // Must equal the engine's NT_INTERNAL_API_KEY.
 });
 
 export type env = z.infer<typeof EnvSchema>;

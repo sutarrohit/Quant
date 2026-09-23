@@ -1,6 +1,6 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
 import { notFound, onError, pinoLogger, rateLimiter } from '../middlewares/index.middleware.js';
-import { AppBinding } from '../types/index.js';
+import type { AppBinding } from '../types/app.js';
 import { defaultHook } from 'stoker/openapi';
 import { cors } from 'hono/cors';
 import env from '../env.js';
@@ -14,10 +14,8 @@ export default function createApp() {
   app.use(pinoLogger());
   app.use(rateLimiter);
 
-  // `credentials: true` is what lets the browser attach the privy-token cookie
-  // on a cross-origin call. It requires an exact `origin` -- the browser rejects
-  // a wildcard on any credentialed request, so FRONTEND_URL must never become '*'.
-  // For multiple frontends, pass a function that echoes a match from an allowlist.
+  // `credentials: true` carries the privy-token cookie cross-origin, and needs an
+  // exact `origin` -- FRONTEND_URL must never become '*'.
   app.use(
     '*',
     cors({

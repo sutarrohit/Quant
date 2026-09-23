@@ -7,20 +7,13 @@ generator client {
   output   = "./src/generated"
 }
 
-// Identity is Privy's. This row exists only to hang domain data off (onboarding,
-// and later tenancy and exchange accounts), keyed by the Privy DID.
+// Identity is Privy's; this row only hangs domain data off the DID. There is no
+// Session table -- Privy owns the session entirely.
 //
-// `name` and `email` are nullable because a wallet-only Privy login carries
-// neither -- never key domain data off `email`. Postgres permits multiple NULLs
-// under a unique index, so @@unique([email]) is still correct.
+// `name` and `email` are nullable: a wallet-only login carries neither, so never
+// key domain data off `email`. Postgres allows multiple NULLs under @@unique.
 //
-// Session/Account/Verification are gone: Privy owns the session entirely, so the
-// server never issues or stores one. `emailVerified` is gone for the same reason
-// -- Privy's linked-account state is the truth.
-//
-// Column names here stay camelCase with no @map, matching this table's existing
-// convention (see onboardingCompletedAt). That differs deliberately from the
-// quant tables below, which are snake_case with explicit @map.
+// Columns here stay camelCase with no @map, unlike the quant tables below.
 model User {
   id                    String    @id @default(uuid())
   privyDid              String
@@ -31,38 +24,31 @@ model User {
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 
-  wallets Wallet[]
+  wallets     Wallet[]
+  strategies  Strategy[]
+  backtests   BacktestRun[]
+  simulations Simulation[]
 
   @@unique([privyDid])
   @@unique([email])
   @@map("user")
 }
 
-// Wallets Privy has linked to the user, mirrored from its `linked_accounts` --
-// never from the browser. The server re-reads them from Privy's API and writes
-// what it finds; a client-supplied address is a claim, not a fact.
+// Mirrored from Privy's `linked_accounts`, never from the browser -- a
+// client-supplied address is a claim, not a fact.
 //
-// A row per wallet rather than a column on `user`: apps/web sets
-// `embeddedWallets.ethereum.createOnLogin = 'all-users'`, so every user gets a
-// Privy-embedded wallet at first login, and a user who *also* connects an
-// external wallet (or a second chain) has more than one.
+// A row per wallet, not a column on `user`: every user gets an embedded wallet at
+// login, and one who also connects an external wallet has more than one.
 //
-// `walletClient` is Privy's own discriminator, stored verbatim: `privy` is the
-// embedded wallet the platform can rely on existing, anything else is a wallet
-// the user connected. `privyWalletId` exists only for embedded wallets -- it is
-// the handle Privy's server-side wallet API takes, which an external wallet has
-// no equivalent of.
-//
-// Addresses are stored exactly as Privy returns them, which for Ethereum means
-// EIP-55 checksummed. Every write comes through that one source so the unique
-// index stays consistent, but a lookup by a hand-lowercased address will miss.
+// Addresses are stored exactly as Privy returns them (EIP-55 checksummed for
+// Ethereum), so a lookup by a hand-lowercased address will miss.
 model Wallet {
   id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId          String    @map("user_id")
   address         String
   chainType       String    @map("chain_type")
-  walletClient    String    @map("wallet_client")
-  privyWalletId   String?   @map("privy_wallet_id")
+  walletClient    String    @map("wallet_client") // Privy's discriminator; 'privy' is embedded.
+  privyWalletId   String?   @map("privy_wallet_id") // Embedded wallets only.
   firstVerifiedAt DateTime? @map("first_verified_at")
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
@@ -71,4 +57,119 @@ model Wallet {
   @@unique([chainType, address])
   @@index([userId])
   @@map("wallet")
+}
+
+// --- Quant tables ---------------------------------------------------------
+//
+// The engine has no concept of a user and keeps job records in Redis for 7 days,
+// so ownership and history are answered here. Unlike User above, `id` is generated
+// by Postgres and every multi-word field carries an explicit @map.
+
+model Strategy {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String    @map("user_id")
+  name       String
+  archivedAt DateTime? @map("archived_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  versions StrategyVersion[]
+
+  @@index([userId])
+  @@map("strategy")
+}
+
+// Immutable. An edit is a new row, never an UPDATE -- a stored backtest number only
+// means something if the spec behind it cannot have changed since.
+//
+// `spec` is the engine's camelCase JSON byte for byte, so the same object goes to both
+// POST /v1/backtests and PUT /v1/live/{accountId}.
+model StrategyVersion {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  strategyId String   @map("strategy_id") @db.Uuid
+  version    Int
+  spec       Json
+  specHash   String   @map("spec_hash")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  strategy    Strategy      @relation(fields: [strategyId], references: [id], onDelete: Cascade)
+  runs        BacktestRun[]
+  simulations Simulation[]
+
+  @@unique([strategyId, version])
+  @@map("strategy_version")
+}
+
+// One submitted backtest. Written BEFORE the engine is called, so a job that is lost is
+// still a row someone can see rather than a click that vanished.
+//
+// The summary is copied here on a terminal status: the engine's record expires after
+// 7 days, so this is what survives.
+model BacktestRun {
+  id        String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String @map("user_id")
+  versionId String @map("version_id") @db.Uuid
+
+  // Idempotency key. Minted once and reused on every retry, so a failure mid-POST
+  // cannot start a second run -- the engine answers 200 with the existing job.
+  requestId String  @unique @map("request_id")
+  jobId     String? @map("job_id") // Null until the engine accepts the submission.
+  status    String
+
+  venue            String
+  instrumentId     String   @map("instrument_id")
+  barType          String   @map("bar_type")
+  windowStart      DateTime @map("window_start")
+  windowEnd        DateTime @map("window_end")
+  startingBalances String[] @map("starting_balances")
+
+  // Decimal, not Float: these multiply every notional in the result.
+  makerBps    Decimal @map("maker_bps") @db.Decimal(38, 18)
+  takerBps    Decimal @map("taker_bps") @db.Decimal(38, 18)
+  slippageBps Decimal @map("slippage_bps") @db.Decimal(38, 18)
+
+  // The engine's summary verbatim, money still as strings. Json rather than columns:
+  // it is a result to display, not something we compute against.
+  summary      Json?
+  errorCode    String?   @map("error_code")
+  errorMessage String?   @map("error_message")
+  submittedAt  DateTime  @default(now()) @map("submitted_at")
+  finishedAt   DateTime? @map("finished_at")
+
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  version StrategyVersion @relation(fields: [versionId], references: [id])
+
+  @@index([userId, submittedAt])
+  @@map("backtest_run")
+}
+
+// A paper account. `accountId` is minted here and never accepted from a client:
+// PUT /v1/live/{accountId} creates whatever account it is given, so a client that could
+// name one could write into someone else's. Unique, so two rows cannot collide onto one.
+model Simulation {
+  id        String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String @map("user_id")
+  versionId String @map("version_id") @db.Uuid
+  accountId String @unique @map("account_id")
+
+  name         String
+  venue        String
+  instrumentId String @map("instrument_id")
+  barType      String @map("bar_type")
+
+  makerBps    Decimal @map("maker_bps") @db.Decimal(38, 18)
+  takerBps    Decimal @map("taker_bps") @db.Decimal(38, 18)
+  slippageBps Decimal @map("slippage_bps") @db.Decimal(38, 18)
+
+  riskLimits Json? @map("risk_limits") // Absent means unlimited -- a choice, not a default.
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  version StrategyVersion @relation(fields: [versionId], references: [id])
+
+  @@index([userId])
+  @@map("simulation")
 }
