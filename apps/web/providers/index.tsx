@@ -6,6 +6,8 @@ import { getQueryClient } from '@/lib/getQueryClient';
 import env from '@/env';
 
 import type * as React from 'react';
+import { Toaster } from '@/components/ui/sonner';
+
 import { ThemeProvider } from './theme-provider';
 
 export default function Providers({ children }: { children: React.ReactNode }) {
@@ -28,6 +30,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
       <QueryClientProvider client={queryClient}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           {children}
+          <Toaster />
         </ThemeProvider>
       </QueryClientProvider>
     </PrivyProvider>
