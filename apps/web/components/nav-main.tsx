@@ -17,6 +17,7 @@ import {
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar"
 import { RiArrowRightSLine } from "@remixicon/react"
+import { useState } from "react"
 
 export function NavMain({
   items,
@@ -32,6 +33,12 @@ export function NavMain({
     }[]
   }[]
 }) {
+  // Controlled: the sidebar outlives navigation, so a section must open when the route
+  // enters it. A manual toggle holds until the active section changes.
+  const activeKey = items.filter((i) => i.isActive).map((i) => i.title).join("|")
+  const [manual, setManual] = useState({ key: activeKey, open: {} as Record<string, boolean> })
+  const overrides = manual.key === activeKey ? manual.open : {}
+
   return (
     <SidebarGroup>
       <SidebarGroupLabel>Platform</SidebarGroupLabel>
@@ -39,7 +46,10 @@ export function NavMain({
         {items.map((item) => (
           <Collapsible
             key={item.title}
-            defaultOpen={item.isActive}
+            open={overrides[item.title] ?? !!item.isActive}
+            onOpenChange={(open) =>
+              setManual({ key: activeKey, open: { ...overrides, [item.title]: open } })
+            }
             render={<SidebarMenuItem />}
           >
             <SidebarMenuButton
