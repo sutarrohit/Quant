@@ -27,6 +27,10 @@
     "./error": {
       "types": "./dist/error.d.ts",
       "default": "./dist/error.js"
+    },
+    "./backtest": {
+      "types": "./dist/backtest.d.ts",
+      "default": "./dist/backtest.js"
     }
   },
   "files": [

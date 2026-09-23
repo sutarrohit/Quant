@@ -2,7 +2,7 @@
 
 import type { StrategySpec, StrategySpecInput } from '@quant/contracts/spec';
 import type { SpecError } from '@quant/contracts/strategy';
-import { RiCodeLine } from '@remixicon/react';
+import { RiCodeLine, RiPlayLine } from '@remixicon/react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import { FormFooter } from '@/components/strategies/form-footer';
 import { StrategyForm } from '@/components/strategies/strategy-form';
 import { VersionHistory } from '@/components/strategies/version-history';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { createVersionMutationOptions, strategyQueryOptions } from '@/lib/api/strategies/strategy-queries';
 import { useStrategyBuilderStore } from '@/stores/strategy-builder';
@@ -86,9 +86,18 @@ export default function StrategyPage() {
             {draft && ' · unsaved changes'}
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => setPreviewOpen(!previewOpen)}>
-          <RiCodeLine /> {previewOpen ? 'Hide JSON' : 'Show JSON'}
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => setPreviewOpen(!previewOpen)}>
+            <RiCodeLine /> {previewOpen ? 'Hide JSON' : 'Show JSON'}
+          </Button>
+          <Link
+            href={`/strategies/${id}/backtest?version=${current.id}`}
+            className={buttonVariants({ size: 'sm' })}
+            title={draft ? 'Runs the saved version, without your unsaved edits' : undefined}
+          >
+            <RiPlayLine /> Run backtest
+          </Link>
+        </div>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_14rem]">
