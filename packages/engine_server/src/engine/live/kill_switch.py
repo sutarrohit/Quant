@@ -1,37 +1,25 @@
 """Stopping an account, when stopping is the only thing that still works.
 
-`Quant-Phase.md` lists a global kill switch among the things live execution
-needs. ADR-001 made it more load-bearing than that: `trading-core` no longer
-stands between a signal and the venue, so this is the operator's direct line to
-a node that is doing something they want stopped.
+Since ADR-001, `trading-core` no longer stands between a signal and the venue,
+so this is the operator's direct line to a node.
 
-**More than one path, and any of them is enough.** The question that decides a
-kill switch's design is what happens when the thing carrying it is broken —
-which is exactly when it is reached for. So:
+**More than one path, any of them enough** -- because a kill switch is reached
+for exactly when the thing carrying it is broken:
 
-* a flag in this service's Redis, which is fast and remote;
+* a flag in this service's Redis, fast and remote;
 * a file on the node's own disk, which works when Redis does not;
-* and the composite, engaged when **either** says so.
+* the composite, engaged when **either** says so.
 
-The composite fails *safe* in both directions worth naming: a path that errors
-is treated as engaged, because an operator who cannot be heard must not be
-assumed to have said nothing. That means a Redis outage stops new orders. It
-also means it cannot be silently defeated by breaking one path.
+It fails *safe*: a path that errors counts as engaged, since an operator who
+cannot be heard must not be assumed to have said nothing. A Redis outage stops
+new orders, and breaking one path cannot silently defeat it.
 
-**It is a total stop, exits included.** Every other brake in this system --
-a stale risk gate, the daily loss limit, a revoked mandate -- blocks new entries
-and lets a position be closed, because an account that cannot shed risk is
-dangerous. The kill switch deliberately does not: you reach for one when you do
-not trust the strategy, and a strategy you do not trust should not be closing
-positions either, since its idea of an exit may be the bug.
+**A total stop, exits included.** Every other brake here blocks new entries and
+lets a position close. This one does not: you reach for it when you do not trust
+the strategy, and its idea of an exit may be the bug. The cost is the operator's
+-- the position sits unmanaged until a human closes it at the exchange.
 
-The cost is real and is the operator's to carry: the position sits with nothing
-managing its stop until a human closes it at the exchange. That is why this is a
-separate instrument from the limits, and why it is not the thing to reach for
-when you merely want an account to stop opening risk.
-
-It does not flatten either -- turning an operator's "stop" into a realised loss
-is a different decision, and it gets a different verb.
+It does not flatten either; that is a different decision with a different verb.
 """
 
 from __future__ import annotations

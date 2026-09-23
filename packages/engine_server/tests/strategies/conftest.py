@@ -64,8 +64,8 @@ def run_backtest(
     from nautilus_trader.model import Bar
 
     from engine.dsl.hashing import spec_hash
-    from engine.dsl.schema import StrategySpec
     from engine.logging import configure_logging
+    from engine.types.dsl import StrategySpec
 
     stream = io.StringIO()
     configure_logging(log_level, stream=stream)
@@ -152,7 +152,7 @@ def run_backtest_reports(
     from nautilus_trader.model import Bar
 
     from engine.dsl.hashing import spec_hash
-    from engine.dsl.schema import StrategySpec
+    from engine.types.dsl import StrategySpec
 
     config = BacktestRunConfig(
         engine=BacktestEngineConfig(

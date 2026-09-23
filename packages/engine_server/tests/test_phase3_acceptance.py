@@ -25,7 +25,8 @@ import pytest
 from fastapi.testclient import TestClient
 
 from engine.settings import Settings
-from engine.store.jobs import JobStatus, JobStore
+from engine.store.jobs import JobStore
+from engine.types.jobs import JobStatus
 from engine.worker.tasks import run_backtest
 from tests.backtest.conftest import REQUEST
 from tests.conftest import AUTH, RecordingQueue, build_client, make_settings

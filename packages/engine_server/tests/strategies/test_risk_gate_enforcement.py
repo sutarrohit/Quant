@@ -18,7 +18,7 @@ from typing import Any
 
 import pytest
 
-from engine.live.risk import ALLOWED, AccountRisk, Breach, Decision, OrderIntent, Verdict
+from engine.types.risk import ALLOWED, AccountRisk, Breach, Decision, OrderIntent, Verdict
 from tests.strategies.conftest import requires_catalog, run_backtest
 
 

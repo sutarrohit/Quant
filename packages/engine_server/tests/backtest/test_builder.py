@@ -8,12 +8,12 @@ from typing import Any
 import pytest
 
 from engine.backtest.builder import assert_no_cache_database, build_run_config
-from engine.backtest.request import BacktestRequest
 from engine.dsl.hashing import spec_hash
-from engine.dsl.schema import StrategySpec
 from engine.errors import BacktestConfigError
 from engine.settings import Settings
 from engine.strategies.config import CONFIG_PATH, STRATEGY_PATH, strategy_config
+from engine.types.backtest import BacktestRequest
+from engine.types.dsl import StrategySpec
 
 GOLDEN = Path("tests/fixtures/backtest_run_config.golden.json")
 

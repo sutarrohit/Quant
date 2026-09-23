@@ -7,9 +7,9 @@ from pathlib import Path
 
 import pytest
 
-from engine.backtest.results import EquityPoint, Summary, Trade
 from engine.settings import Settings
 from engine.store.artifacts import ArtifactStore
+from engine.types.results import EquityPoint, Summary, Trade
 
 NOW = datetime(2024, 1, 1, tzinfo=UTC)
 

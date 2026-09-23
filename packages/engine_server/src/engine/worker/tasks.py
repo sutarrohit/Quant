@@ -11,15 +11,16 @@ import asyncio
 import logging
 from typing import Any
 
-from engine.backtest.request import BacktestRequest
 from engine.backtest.runner import run_isolated
 from engine.data.provision import ensure_window
 from engine.errors import BacktestFailed, BacktestTimeout, EngineError, ErrorCode
 from engine.logging import log_context
 from engine.settings import Settings
 from engine.store.artifacts import ArtifactStore
-from engine.store.jobs import JobStatus, JobStore
+from engine.store.jobs import JobStore
 from engine.store.publish import publish_result
+from engine.types.backtest import BacktestRequest
+from engine.types.jobs import JobStatus
 
 logger = logging.getLogger(__name__)
 

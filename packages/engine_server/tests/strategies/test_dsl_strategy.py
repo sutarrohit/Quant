@@ -7,8 +7,8 @@ from typing import Any
 import pytest
 
 from engine.dsl.hashing import spec_hash
-from engine.dsl.schema import StrategySpec
 from engine.strategies.dsl_strategy import DslStrategy, DslStrategyConfig
+from engine.types.dsl import StrategySpec
 from tests.strategies.conftest import (
     BAR_TYPE,
     INSTRUMENT_ID,

@@ -4,16 +4,10 @@ A pure function. Same request and spec in, same config out -- no clock, no
 Redis, no filesystem -- so the assembly that decides what a backtest actually
 simulates is unit-testable and golden-file comparable.
 
-Two things this module refuses to do:
-
-**Default a cost to zero.** Fees and slippage are required fields on the
-request, so a caller that omits either gets a 422 from the schema before
-reaching here.
-
-**Configure a cache database.** Spec section 9.2: a cache DB adds a write to
-every event for no benefit in a backtest, and shared mutable external state
-breaks the determinism guarantee. Backtests use the in-memory cache, and
-``assert_no_cache_database`` fails fast if a config ever carries one.
+Two things this module refuses to do: **default a cost to zero** (fees and
+slippage are required, so an omission is a 422 before reaching here), and
+**configure a cache database** (a write per event for no benefit, and shared
+mutable state breaks determinism -- ``assert_no_cache_database`` enforces it).
 """
 
 from __future__ import annotations
@@ -27,12 +21,12 @@ from nautilus_trader.backtest.config import (
 from nautilus_trader.config import ImportableFeeModelConfig, LoggingConfig
 from nautilus_trader.model import Bar
 
-from engine.backtest.request import BacktestRequest
 from engine.dsl.hashing import spec_hash
-from engine.dsl.schema import StrategySpec
 from engine.errors import BacktestConfigError
 from engine.settings import Settings
 from engine.strategies.config import strategy_config
+from engine.types.backtest import BacktestRequest
+from engine.types.dsl import StrategySpec
 
 FEE_MODEL_PATH = "engine.backtest.fees:BpsFeeModel"
 FEE_CONFIG_PATH = "engine.backtest.fees:BpsFeeModelConfig"

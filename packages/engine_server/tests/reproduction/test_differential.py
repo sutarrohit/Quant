@@ -19,10 +19,10 @@ from typing import Any
 
 import pytest
 
-from engine.backtest.request import BacktestRequest
 from engine.backtest.runner import execute
 from engine.data.catalog import Catalog
 from engine.settings import Settings
+from engine.types.backtest import BacktestRequest
 from tests.reproduction.replay import Candle, replay
 
 BAR_TYPE = "BTCUSDT.BINANCE-15-MINUTE-LAST-EXTERNAL"

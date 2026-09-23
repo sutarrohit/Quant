@@ -1,23 +1,19 @@
 """Startup reconciliation (spec section 10.3).
 
-Before a node subscribes to any data or starts any strategy, it must agree with
-the venue about what it holds. The spec's rule is blunt and worth quoting:
+A node must agree with the venue about what it holds before it subscribes to
+data or starts a strategy. The spec is blunt:
 
     A node that starts trading on stale or unverified state is worse than a
     node that stays down.
 
-So the order is fixed: load the cache, ask the venue, compare, and only on a
-clean match start strategies. Any discrepancy halts.
+So: load the cache, ask the venue, compare, and start only on a clean match.
 
-**Halted means halted.** A reconciliation failure is not retried on a loop. The
-supervisor restarts a node that crashed, because crashing is a fact about the
-process; it does not restart one that disagrees with the venue, because
-disagreeing is a fact about the money, and a node that hammers the exchange
-every five seconds while wrong is not recovering, it is just wrong faster.
-Clearing it is a deliberate act by an operator.
+**Halted means halted.** A crash is a fact about the process, so the supervisor
+restarts it; disagreeing with the venue is a fact about the money, and retrying
+every five seconds is just being wrong faster. An operator clears it.
 
-The comparison here is pure, so every shape of disagreement is testable without
-a venue, a key, or a network. The fetching sits behind a protocol.
+The comparison is pure and the fetching sits behind a protocol, so every shape
+of disagreement is testable without a venue.
 """
 
 from __future__ import annotations

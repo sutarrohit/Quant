@@ -55,7 +55,7 @@ def export_unprefixed(path: str) -> None:
     """
     for key, value in dotenv_values(path).items():
         if value is None or key.startswith("NT_"):
-            continue
+            continue  # NT_* belongs to pydantic-settings, which reads the file itself.
         os.environ.setdefault(key, value)
 
 

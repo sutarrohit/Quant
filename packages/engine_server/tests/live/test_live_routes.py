@@ -7,8 +7,9 @@ import fakeredis
 import pytest
 from fastapi.testclient import TestClient
 
-from engine.live.desired_state import LiveStateStore, ObservedState, ObservedStatus
+from engine.live.desired_state import LiveStateStore
 from engine.settings import Settings
+from engine.types.state import ObservedState, ObservedStatus
 from tests.conftest import AUTH, build_client, make_settings
 from tests.live.conftest import SPEC
 

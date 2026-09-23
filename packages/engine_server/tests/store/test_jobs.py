@@ -6,7 +6,8 @@ from typing import Any
 import pytest
 
 from engine.errors import JobNotCancellable, JobNotFound, RequestIdConflict
-from engine.store.jobs import JobStatus, JobStore
+from engine.store.jobs import JobStore
+from engine.types.jobs import JobStatus
 from tests.store.conftest import Clock
 
 #: A stand-in submission. The store does not interpret it; it carries it.

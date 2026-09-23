@@ -1,32 +1,21 @@
 """Authority to trade, held rather than requested (ADR-002).
 
-`trading-core` decides what an account may do. It is never asked at order time,
-because the constraint that shaped this design is that **a `trading-core`
-outage must not stop trading** -- and a node that has to ask permission stops
-trading exactly when the thing it asks is unreachable.
+`trading-core` decides what an account may do, but is never asked at order time:
+**a `trading-core` outage must not stop trading**, and a node that asks
+permission stops exactly when the thing it asks is unreachable. So authority
+arrives ahead of time and is enforced from this service's own store.
 
-So authority arrives ahead of time and sits here: a mandate written into this
-service's own store, read by the node, enforced in the order path.
-
-**No expiry.** A TTL would be an outage dependency wearing a schedule -- set it
-to 24 hours and a 25-hour outage stops trading, which is the forbidden outcome
-arriving a day late and looking like something else. A mandate is valid until
+**No expiry.** A TTL is an outage dependency wearing a schedule. Valid until
 `trading-core` revokes it.
 
-**Revocation blocks new risk and nothing else.** Stops, take-profits and exits
-keep running, exactly as a stale gate and the daily loss limit already behave.
-Flattening on revoke would let a control-plane event decide a trade at whatever
-price the market happens to be. The kill switch is the one deliberate exception
-to that rule, and it is a different instrument for a different situation.
+**Revocation blocks new risk and nothing else.** Exits keep running; flattening
+on revoke would let a control-plane event decide a trade at whatever price the
+market happens to be. The kill switch is the deliberate exception.
 
-**Absent is not permissive.** A live node refuses to start without an active
-mandate. Trading with no recorded authority is worse than not trading, and
-"there was no record" is not a defence anyone wants to give afterwards.
+**Absent is not permissive.** A node refuses to start without an active mandate.
 
-The cost this accepts, stated in ADR-002 and repeated here because it is the
-thing that will hurt: **a revocation issued while `trading-core` cannot reach
-this store does not arrive.** During such an outage the kill switch is the only
-way to stop an account, which is why it depends on neither service.
+The cost, per ADR-002: **a revocation issued while `trading-core` cannot reach
+this store does not arrive.** The kill switch depends on neither service.
 """
 
 from __future__ import annotations
@@ -40,8 +29,8 @@ from pydantic import BaseModel, ConfigDict, Field
 from redis.asyncio import Redis
 
 from engine.errors import MandateMissing, MandateRevoked
-from engine.live.desired_state import RiskLimitsModel
-from engine.live.risk import RiskLimits
+from engine.types.risk import RiskLimits
+from engine.types.state import RiskLimitsModel
 
 logger = logging.getLogger(__name__)
 

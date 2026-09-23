@@ -25,9 +25,9 @@ from urllib.parse import urlparse
 import pytest
 import pytest_asyncio
 
-from engine.live.desired_state import TradingMode
 from engine.live.node import build_node_config
 from engine.settings import Settings
+from engine.types.state import TradingMode
 from tests.live.conftest import desired
 
 #: A Redis this test may write to. Defaults to the second instance a live

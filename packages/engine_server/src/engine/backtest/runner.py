@@ -2,16 +2,10 @@
 
 Runs in the worker, never in the API process.
 
-**Each run gets a fresh process.** Three reasons, and each is in the spec:
-
-* A Nautilus engine holds a lot of memory, and a worker that runs dozens of
-  jobs in-process leaks until it OOMs (section 7.4). A process that exits
-  returns everything.
-* State cannot leak between runs. A fresh engine per job is required (section
-  13, pitfall 4); a fresh *process* makes it unarguable.
-* A wall-clock timeout has to be enforceable. A backtest is a CPU-bound Rust
-  loop that never checks for cancellation, so it cannot be asked to stop --
-  only killed.
+**Each run gets a fresh process**, for three reasons from the spec: a Nautilus
+engine leaks memory until the worker OOMs, state must not leak between runs, and
+a CPU-bound Rust loop never checks for cancellation, so a timeout means killing
+it rather than asking.
 
 The engine is disposed after extraction, not before: ``dispose_on_completion``
 defaults to True and clears the cache before ``run()`` returns, which makes
@@ -30,12 +24,12 @@ from decimal import Decimal
 from typing import Any
 
 from engine.backtest.builder import build_run_config
-from engine.backtest.request import BacktestRequest
 from engine.backtest.results import build_equity_curve, build_trades, summarise
 from engine.data.catalog import Catalog
-from engine.dsl.schema import StrategySpec
 from engine.errors import BacktestFailed, BacktestIncomplete, BacktestTimeout, NoDataForWindow
 from engine.settings import Settings
+from engine.types.backtest import BacktestRequest
+from engine.types.dsl import StrategySpec
 
 logger = logging.getLogger(__name__)
 
@@ -270,9 +264,9 @@ def execute(request: BacktestRequest, settings: Settings) -> RunOutcome:
 def _child(request_json: str, settings_json: str, outbox: Any) -> None:
     """Subprocess entry point. Never raises into the parent."""
     try:
-        from engine.backtest.request import BacktestRequest
         from engine.backtest.runner import execute  # re-import under spawn
         from engine.settings import Settings
+        from engine.types.backtest import BacktestRequest
 
         outcome = execute(
             BacktestRequest.model_validate_json(request_json),

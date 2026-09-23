@@ -2,19 +2,15 @@
 
 ``evaluate(node, ctx) -> bool``. That is the whole surface.
 
-**Pure.** No I/O, no clock, no logging, no mutation. It imports nothing from
-Nautilus, so it can be tested with hand-built contexts and nothing else. The
-strategy is what talks to the engine; this only reads numbers.
+**Pure.** No I/O, no clock, no logging, no mutation, and nothing from Nautilus,
+so it tests against hand-built contexts alone.
 
-**No lookahead.** The context holds the current bar's values, the previous
-bar's values, and position state. There is nowhere to put a future bar, which
-is the point -- a series of bars would eventually be indexed.
+**No lookahead.** The context holds this bar, the previous bar and position
+state. There is nowhere to put a future bar, which is the point.
 
-**Nothing is swallowed.** An unknown operator, a missing series, an empty group
-or an exit condition evaluated while flat all raise. A broad ``except``
-returning ``False`` turns a broken strategy into a silently inert one, which
-looks identical to a strategy that simply found no trades (spec section 13,
-pitfall 9).
+**Nothing is swallowed.** An unknown operator, a missing series or an empty group
+raises. A broad ``except`` returning ``False`` turns a broken strategy into a
+silently inert one, indistinguishable from one that found no trades.
 
 v1 is long-only: the schema has no side, and one position at a time per
 instrument (spec section 6).
@@ -27,7 +23,8 @@ from dataclasses import dataclass
 from decimal import Decimal
 
 from engine.dsl.keys import SMA_OPERATORS, required_refs
-from engine.dsl.schema import (
+from engine.errors import InterpreterError
+from engine.types.dsl import (
     AllGroup,
     AnyGroup,
     NotGroup,
@@ -35,7 +32,6 @@ from engine.dsl.schema import (
     StopLossPercent,
     TakeProfitPercent,
 )
-from engine.errors import InterpreterError
 
 # Anything with an `indicator` attribute, structurally.
 _INDICATOR_ATTRIBUTES = ("indicator", "operator")

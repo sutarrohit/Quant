@@ -7,7 +7,7 @@ from typing import Any
 import pytest
 from pydantic import ValidationError
 
-from engine.backtest.request import BacktestRequest
+from engine.types.backtest import BacktestRequest
 
 
 def build(payload: dict[str, Any]) -> BacktestRequest:

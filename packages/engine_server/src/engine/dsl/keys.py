@@ -14,8 +14,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from engine.dsl.schema import Operator
 from engine.errors import UnknownIndicatorError
+from engine.types.dsl import Operator
 
 #: Indicators whose `period` configures the indicator itself.
 PERIODIC = frozenset({"rsi", "sma", "ema", "atr"})

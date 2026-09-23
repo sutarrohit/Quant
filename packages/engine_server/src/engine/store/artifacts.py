@@ -14,37 +14,26 @@ undo the ``Decimal`` discipline the rest of the pipeline maintains.
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
-from typing import Any
+from typing import Any, Final
 
 import fsspec
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from engine.backtest.results import EquityPoint, Summary, Trade
 from engine.settings import Settings
+from engine.types.artifacts import ArtifactSet
+from engine.types.results import EquityPoint, Summary, Trade
 
 #: One directory per job, so everything about a run is in one place and a
 #: retention sweep can drop it wholesale.
 JOB_PREFIX = "backtests"
 
-
-@dataclass(frozen=True, slots=True)
-class ArtifactSet:
-    """Where a run's series ended up."""
-
-    job_id: str
-    trades: str | None
-    equity_curve: str | None
-    summary: str
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "jobId": self.job_id,
-            "trades": self.trades,
-            "equityCurve": self.equity_curve,
-            "summary": self.summary,
-        }
+#: The series a caller may ask for, and the file each lives in. A closed map:
+#: a requested name is looked up here, never joined into a path.
+SERIES_FILES: Final[dict[str, str]] = {
+    "equity_curve": "equity_curve.parquet",
+    "trades": "trades.parquet",
+}
 
 
 class ArtifactStore:
@@ -117,6 +106,34 @@ class ArtifactStore:
     def read_rows(self, path: str) -> list[dict[str, Any]]:
         with self._fs.open(path, "rb") as handle:
             return list(pq.read_table(handle).to_pylist())
+
+    def job_exists(self, job_id: str) -> bool:
+        """Whether this job wrote anything at all.
+
+        Reads storage, not the job record: records expire after 7 days and the
+        artifacts do not.
+        """
+        return bool(self._fs.exists(self.directory_for(job_id)))
+
+    def read_series(
+        self, job_id: str, series: str, *, offset: int = 0, limit: int = 1_000
+    ) -> tuple[list[dict[str, Any]], int]:
+        """One page of a stored series, and the total number of rows in it.
+
+        ``series`` must be a key of :data:`SERIES_FILES`; the route rejects an
+        unknown one before any I/O.
+
+        A missing file is an **empty series, not an error**: a backtest that took
+        no trades legitimately has no ``trades.parquet``.
+
+        The whole file is read and then sliced -- correct beats fast until a
+        curve is large enough to measure.
+        """
+        path = f"{self.directory_for(job_id)}/{SERIES_FILES[series]}"
+        if not self._fs.exists(path):
+            return [], 0  # No file means no rows, not a missing job.
+        rows = self.read_rows(path)
+        return rows[offset : offset + limit], len(rows)
 
     def read_summary(self, job_id: str) -> dict[str, Any]:
         with self._fs.open(f"{self.directory_for(job_id)}/summary.json", "r") as handle:

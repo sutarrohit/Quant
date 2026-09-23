@@ -1,20 +1,14 @@
 """Running one account's strategy on live data (spec section 10.2).
 
-The `TradingNode` the supervisor starts and stops. Building its config is a
-pure function, exactly as the backtest builder is, so every safety property
-below is testable without a network, a key, or a running exchange.
+Building the config is a pure function, so every safety property here is
+testable without a network, a key, or a running exchange.
 
-**The strategy config comes from the shared factory.** Spec section 10.2 is
-explicit: the config a live node builds must be byte-identical in shape to the
-one a backtest builds -- same `strategy_path`, same `spec`, same `spec_hash`.
-If the two ever construct it separately they will drift, and the guarantee that
-simulation and production run the same code path is gone. `strategies/config.py`
-is that single construction, and `backtest/builder.py` calls the same function.
+**The strategy config comes from the shared factory** (`strategies/config.py`),
+which `backtest/builder.py` also calls. Two separate constructions would drift,
+and with them the guarantee that simulation and production share a code path.
 
-**Simulation only, for now.** ADR-001 records seven conditions before a real key is
-loaded and none are met, so live mode raises rather than trading. Simulation needs no
-credentials, risks nothing, and is the integration test for the whole system --
-it is where a data feed's lag stops being a theory.
+**Simulation only.** ADR-001 lists seven conditions before a real key is loaded
+and none are met, so live mode raises rather than trading.
 """
 
 from __future__ import annotations
@@ -36,7 +30,7 @@ from nautilus_trader.model.identifiers import TraderId
 
 from engine.errors import CacheNotIsolated, LiveNotPermitted, ReconciliationFailed
 from engine.live.credentials import CredentialResolver, NoCredentialsResolver
-from engine.live.desired_state import DesiredState, LiveStateStore, TradingMode
+from engine.live.desired_state import LiveStateStore
 from engine.live.kill_switch import KillSwitch
 from engine.live.mandate import MandateStore
 from engine.live.recovery import CacheReader, VenueReader, ensure_reconciled
@@ -44,6 +38,7 @@ from engine.logging import log_context
 from engine.settings import Settings
 from engine.simulation.node import clients as simulation_clients
 from engine.strategies.config import strategy_config
+from engine.types.state import DesiredState, TradingMode
 
 logger = logging.getLogger(__name__)
 

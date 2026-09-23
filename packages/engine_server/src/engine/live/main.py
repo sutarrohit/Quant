@@ -2,36 +2,24 @@
 
     uv run python -m engine.live.main
 
-Phase 5 built a supervisor, a node runner, a risk gate and a kill switch, and
-nothing that starts them. This is the front door.
-
-It is deliberately thin. Everything it does is construction and shutdown; every
-decision lives in the objects it builds, where it is tested. What it does own is
-the wiring that must not be got wrong:
+Deliberately thin: construction and shutdown only, since every decision lives in
+the objects it builds. It owns the wiring that must not be got wrong:
 
 * the kill switch is a **composite** of Redis and a file on this node's disk, so
-  an operator keeps a path to the account when one of them is unreachable;
+  an operator keeps a path when one is unreachable;
 * the supervisor's `holder` identifies **this process**, so a lease says which
-  machine holds an account rather than merely that someone does;
-* a `SIGTERM` stops the nodes and releases the leases, so a deploy hands the
-  accounts back in seconds instead of after a heartbeat timeout.
+  machine holds an account;
+* `SIGTERM` stops the nodes and releases the leases, so a deploy hands accounts
+  back in seconds rather than after a heartbeat timeout.
 
 **Simulation only.** `TradingMode.LIVE` refuses to build a node (ADR-001), so
-this process cannot place a real order however it is configured. Running it is how
-the runtime meets a real feed for the first time -- a websocket that reconnects,
-a venue that rate-limits, a market that goes quiet -- which is the class of
-problem a stub cannot produce and a soak run finds in a day.
+this process cannot place a real order however it is configured.
 
-**Venue reconciliation is built but not constructed here.** `engine.live.readers`
-now implements both sides -- what Nautilus's cache holds, and what Binance says
-the account holds -- but building the venue reader needs an authenticated HTTP
-client, which needs a key, which ADR-001 still forbids. Simulation has no venue
-state to disagree with and does not reconcile; live is gated. So the runner is
-constructed without readers, and refuses to start a live account for that
-reason, which is the correct behaviour until the day a key exists.
-
-When it does: build a `BinanceSpotVenueReader` and a `NautilusCacheReader` here
-and pass them to `LiveNodeRunner`. That is the whole change.
+**Venue reconciliation is built but not constructed here.** The venue reader
+needs an authenticated client, which needs a key, which ADR-001 forbids. So the
+runner is built without readers and refuses to start a live account. When a key
+exists: build a `BinanceSpotVenueReader` and a `NautilusCacheReader` here and
+pass them to `LiveNodeRunner`.
 """
 
 from __future__ import annotations

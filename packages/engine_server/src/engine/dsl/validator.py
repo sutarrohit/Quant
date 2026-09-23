@@ -17,13 +17,11 @@ check is skipped. Nothing else here touches the world.
 from __future__ import annotations
 
 from collections.abc import Collection, Iterator
-from enum import StrEnum
-
-from pydantic import BaseModel, ConfigDict
 
 from engine.dsl.indicators import supported_operators, warmup_bars
 from engine.dsl.keys import BAR_DERIVED, PERIODIC, SMA_OPERATORS, required_refs
-from engine.dsl.schema import (
+from engine.errors import UnknownIndicatorError
+from engine.types.dsl import (
     AllGroup,
     AnyGroup,
     NotGroup,
@@ -33,34 +31,7 @@ from engine.dsl.schema import (
     StrategySpec,
     TakeProfitPercent,
 )
-from engine.errors import UnknownIndicatorError
-
-
-class SpecErrorCode(StrEnum):
-    """Codes the TypeScript caller branches on. Values are never renamed."""
-
-    UNKNOWN_INDICATOR = "UNKNOWN_INDICATOR"
-    UNSUPPORTED_OPERATOR = "UNSUPPORTED_OPERATOR"
-    INDICATOR_PERIOD_TOO_LARGE = "INDICATOR_PERIOD_TOO_LARGE"
-    EMPTY_CONDITION_GROUP = "EMPTY_CONDITION_GROUP"
-    MISSING_STOP_LOSS = "MISSING_STOP_LOSS"
-    SYMBOL_NOT_IN_CATALOG = "SYMBOL_NOT_IN_CATALOG"
-    EXIT_CONDITION_IN_ENTRY = "EXIT_CONDITION_IN_ENTRY"
-    MISSING_THRESHOLD = "MISSING_THRESHOLD"
-    MISSING_PERIOD = "MISSING_PERIOD"
-    AMBIGUOUS_COMPARISON = "AMBIGUOUS_COMPARISON"
-    INVALID_REFERENCE = "INVALID_REFERENCE"
-    DUPLICATE_CONDITION = "DUPLICATE_CONDITION"
-
-
-class SpecError(BaseModel):
-    model_config = ConfigDict(frozen=True)
-
-    path: str
-    code: SpecErrorCode
-    message: str
-    limit: str | None = None
-    observed: str | None = None
+from engine.types.spec_errors import SpecError, SpecErrorCode
 
 
 def walk(node: object, path: str) -> Iterator[tuple[str, object]]:

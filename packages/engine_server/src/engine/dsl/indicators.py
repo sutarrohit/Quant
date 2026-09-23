@@ -32,8 +32,8 @@ from nautilus_trader.indicators import (
 from nautilus_trader.model import Bar
 
 from engine.dsl.keys import SeriesRef, required_refs
-from engine.dsl.schema import Operator
 from engine.errors import UnknownIndicatorError
+from engine.types.dsl import Operator
 
 # Operators valid on an indicator that produces a continuous series.
 SERIES_OPERATORS = frozenset(

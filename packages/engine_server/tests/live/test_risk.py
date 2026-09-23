@@ -11,13 +11,8 @@ from decimal import Decimal as D
 
 import pytest
 
-from engine.live.risk import (
-    AccountRisk,
-    Breach,
-    OrderIntent,
-    RiskLimits,
-    evaluate,
-)
+from engine.live.risk import evaluate
+from engine.types.risk import AccountRisk, Breach, OrderIntent, RiskLimits
 
 
 def intent(notional: str = "1000", reduce_only: bool = False) -> OrderIntent:

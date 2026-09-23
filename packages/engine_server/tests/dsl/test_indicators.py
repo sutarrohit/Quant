@@ -16,8 +16,8 @@ from engine.dsl.indicators import (
     warmup_bars,
 )
 from engine.dsl.keys import SeriesRef, series_key
-from engine.dsl.schema import Operator
 from engine.errors import UnknownIndicatorError
+from engine.types.dsl import Operator
 
 BAR_TYPE = BarType.from_str("BTCUSDT.BINANCE-15-MINUTE-LAST-EXTERNAL")
 STEP_NS = 900_000_000_000

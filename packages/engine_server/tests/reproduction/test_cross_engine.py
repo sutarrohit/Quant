@@ -24,9 +24,9 @@ from typing import Any
 
 import pytest
 
-from engine.backtest.request import BacktestRequest
 from engine.backtest.runner import execute
 from engine.settings import Settings
+from engine.types.backtest import BacktestRequest
 
 CATALOG = Path("catalog")
 BAR_TYPE = "GOOG.NASDAQ-1-DAY-LAST-EXTERNAL"

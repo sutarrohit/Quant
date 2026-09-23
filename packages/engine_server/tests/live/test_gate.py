@@ -12,7 +12,7 @@ import pytest
 
 from engine.live.gate import DEFAULT_MAX_AGE_NS, NoGate, RiskGate
 from engine.live.kill_switch import NeverEngaged
-from engine.live.risk import AccountRisk, Breach, OrderIntent, RiskLimits
+from engine.types.risk import AccountRisk, Breach, OrderIntent, RiskLimits
 
 SECOND = 1_000_000_000
 

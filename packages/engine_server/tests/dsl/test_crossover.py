@@ -16,8 +16,9 @@ from pydantic import ValidationError
 from engine.dsl.indicators import build_series, supported_operators
 from engine.dsl.interpreter import EvalContext, evaluate
 from engine.dsl.keys import required_refs
-from engine.dsl.schema import CloseCondition, Operator, SeriesReference, SmaCondition, StrategySpec
-from engine.dsl.validator import SpecErrorCode, validate_spec
+from engine.dsl.validator import validate_spec
+from engine.types.dsl import CloseCondition, Operator, SeriesReference, SmaCondition, StrategySpec
+from engine.types.spec_errors import SpecErrorCode
 
 BASE: dict[str, Any] = {
     "strategyId": "crossover",

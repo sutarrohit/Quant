@@ -1,25 +1,16 @@
 """Fetch whatever a backtest needs that the catalog does not already hold.
 
-The catalog used to be filled by hand: a human ran `python -m engine.data.ingest`
-before submitting anything, and a spec naming a symbol nobody had ingested was
-rejected at submit time. That put a manual step between a user and an answer,
-and the step was pure bookkeeping -- the request already says exactly which
-instrument, which timeframe and which window it needs.
+The request already names the instrument, timeframe and window, so requiring a
+human to pre-ingest was pure bookkeeping. The worker fills the gap itself.
 
-So the worker fills the gap itself. This module is that step, and it is
-deliberately thin: `Catalog.missing_intervals` already computes which ranges are
-absent, and `ingest()` already fetches only gaps, records raw before
-transforming, and runs the quality monitors. Nothing here re-implements any of
-that.
+Deliberately thin: `Catalog.missing_intervals` computes the absent ranges and
+`ingest()` fetches only gaps, records raw first, and runs the quality monitors.
 
-**Where it runs matters.** In the worker, before the run -- never in the HTTP
-handler. A cold two-year 1m window is minutes of paging against the venue, and
-the handler's contract is that it validates and enqueues (spec section 7.1).
+**In the worker, before the run -- never in the HTTP handler.** A cold two-year
+1m window is minutes of paging against the venue (spec section 7.1).
 
-**What it does not do is weaken reproducibility.** Ingest is idempotent: a
-window already held is a no-op, and raw responses are append-only. The first run
-of a window defines the data; every later run reads the same bars off disk. What
-changes is only *when* the fetch happens, not whether the result is stable.
+**Reproducibility is unaffected.** Ingest is idempotent and raw responses are
+append-only, so only *when* the fetch happens changes, not the result.
 """
 
 from __future__ import annotations

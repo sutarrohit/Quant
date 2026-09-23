@@ -5,15 +5,13 @@ job and never starts a second run; the same ``requestId`` carrying a *different*
 payload is a conflict, because the caller has reused an identifier for two
 different pieces of work and silently returning either answer would be wrong.
 
-**The claim is atomic.** Two concurrent submissions of the same ``requestId``
-must produce exactly one job. Read-then-write cannot promise that: both callers
-read "absent" and both create. The claim here writes a candidate record, then
-takes the idempotency pointer with ``SET NX``; whichever caller loses deletes
-its candidate and reads the winner's. One round trip, no lock, no polling.
+**The claim is atomic.** Read-then-write cannot promise one job per
+``requestId`` -- both callers read "absent" and both create. Instead: write a
+candidate, take the pointer with ``SET NX``, and let the loser delete its
+candidate and read the winner's. One round trip, no lock, no polling.
 
-Status transitions are compare-and-set in Lua for the same reason. Cancelling
-races the worker picking the job up, and "cancel only if still QUEUED" has to
-be decided inside Redis rather than between two calls.
+Status transitions are compare-and-set in Lua for the same reason: cancelling
+races the worker picking the job up.
 
 Nothing here is the financial record. It is job bookkeeping with a TTL.
 """
@@ -24,14 +22,13 @@ import json
 import uuid
 from collections.abc import Callable
 from datetime import UTC, datetime
-from enum import StrEnum
 from typing import Any, Self
 
-from pydantic import BaseModel, ConfigDict
 from redis.asyncio import Redis
 
 from engine.errors import JobNotCancellable, JobNotFound, RequestIdConflict
 from engine.settings import Settings
+from engine.types.jobs import JobRecord, JobStatus
 
 JOB_KEY = "job:{job_id}"
 IDEMPOTENCY_KEY = "idem:{request_id}"
@@ -58,49 +55,6 @@ return status
 #: Record fields held as JSON inside the hash. Everything else is a plain
 #: string, so a human reading Redis can see what a job is doing.
 _JSON_FIELDS = ("request", "error", "result")
-
-
-class JobStatus(StrEnum):
-    QUEUED = "QUEUED"
-    #: Fetching market data the catalog does not hold yet. A state of its own
-    #: rather than part of RUNNING: a cold two-year window is minutes of paging
-    #: against the venue, and a caller watching a progress bar deserves to know
-    #: the difference between "downloading history" and "computing".
-    FETCHING_DATA = "FETCHING_DATA"
-    RUNNING = "RUNNING"
-    SUCCEEDED = "SUCCEEDED"
-    FAILED = "FAILED"
-    CANCELLED = "CANCELLED"
-
-    @property
-    def terminal(self) -> bool:
-        return self in (JobStatus.SUCCEEDED, JobStatus.FAILED, JobStatus.CANCELLED)
-
-
-class JobRecord(BaseModel):
-    model_config = ConfigDict(frozen=True, use_enum_values=False)
-
-    job_id: str
-    request_id: str
-    payload_hash: str
-    #: The submission itself. The worker loads the job by id and needs
-    #: everything required to run it; carrying it here means the queue moves
-    #: only an identifier and a replay reads the same bytes the first attempt did.
-    request: dict[str, Any]
-    status: JobStatus
-    submitted_at: datetime
-    started_at: datetime | None = None
-    finished_at: datetime | None = None
-    #: Machine-readable failure, never a traceback (spec section 7.4).
-    error: dict[str, Any] | None = None
-    result: dict[str, Any] | None = None
-
-    def to_json(self) -> str:
-        return self.model_dump_json()
-
-    @classmethod
-    def from_json(cls, raw: str) -> Self:
-        return cls.model_validate_json(raw)
 
 
 def _now() -> datetime:

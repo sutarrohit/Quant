@@ -24,7 +24,6 @@ from nautilus_trader.common import Environment
 from nautilus_trader.live.factories import LiveDataClientFactory, LiveExecClientFactory
 
 from engine.errors import LiveNotPermitted, VenueNotSupported
-from engine.live.desired_state import TradingMode
 from engine.live.node import build_node_config
 from engine.settings import Settings
 from engine.simulation.node import (
@@ -35,6 +34,7 @@ from engine.simulation.node import (
     execution_client,
     register_factories,
 )
+from engine.types.state import TradingMode
 from tests.live.conftest import desired
 
 

@@ -6,8 +6,8 @@ from typing import Any
 
 import pytest
 
-from engine.backtest.request import BacktestRequest
 from engine.settings import Settings
+from engine.types.backtest import BacktestRequest
 
 SPEC: dict[str, Any] = {
     "strategyId": "btc-rsi-recovery",

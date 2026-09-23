@@ -1,21 +1,16 @@
 """The risk gate as the order path actually sees it: synchronously.
 
-`risk.evaluate` is a pure function and `kill_switch` is a set of async reads.
-Neither can be used directly where the decision is made, because that place is
-`Strategy.on_bar`, which Nautilus calls **synchronously** on the same event loop
-that carries the venue's websocket. Awaiting Redis there would stall order
-handling and fill reports to save one network round trip per signal.
+The decision happens in `Strategy.on_bar`, which Nautilus calls **synchronously**
+on the loop carrying the venue's websocket -- so awaiting Redis there would stall
+order handling and fill reports.
 
-So the gate holds a *snapshot* — the limits, and whether the kill switch was
-engaged the last time anyone looked — refreshed out of band by the supervisor
-loop, and read without blocking on the order path.
+The gate therefore holds a *snapshot* of the limits and the kill switch,
+refreshed out of band by the supervisor and read without blocking.
 
-**A stale snapshot counts as engaged.** If refreshes have stopped, the gate has
-no idea what the operator has said since, and the whole reason for the kill
-switch is the case where things are already broken. `max_age` is therefore a
-safety bound, not a cache TTL: crossing it stops new orders. Exits are never
-gated, so an account whose gate goes stale stops opening risk and keeps every
-means of shedding it.
+**A stale snapshot counts as engaged.** If refreshes stopped, the gate does not
+know what the operator has said since. `max_age` is a safety bound, not a cache
+TTL. Exits are never gated, so a stale gate stops new risk and keeps every means
+of shedding it.
 """
 
 from __future__ import annotations
@@ -24,7 +19,7 @@ import logging
 from dataclasses import dataclass, field
 
 from engine.live.kill_switch import KillSwitch
-from engine.live.risk import AccountRisk, Breach, Decision, OrderIntent, RiskLimits, Verdict
+from engine.types.risk import AccountRisk, Breach, Decision, OrderIntent, RiskLimits, Verdict
 
 logger = logging.getLogger(__name__)
 
@@ -127,6 +122,6 @@ class NoGate:
     """
 
     def check(self, intent: OrderIntent, account: AccountRisk, now_ns: int) -> Decision:
-        from engine.live.risk import ALLOWED
+        from engine.types.risk import ALLOWED
 
         return ALLOWED

@@ -12,7 +12,7 @@ import pytest
 from pydantic import ValidationError
 
 from engine.dsl.hashing import canonical_json, canonical_number, spec_hash
-from engine.dsl.schema import StrategySpec
+from engine.types.dsl import StrategySpec
 from tests.dsl.conftest import SPEC_EXAMPLE
 
 
@@ -159,7 +159,7 @@ def _hash_in_subprocess(payload: dict[str, Any], seed: str) -> str:
         """
         import json, sys
         from engine.dsl.hashing import spec_hash
-        from engine.dsl.schema import StrategySpec
+        from engine.types.dsl import StrategySpec
         print(spec_hash(StrategySpec.model_validate(json.loads(sys.argv[1]))))
         """
     )

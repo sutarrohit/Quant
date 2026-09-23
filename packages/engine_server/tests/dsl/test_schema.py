@@ -7,7 +7,7 @@ import pytest
 from pydantic import ValidationError
 
 from engine.data.timeframes import Timeframe
-from engine.dsl.schema import (
+from engine.types.dsl import (
     MAX_DEPTH,
     MAX_LEAVES,
     AllGroup,

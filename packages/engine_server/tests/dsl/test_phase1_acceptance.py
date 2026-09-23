@@ -20,8 +20,8 @@ from hypothesis import strategies as st
 from engine.dsl.hashing import spec_hash
 from engine.dsl.interpreter import EvalContext, evaluate
 from engine.dsl.keys import required_refs
-from engine.dsl.schema import MAX_DEPTH, MAX_LEAVES, Operator, StrategySpec
 from engine.dsl.validator import validate_spec
+from engine.types.dsl import MAX_DEPTH, MAX_LEAVES, Operator, StrategySpec
 
 PERIODIC = ["rsi", "sma", "ema", "atr"]
 SERIES_OPS = ["crossesAbove", "crossesBelow", "greaterThan", "lessThan"]
@@ -190,7 +190,7 @@ def test_hash_is_stable_across_processes(spec_dict: dict[str, Any]) -> None:
     script = (
         "import json,sys;"
         "from engine.dsl.hashing import spec_hash;"
-        "from engine.dsl.schema import StrategySpec;"
+        "from engine.types.dsl import StrategySpec;"
         "print(spec_hash(StrategySpec.model_validate(json.loads(sys.argv[1]))))"
     )
     digests = {

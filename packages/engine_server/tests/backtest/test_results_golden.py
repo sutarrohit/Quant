@@ -13,9 +13,9 @@ from typing import Any
 
 import pytest
 
-from engine.backtest.request import BacktestRequest
 from engine.backtest.runner import execute
 from engine.settings import Settings
+from engine.types.backtest import BacktestRequest
 from tests.backtest.conftest import REQUEST
 
 GOLDEN = Path("tests/fixtures/backtest_summary.golden.json")

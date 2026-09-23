@@ -1,20 +1,16 @@
 """Data quality monitors (spec section 4.3).
 
-Run after every ingest. The split between failing and warning is the whole
-design, and it is not arbitrary:
+Run after every ingest. The split is the whole design:
 
-**Failures** are contradictions -- the data says two different things about one
-moment in time. A duplicate or backwards timestamp means the series cannot be
-trusted at all, so ingestion stops.
+**Failures** are contradictions -- a duplicate or backwards timestamp means the
+series cannot be trusted at all, so ingestion stops.
 
-**Warnings** are facts about the market. A gap may be an exchange outage. An
-outlier may be a flash crash. A zero-volume bar may be a quiet Sunday. Refusing
-these would delete genuine history and leave a catalog that looks clean because
-the interesting parts were dropped.
+**Warnings** are facts about the market: a gap may be an outage, an outlier a
+flash crash, a zero-volume bar a quiet Sunday. Refusing these would leave a
+catalog that looks clean because the interesting parts were dropped.
 
-Reports are pure functions of the bars: no clock, no randomness, no dict
-ordering. The same series always produces a byte-identical report, which is
-what makes a stored report worth comparing against a later one.
+Reports are pure functions of the bars, so the same series always produces a
+byte-identical report.
 """
 
 from __future__ import annotations

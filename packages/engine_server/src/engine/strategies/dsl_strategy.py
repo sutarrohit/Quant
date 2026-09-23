@@ -8,21 +8,13 @@ two cannot drift.
 is decided from a bar still forming, and the catalog stores ``ts_event`` as the
 bar close precisely so this holds.
 
-The order then fills **at that same bar's close**, not at the next bar's open.
-That is Nautilus's bar-execution behaviour, measured rather than assumed
-(docs/nautilus-api-notes.md D12), and it is mildly optimistic: in reality you
-cannot transact at the closing print. Spec section 6 asks for next-bar fills;
-on this market the difference is immaterial and quantified -- across 70,170
-bars of BTCUSDT 15m, ``close[t]`` equals ``open[t+1]`` exactly 49% of the time,
-with a median difference of 0.00001% against a 30 bps round-trip cost. In a
-24/7 market with no auction there is no overnight gap for the assumption to
-hide.
-
-Intrabar fills remain a Phase 6+ decision. This is not one: the fill price is a
-value the strategy had already observed when it decided.
+The order fills **at that same bar's close**, not the next bar's open -- that is
+Nautilus's measured behaviour (D12), and mildly optimistic. Spec section 6 asks
+for next-bar fills; on BTCUSDT 15m the two differ by a median 0.00001% against a
+30 bps round-trip, and a 24/7 market has no overnight gap for it to hide in.
 
 **One position at a time per instrument** in v1, long-only: the schema has no
-side, and pyramiding is rejected by the validator.
+side, and the validator rejects pyramiding.
 
 Nothing here reads a clock, a file or a socket. Time comes from ``self.clock``.
 """
@@ -43,11 +35,11 @@ from nautilus_trader.trading.strategy import Strategy
 from engine.dsl.indicators import Series, build
 from engine.dsl.interpreter import EvalContext, evaluate
 from engine.dsl.keys import SeriesRef, required_refs
-from engine.dsl.schema import RiskPercentSizing, StopLossPercent, StrategySpec
 from engine.errors import StrategySetupError
 from engine.live.gate import NoGate
-from engine.live.risk import AccountRisk, Decision, OrderIntent
 from engine.strategies.sizing import InstrumentLimits, SizingOutcome, size_by_risk
+from engine.types.dsl import RiskPercentSizing, StopLossPercent, StrategySpec
+from engine.types.risk import AccountRisk, Decision, OrderIntent
 
 logger = logging.getLogger(__name__)
 

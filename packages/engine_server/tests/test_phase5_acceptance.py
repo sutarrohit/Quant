@@ -42,18 +42,13 @@ import fakeredis.aioredis
 import pytest
 
 from engine.errors import LiveNotPermitted, ReconciliationFailed
-from engine.live.desired_state import (
-    DesiredState,
-    DesiredStatus,
-    LiveStateStore,
-    ObservedStatus,
-    TradingMode,
-)
+from engine.live.desired_state import LiveStateStore
 from engine.live.kill_switch import CompositeKillSwitch, FileKillSwitch, RedisKillSwitch
 from engine.live.node import LiveNodeRunner
 from engine.live.recovery import AccountSnapshot, OrderSnapshot, PositionSnapshot
 from engine.live.supervisor import Supervisor
 from engine.settings import Settings
+from engine.types.state import DesiredState, DesiredStatus, ObservedStatus, TradingMode
 from tests.live.conftest import Clock, desired
 
 #: The account is holding half a coin when the process dies. Every scenario
@@ -537,7 +532,7 @@ async def test_the_recovered_node_will_not_trade_on_a_gate_it_never_read(
     ``build()`` and the first refresh is refused rather than allowed.
     """
     from engine.live.gate import RiskGate
-    from engine.live.risk import AccountRisk, Breach, OrderIntent
+    from engine.types.risk import AccountRisk, Breach, OrderIntent
 
     never_refreshed = RiskGate(account_id="acct_1")
 

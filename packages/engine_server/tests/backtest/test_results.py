@@ -7,13 +7,8 @@ from typing import Any
 import pandas as pd
 import pytest
 
-from engine.backtest.results import (
-    Summary,
-    Trade,
-    build_equity_curve,
-    build_trades,
-    summarise,
-)
+from engine.backtest.results import build_equity_curve, build_trades, summarise
+from engine.types.results import Summary, Trade
 
 START = datetime(2024, 1, 1, tzinfo=UTC)
 END = datetime(2024, 2, 1, tzinfo=UTC)

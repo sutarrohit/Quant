@@ -8,10 +8,10 @@ from typing import Any
 
 import pytest
 
-from engine.backtest.request import BacktestRequest
 from engine.backtest.runner import RunOutcome, execute, run_isolated
 from engine.errors import BacktestFailed, BacktestIncomplete, BacktestTimeout, NoDataForWindow
 from engine.settings import Settings
+from engine.types.backtest import BacktestRequest
 from tests.worker.conftest import requires_catalog
 
 

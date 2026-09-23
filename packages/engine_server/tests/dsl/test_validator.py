@@ -4,8 +4,9 @@ from typing import Any
 
 import pytest
 
-from engine.dsl.schema import StrategySpec
-from engine.dsl.validator import SpecError, SpecErrorCode, validate_spec
+from engine.dsl.validator import validate_spec
+from engine.types.dsl import StrategySpec
+from engine.types.spec_errors import SpecError, SpecErrorCode
 
 
 def spec_of(payload: dict[str, Any]) -> StrategySpec:

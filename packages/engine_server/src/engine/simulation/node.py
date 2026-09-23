@@ -33,7 +33,7 @@ from __future__ import annotations
 from typing import Any
 
 from engine.errors import VenueNotSupported
-from engine.live.desired_state import DesiredState
+from engine.types.state import DesiredState
 
 #: What a simulated account starts with. Fixed rather than configurable: a
 #: simulation's balance is not a number anyone should be tuning to make a

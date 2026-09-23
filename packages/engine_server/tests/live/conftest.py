@@ -10,7 +10,8 @@ import fakeredis
 import fakeredis.aioredis
 import pytest
 
-from engine.live.desired_state import DesiredState, LiveStateStore, TradingMode
+from engine.live.desired_state import LiveStateStore
+from engine.types.state import DesiredState, TradingMode
 
 
 class Clock:

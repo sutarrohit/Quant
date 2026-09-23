@@ -1,239 +1,37 @@
 """What should be running, and what is (spec section 10.1).
 
-A backtest is a request: submit it, it runs, it finishes. Live is a **state**:
-an account should be trading a strategy, and it should still be trading it
-after a deploy, a crash, or the API restarting. Those are different kinds of
-thing, and an HTTP request models only the first.
-
-So the API does not start a node. It records a desire, and a supervisor
-converges on it. Restarting the API changes nothing about what is trading,
-which is the property that actually matters.
+A backtest is a request that finishes. Live is a **state** that should still be
+true after a deploy, a crash, or the API restarting -- so the API records a
+desire and a supervisor converges on it, rather than starting a node itself.
 
 Two records per account, deliberately separate:
 
 * **desired** -- written by the API. What should be true.
 * **observed** -- written by the supervisor. What is true.
 
-Keeping them apart is what makes the loop a reconciliation rather than a
-command. A command that is lost leaves the system wrong; a desire that is not
-yet met is simply not met yet, and the next pass tries again.
+Keeping them apart makes the loop a reconciliation rather than a command: a lost
+command leaves the system wrong, an unmet desire is simply retried.
 
-**Credentials are never here.** The record carries a ``credential_ref``; the
-node resolves it at startup and holds the key in memory only. A key in this
-record would be a key in Redis, in a backup of Redis, and in whatever reads it.
+**Credentials are never here.** The record carries a ``credential_ref``; the node
+resolves it at startup and holds the key in memory only.
 """
 
 from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import UTC, datetime
-from decimal import Decimal
-from enum import StrEnum
-from typing import Any, Self
+from typing import Self
 
-from pydantic import BaseModel, ConfigDict, Field
-from pydantic.alias_generators import to_camel
 from redis.asyncio import Redis
 
 from engine.errors import AccountNotFound
-from engine.live.risk import RiskLimits
 from engine.settings import Settings
+from engine.types.state import DesiredState, DesiredStatus, ObservedState
 
 DESIRED_KEY = "live:desired:{account_id}"
 OBSERVED_KEY = "live:observed:{account_id}"
 ACCOUNTS_KEY = "live:accounts"
 LEASE_KEY = "live:lease:{account_id}"
-
-
-class DesiredStatus(StrEnum):
-    """What the operator wants."""
-
-    RUNNING = "RUNNING"
-    STOPPED = "STOPPED"
-
-
-class ObservedStatus(StrEnum):
-    """What the supervisor sees."""
-
-    STARTING = "STARTING"
-    RECONCILING = "RECONCILING"
-    RUNNING = "RUNNING"
-    STOPPED = "STOPPED"
-    FAILED = "FAILED"
-    #: Disagreed with the venue on startup. Not retried: see `needs_operator`.
-    HALTED = "HALTED"
-
-    @property
-    def is_live(self) -> bool:
-        return self in (ObservedStatus.STARTING, ObservedStatus.RECONCILING, ObservedStatus.RUNNING)
-
-    @property
-    def needs_operator(self) -> bool:
-        """A state the supervisor must not clear by itself.
-
-        Crashing is a fact about the process, and restarting is the right
-        answer. Disagreeing with the venue is a fact about the money, and a
-        node that hammers the exchange every five seconds while wrong is not
-        recovering -- it is being wrong faster. Spec section 10.3 calls for a
-        halted state, and this is it: cleared by an operator re-stating the
-        desired state, which bumps the revision.
-        """
-        return self is ObservedStatus.HALTED
-
-
-class TradingMode(StrEnum):
-    """Which of Nautilus's environments an account runs in.
-
-    Named for Nautilus's own vocabulary rather than the industry's "paper", so
-    that the mode, the package (`engine.simulation`) and the value Nautilus is
-    given (`Environment.SANDBOX`) all say the same word. Three names for one
-    thing is how a node ends up declaring itself live while running a simulated
-    exchange (D17).
-
-    ``SIMULATION`` needs no credentials and risks no money. It is also the
-    integration test for the whole system, and where a data feed reveals a lag
-    nobody knew about.
-    """
-
-    SIMULATION = "SIMULATION"
-    LIVE = "LIVE"
-
-
-class WireModel(BaseModel):
-    """A model that is both stored in Redis and accepted from an HTTP body.
-
-    `RiskLimitsModel` and `VenueFees` are reached two ways: the store writes
-    them, and `LiveRequest` nests them. The second is why they carry an alias
-    generator -- without one they were the only snake_case objects on an
-    otherwise camelCase surface, so `makerBps` inside `fees` was a 422 while
-    `strategyVersionId` beside it was fine. The backtest contract had this from
-    the start (`backtest/request.py`); this brings live into line.
-
-    `populate_by_name` keeps the snake_case spelling working, which matters for
-    more than politeness: records already in Redis were written with field
-    names, and reading one back must not become a validation error.
-    """
-
-    model_config = ConfigDict(
-        frozen=True, extra="forbid", alias_generator=to_camel, populate_by_name=True
-    )
-
-
-class RiskLimitsModel(WireModel):
-    """Account-level limits, as JSON.
-
-    Account-level rather than per strategy: five strategies that are all
-    long-BTC-momentum are one bet at five times the size, and limits that bind
-    per strategy would let that through.
-
-    Decimal from strings, because these compare against money.
-    """
-
-    max_order_notional: Decimal | None = Field(default=None, gt=0)
-    max_position_notional: Decimal | None = Field(default=None, gt=0)
-    max_open_positions: int | None = Field(default=None, ge=1)
-    daily_loss_limit: Decimal | None = Field(default=None, gt=0)
-
-    def to_limits(self) -> RiskLimits:
-        return RiskLimits(
-            max_order_notional=self.max_order_notional,
-            max_position_notional=self.max_position_notional,
-            max_open_positions=self.max_open_positions,
-            daily_loss_limit=self.daily_loss_limit,
-        )
-
-
-class VenueFees(WireModel):
-    """What the venue charges this account, in basis points.
-
-    **Required, and never defaulted to zero** -- the same rule a backtest lives
-    under (rule 5), and for a stronger reason here. A backtest with no fees is
-    a marketing number; a simulation with no fees is a marketing number someone
-    may act on.
-
-    It has to be declared rather than discovered. A Binance instrument fetched
-    from the public endpoint reports `maker_fee: 0, taker_fee: 0` -- verified,
-    not assumed. Real rates are account-specific and live behind an
-    authenticated endpoint, which needs a key, which ADR-001 forbids. So the
-    venue cannot tell us, and the operator must (D20).
-
-    Decimal from strings, because these multiply notionals.
-    """
-
-    maker_bps: Decimal = Field(ge=0, le=10_000)
-    taker_bps: Decimal = Field(ge=0, le=10_000)
-    slippage_bps: Decimal = Field(ge=0, le=10_000)
-
-    @property
-    def cost_bps(self) -> Decimal:
-        """What sizing must leave room for on one entry.
-
-        Taker plus slippage, matching `backtest/builder.py` exactly -- a
-        strategy sized one way in simulation and another in backtest would make
-        the two incomparable, which is the whole point of running the same
-        class in both.
-        """
-        return self.taker_bps + self.slippage_bps
-
-
-class DesiredState(BaseModel):
-    """What an account should be doing."""
-
-    model_config = ConfigDict(frozen=True)
-
-    account_id: str = Field(min_length=1, max_length=128)
-    venue: str
-    instrument_id: str
-    bar_type: str
-    spec: dict[str, Any]
-    strategy_version_id: str
-    spec_hash: str
-    mode: TradingMode
-    #: A pointer to a secret held elsewhere, never the secret. Absent for simulation.
-    credential_ref: str | None = None
-    #: What this account may do. ADR-001 made these the only thing between a
-    #: strategy and the account when trading-core is unreachable.
-    risk: RiskLimitsModel = Field(default_factory=lambda: RiskLimitsModel())
-    #: What the venue charges. No default: see `VenueFees`.
-    fees: VenueFees
-    status: DesiredStatus = DesiredStatus.RUNNING
-    #: Bumped on every write. The supervisor restarts a node whose running
-    #: revision no longer matches, which is how a spec change takes effect.
-    revision: int = 1
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
-
-    def to_response(self) -> dict[str, Any]:
-        document = self.model_dump(mode="json")
-        # Even a reference is not something to hand back by default.
-        document.pop("credential_ref", None)
-        return document
-
-
-class ObservedState(BaseModel):
-    """What the supervisor last saw."""
-
-    model_config = ConfigDict(frozen=True)
-
-    account_id: str
-    status: ObservedStatus
-    #: Which desired revision this node is actually running.
-    revision: int = 0
-    started_at: datetime | None = None
-    heartbeat_at: datetime | None = None
-    error: dict[str, Any] | None = None
-
-    def is_stale(self, *, now: datetime, timeout_seconds: int) -> bool:
-        """A node that has stopped heartbeating is presumed dead.
-
-        Not "might be dead" -- the supervisor must act on it, because a node
-        holding a position with nobody managing its stop is the worst state the
-        system can be in.
-        """
-        if not self.status.is_live:
-            return False
-        if self.heartbeat_at is None:
-            return True
-        return (now - self.heartbeat_at).total_seconds() > timeout_seconds
 
 
 class LiveStateStore:

@@ -9,11 +9,9 @@ from __future__ import annotations
 
 import pytest
 
-from engine.live.desired_state import (
-    LiveStateStore,
-    ObservedStatus,
-)
+from engine.live.desired_state import LiveStateStore
 from engine.live.supervisor import Supervisor
+from engine.types.state import ObservedStatus
 from tests.live.conftest import Clock, RecordingRunner, desired
 
 
@@ -351,7 +349,7 @@ async def test_a_halted_account_can_still_be_stopped(
 
 
 def test_halted_is_the_only_status_needing_an_operator() -> None:
-    from engine.live.desired_state import ObservedStatus as S
+    from engine.types.state import ObservedStatus as S
 
     assert [s for s in S if s.needs_operator] == [S.HALTED]
 

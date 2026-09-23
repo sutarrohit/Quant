@@ -20,11 +20,12 @@ import fakeredis
 import fakeredis.aioredis
 import pytest
 
-from engine.live.desired_state import LiveStateStore, RiskLimitsModel
+from engine.live.desired_state import LiveStateStore
 from engine.live.gate import RiskGate
 from engine.live.kill_switch import CompositeKillSwitch, FileKillSwitch, NeverEngaged
 from engine.live.worker import attach_gate, build_kill_switch, tend
 from engine.settings import Settings
+from engine.types.state import RiskLimitsModel
 from tests.live.conftest import desired
 
 
@@ -226,9 +227,9 @@ async def test_a_live_start_without_a_mandate_refuses() -> None:
     Trading real money with no recorded authority is worse than not trading,
     and "there was no record" is not a defence anyone wants to give afterwards.
     """
-    from engine.live.desired_state import TradingMode
     from engine.live.mandate import MandateMissing, MandateStore
     from engine.live.worker import _authority
+    from engine.types.state import TradingMode
 
     redis = fakeredis.aioredis.FakeRedis(server=fakeredis.FakeServer(), decode_responses=True)
 

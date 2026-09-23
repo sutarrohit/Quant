@@ -1,9 +1,8 @@
 """The loop that makes the desire true (spec section 10.1).
 
-The API records what an account *should* be doing. This reads that, looks at
-what it *is* doing, and closes the gap. It is a reconciliation loop, not a
-command processor: a pass that fails changes nothing except that the next pass
-tries again.
+Reads what an account *should* be doing, looks at what it *is* doing, and closes
+the gap. A reconciliation loop, not a command processor: a failed pass changes
+nothing except that the next pass tries again.
 
 Four gaps, and what closes each:
 
@@ -13,19 +12,13 @@ Gap                              Action
 wanted running, nothing running  start
 wanted stopped, still running    stop
 running an older revision        restart, so a spec change takes effect
-running but not heartbeating     restart, because a node holding a position
-                                 with nobody managing its stop is the worst
-                                 state the system can be in
+running but not heartbeating     restart -- a node holding a position with
+                                 nobody managing its stop is the worst state
 ===============================  ==========================================
 
-**One node per account, enforced by a lease.** An account is the unit of risk,
-credentials and reconciliation. Two nodes trading it would each believe they
-held the whole position, and the venue would agree with neither.
-
-The thing being supervised is a ``NodeRunner``, which is a protocol. The
-Nautilus ``TradingNode`` implementation arrives in the next step; the loop is
-built and tested against a runner that records what it was asked to do, because
-the logic worth testing is the reconciliation and not the engine.
+**One node per account, enforced by a lease.** Two nodes trading one account
+would each believe they held the whole position, and the venue would agree with
+neither.
 """
 
 from __future__ import annotations
@@ -38,15 +31,10 @@ from datetime import UTC, datetime, timedelta
 from typing import Protocol
 
 from engine.errors import ReconciliationFailed
-from engine.live.desired_state import (
-    DesiredState,
-    DesiredStatus,
-    LiveStateStore,
-    ObservedState,
-    ObservedStatus,
-)
+from engine.live.desired_state import LiveStateStore
 from engine.logging import log_context
 from engine.settings import Settings
+from engine.types.state import DesiredState, DesiredStatus, ObservedState, ObservedStatus
 
 logger = logging.getLogger(__name__)
 

@@ -1,105 +1,34 @@
 """Account-level risk limits, enforced where the orders are.
 
-ADR-001 moved the risk kernel's job into this process. `trading-core` sets
-policy; it no longer stands between a signal and the venue. So if it is down
-and the market moves, **these checks are the only thing between the strategy and
-the account** — which is why they are pure functions with a test each, and why
-the kill switch has more than one way to reach a node.
+ADR-001 moved the risk kernel here. `trading-core` sets policy but no longer
+stands between a signal and the venue, so if it is down and the market moves
+**these checks are the only thing between the strategy and the account** -- hence
+pure functions with a test each.
 
-**Account-level, not strategy-level.** `Quant-Phase.md` is specific about this:
-a user running five strategies that are all long-BTC-momentum has one bet at
-five times the size and does not know it. Limits that bind per strategy would
+**Account-level, not strategy-level.** Five strategies that are all
+long-BTC-momentum are one bet at five times the size; per-strategy limits would
 let that through.
 
-**The kill switch is checked first and answers on its own.** No limit
-arithmetic, no account state, no venue call — just "is this account stopped".
-Everything a kill switch depends on is something that can be broken when you
-most need it.
+**The kill switch is checked first and answers alone** -- no arithmetic, no
+account state, no venue call. Everything it depends on can be broken when it is
+most needed.
 """
 
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
-from decimal import Decimal
-from enum import StrEnum
+
+from engine.types.risk import (
+    ALLOWED,
+    AccountRisk,
+    Breach,
+    Decision,
+    OrderIntent,
+    RiskLimits,
+    Verdict,
+)
 
 logger = logging.getLogger(__name__)
-
-
-class Verdict(StrEnum):
-    ALLOW = "ALLOW"
-    REJECT = "REJECT"
-
-
-class Breach(StrEnum):
-    KILL_SWITCH = "KILL_SWITCH"
-    MANDATE_REVOKED = "MANDATE_REVOKED"
-    MAX_ORDER_NOTIONAL = "MAX_ORDER_NOTIONAL"
-    MAX_POSITION_NOTIONAL = "MAX_POSITION_NOTIONAL"
-    MAX_OPEN_POSITIONS = "MAX_OPEN_POSITIONS"
-    DAILY_LOSS_LIMIT = "DAILY_LOSS_LIMIT"
-
-
-@dataclass(frozen=True, slots=True)
-class RiskLimits:
-    """What an account may do. ``None`` means unlimited, and is a choice.
-
-    Every value is ``Decimal``: these multiply notionals and compare against
-    money, and a float here would be a rounding error in a safety check.
-    """
-
-    max_order_notional: Decimal | None = None
-    max_position_notional: Decimal | None = None
-    max_open_positions: int | None = None
-    #: A positive number. Realized loss today beyond this stops new risk.
-    daily_loss_limit: Decimal | None = None
-
-    @property
-    def is_unlimited(self) -> bool:
-        return all(
-            value is None
-            for value in (
-                self.max_order_notional,
-                self.max_position_notional,
-                self.max_open_positions,
-                self.daily_loss_limit,
-            )
-        )
-
-
-@dataclass(frozen=True, slots=True)
-class AccountRisk:
-    """What the account is currently carrying."""
-
-    open_notional: Decimal = Decimal(0)
-    open_positions: int = 0
-    #: Negative when down. Compared against the loss limit's magnitude.
-    realized_pnl_today: Decimal = Decimal(0)
-
-
-@dataclass(frozen=True, slots=True)
-class OrderIntent:
-    """An order about to be submitted."""
-
-    instrument_id: str
-    notional: Decimal
-    #: A closing order reduces risk, so most limits do not apply to it.
-    reduce_only: bool = False
-
-
-@dataclass(frozen=True, slots=True)
-class Decision:
-    verdict: Verdict
-    reason: str = ""
-    breach: Breach | None = None
-
-    @property
-    def allowed(self) -> bool:
-        return self.verdict is Verdict.ALLOW
-
-
-ALLOWED = Decision(Verdict.ALLOW)
 
 
 def evaluate(

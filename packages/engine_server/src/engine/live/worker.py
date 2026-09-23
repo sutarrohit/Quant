@@ -1,37 +1,24 @@
 """One account, one OS process (spec section 10.1).
 
-The spec has said from the beginning that "an account is the unit of risk,
-credentials and reconciliation, so it is the unit of process isolation", and
-the code comments repeated it while every account ran in one process on one
-event loop. That was not a stylistic gap. It made two failures possible:
+What a child process runs: build the node, attach the gate, run, and heartbeat
+until told to stop. One account and nothing else. Two failures made the shared
+process untenable:
 
-* **`dispose()` closed the shared loop.** `TradingNode.dispose()` calls
-  `loop.stop()` and `loop.close()`, which is correct under Nautilus's
-  one-node-per-process assumption and catastrophic without it -- stopping one
-  account would have taken the supervisor and every other account with it
-  (docs/nautilus-api-notes.md D18).
-* **A crash was never contained.** A segfault in a native extension, an OOM
-  kill, or an exception escaping a Cython callback ends the process. Sharing
-  one meant every account shared every fatal fault.
+* **`dispose()` closed the shared loop.** It calls `loop.stop()` and
+  `loop.close()` -- correct under Nautilus's one-node-per-process assumption,
+  catastrophic without it (D18).
+* **A crash was never contained.** A segfault or OOM kill ends the process, so
+  one shared process meant every account shared every fatal fault.
 
-So this module is what a child process runs: build the node, attach the gate,
-run, and heartbeat until told to stop. It holds one account and nothing else.
+It also makes liveness the OS's answer (`process.is_alive()`) rather than an
+inference from a timestamp.
 
-**What crossing the process boundary buys, beyond the two fixes.** The parent's
-liveness check stops being a guess -- `process.is_alive()` is the operating
-system's answer, not an inference from a timestamp. And `dispose()` is safe
-again here, because the loop really is this account's own, so the memory a
-stopped node holds is actually released.
+The child is spawned, not forked -- the parent's asyncio loop and Redis
+connections do not survive a fork. That costs a fresh `nautilus_trader` import,
+seconds rather than milliseconds, and an account start is not a hot path.
 
-**What it costs.** The child is spawned, not forked: the parent holds an
-asyncio loop, Redis connections and Nautilus state, none of which survive a
-fork intact. Spawn means a fresh interpreter and a fresh import of
-`nautilus_trader`, which is seconds rather than milliseconds. An account start
-is not on any hot path, and the alternative is a shared-fate process.
-
-The state crosses as JSON, which is the same discipline the backtest runner
-uses. Nothing that is not serialisable crosses -- in particular no Redis
-client, no gate, and no credentials.
+State crosses as JSON. Nothing unserialisable crosses: no Redis client, no
+gate, no credentials.
 """
 
 from __future__ import annotations
@@ -45,7 +32,7 @@ from typing import Any
 
 import redis.asyncio as aioredis
 
-from engine.live.desired_state import DesiredState, LiveStateStore, TradingMode
+from engine.live.desired_state import LiveStateStore
 from engine.live.gate import RiskGate
 from engine.live.kill_switch import (
     CompositeKillSwitch,
@@ -58,6 +45,7 @@ from engine.live.node import build_node_config
 from engine.logging import configure_logging, log_context
 from engine.settings import Settings
 from engine.simulation.node import register_factories
+from engine.types.state import DesiredState, TradingMode
 
 logger = logging.getLogger(__name__)
 

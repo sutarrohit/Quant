@@ -34,7 +34,7 @@ import json
 from decimal import Decimal
 from typing import Any
 
-from engine.dsl.schema import StrategySpec
+from engine.types.dsl import StrategySpec
 
 
 def canonical_number(value: Decimal) -> str:

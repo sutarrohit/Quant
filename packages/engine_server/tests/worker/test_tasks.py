@@ -9,7 +9,8 @@ import pytest
 
 from engine.data.provision import ProvisionResult
 from engine.errors import BacktestFailed, BacktestTimeout, DataRangeUnavailable, SymbolUnknownAtVenue
-from engine.store.jobs import JobStatus, JobStore
+from engine.store.jobs import JobStore
+from engine.types.jobs import JobStatus
 from engine.worker import tasks
 from engine.worker.tasks import run_backtest
 from tests.worker.conftest import requires_catalog
