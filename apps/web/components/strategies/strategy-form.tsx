@@ -18,13 +18,21 @@ import { SpecErrorsProvider, buildErrorMap } from '@/components/strategies/spec-
 import { SpecPreview } from '@/components/strategies/spec-preview';
 import { SymbolsInput } from '@/components/strategies/symbols-input';
 import { Choice } from '@/components/strategies/choice';
+import { JsonEditorDialog } from '@/components/strategies/json-editor-dialog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { childrenOf, groupKind, newLeaf } from '@/lib/strategies/tree';
 import { useStrategyBuilderStore } from '@/stores/strategy-builder';
 
-const TIMEFRAMES = { '1m': '1 minute', '5m': '5 minutes', '15m': '15 minutes', '1h': '1 hour', '4h': '4 hours', '1d': '1 day' };
+const TIMEFRAMES = {
+  '1m': '1 minute',
+  '5m': '5 minutes',
+  '15m': '15 minutes',
+  '1h': '1 hour',
+  '4h': '4 hours',
+  '1d': '1 day',
+};
 
 export interface FormStatus {
   runnable: boolean; // Parses and passes every semantic rule.
@@ -90,11 +98,21 @@ export function StrategyForm({ defaultValues, storeKey, serverErrors, onEdit, on
   const errorMap = buildErrorMap([...semantic, ...treeIssues, ...serverErrors]);
   const runnable = parsed.success && semantic.length === 0;
 
+  // A pasted spec replaces the form. reset() is not a user edit, so the draft is kept by hand.
+  const applyJson = (spec: StrategySpecInput) => {
+    form.reset(spec, { keepDefaultValues: true });
+    saveDraft(storeKey, spec);
+    onEdit();
+  };
+
   return (
     <Form {...form}>
       <SpecErrorsProvider value={errorMap}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-6">
-          {header}
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div className="min-w-0 flex-1">{header}</div>
+            <JsonEditorDialog value={values} onApply={applyJson} />
+          </div>
           <div className={previewOpen ? 'grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]' : ''}>
             <div className="flex min-w-0 flex-col gap-6">
               <Card>
@@ -156,7 +174,9 @@ export function StrategyForm({ defaultValues, storeKey, serverErrors, onEdit, on
                     render={({ field }) => (
                       <FormItem className="max-w-48">
                         <FormLabel>Risk per trade (%)</FormLabel>
-                        <FormControl render={<Input inputMode="decimal" {...field} value={String(field.value ?? '')} />} />
+                        <FormControl
+                          render={<Input inputMode="decimal" {...field} value={String(field.value ?? '')} />}
+                        />
                         <FormMessage />
                       </FormItem>
                     )}
