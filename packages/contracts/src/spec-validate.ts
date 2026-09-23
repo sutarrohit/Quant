@@ -5,8 +5,8 @@ import {
   SMA_OPERATORS,
   type ConditionNode,
   type StrategySpec,
-} from '../types/spec.js';
-import type { SpecError, SpecErrorCode } from '../types/strategy.js';
+} from './spec.js';
+import type { SpecError, SpecErrorCode } from './strategy.js';
 import { canonical } from './spec-hash.js';
 import { isGroup, walk } from './spec-tree.js';
 

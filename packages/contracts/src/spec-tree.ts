@@ -1,4 +1,4 @@
-import type { ConditionNode } from '../types/spec.js';
+import type { ConditionNode } from './spec.js';
 
 // Walking a condition tree. Shared by the schema, which bounds its size, and
 // the semantic validator, which inspects every node.

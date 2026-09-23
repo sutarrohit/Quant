@@ -1,8 +1,8 @@
 import type { PrismaClient, Strategy, StrategyVersion } from '@quant/prisma';
 
 import { ApiError } from '../lib/api-error.js';
-import { specHash } from '../lib/spec-hash.js';
-import type { StrategySpec } from '../types/spec.js';
+import { specHash } from '@quant/contracts/spec-hash';
+import type { StrategySpec } from '@quant/contracts/spec';
 
 type WithVersions = Strategy & { versions: StrategyVersion[] };
 

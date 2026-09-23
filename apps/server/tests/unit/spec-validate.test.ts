@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { validateSpec } from '../../src/lib/spec-validate.js';
-import { StrategySpecSchema, type StrategySpec } from '../../src/types/spec.js';
+import { validateSpec } from '@quant/contracts/spec-validate';
+import { StrategySpecSchema, type StrategySpec } from '@quant/contracts/spec';
 
 // A spec that passes every rule, so each test can break exactly one thing.
 const VALID = {

@@ -1,6 +1,13 @@
-import { z } from '@hono/zod-openapi';
+import { extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi';
+import { z } from 'zod';
 
-import { shape } from '../lib/spec-tree.js';
+import { shape } from './spec-tree.js';
+
+// Adds `.openapi()` to the shared zod instance. Needed here rather than in
+// apps/server because ConditionNodeSchema has to carry the metadata itself --
+// it is nested inside StrategySpecSchema, and registering a copy later would
+// not reach the instance the route actually serialises.
+extendZodWithOpenApi(z);
 
 // The strategy spec, mirroring engine/types/dsl.py field for field. The engine
 // is authoritative and validates again -- this exists so the builder can reject
@@ -103,8 +110,8 @@ export type ConditionNode =
   | z.infer<typeof conditionLeaf>
   | z.infer<typeof ExitConditionSchema>;
 
-// Registered as a named component: a recursive schema has to become a $ref, or
-// OpenAPI generation cannot emit it and the whole document comes back empty.
+// Named, so OpenAPI emits a $ref. A recursive schema cannot be inlined, and
+// without this the whole document generates empty -- measured, not assumed.
 export const ConditionNodeSchema: z.ZodType<ConditionNode> = z
   .lazy(() =>
     z.union([

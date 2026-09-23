@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { specHash } from '../../src/lib/spec-hash.js';
+import { specHash } from '@quant/contracts/spec-hash';
 
 describe('specHash', () => {
   it('ignores key order at every depth', () => {

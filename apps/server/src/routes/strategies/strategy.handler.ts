@@ -3,10 +3,10 @@ import * as HttpStatusCodes from 'stoker/http-status-codes';
 
 import { ApiError } from '../../lib/api-error.js';
 import { strategyService } from '../../lib/container.js';
-import { validateSpec } from '../../lib/spec-validate.js';
+import { validateSpec } from '@quant/contracts/spec-validate';
 import type { AppRouteHandler } from '../../types/app.js';
-import { StrategySpecSchema, type StrategySpec } from '../../types/spec.js';
-import type { SpecError } from '../../types/strategy.js';
+import { StrategySpecSchema, type StrategySpec } from '@quant/contracts/spec';
+import type { SpecError } from '@quant/contracts/strategy';
 import type {
   archiveStrategyRoute,
   createStrategyRoute,

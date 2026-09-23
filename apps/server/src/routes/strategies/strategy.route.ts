@@ -12,7 +12,7 @@ import {
   StrategyListSchema,
   StrategyVersionSchema,
   ValidateSpecSchema,
-} from '../../types/strategy.js';
+} from '@quant/contracts/strategy';
 
 const IdParam = z.object({ id: z.uuid() });
 
