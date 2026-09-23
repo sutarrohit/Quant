@@ -2,7 +2,9 @@ import { OpenAPIHono } from '@hono/zod-openapi';
 import { notFound, onError, pinoLogger, rateLimiter } from '../middlewares/index.middleware.js';
 import type { AppBinding } from '../types/app.js';
 import { defaultHook } from 'stoker/openapi';
+import { contextStorage } from 'hono/context-storage';
 import { cors } from 'hono/cors';
+import { requestId } from 'hono/request-id';
 import env from '../env.js';
 
 export function createRouter() {
@@ -11,6 +13,9 @@ export function createRouter() {
 
 export default function createApp() {
   const app = createRouter();
+  // First, so the logger, the engine client and every error body share one id.
+  app.use(requestId({ generator: () => `req_${crypto.randomUUID().replaceAll('-', '')}` }));
+  app.use(contextStorage()); // Lets engineFetch read the id without it being passed down.
   app.use(pinoLogger());
   app.use(rateLimiter);
 

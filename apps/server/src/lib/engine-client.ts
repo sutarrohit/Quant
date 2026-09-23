@@ -1,4 +1,7 @@
+import { getContext } from 'hono/context-storage';
+
 import env from '../env.js';
+import type { AppBinding } from '../types/app.js';
 import type { EngineRefusal, EngineRequest } from '../types/engine.js';
 import { ApiError } from './api-error.js';
 
@@ -58,9 +61,19 @@ function refusal(status: number, body: EngineRefusal): ApiError {
   );
 }
 
+/** The current request's id, so the engine logs under the same one. Absent outside a request. */
+function currentRequestId(): string | undefined {
+  try {
+    return getContext<AppBinding>().var.requestId;
+  } catch {
+    return undefined;
+  }
+}
+
 /** Call the engine and return its answer with camelCase keys. */
 export async function engineFetch<T>(path: string, options: EngineRequest = {}): Promise<T> {
-  const { method = 'GET', body, requestId, query } = options;
+  const { method = 'GET', body, query } = options;
+  const requestId = options.requestId ?? currentRequestId();
 
   const url = new URL(`${env.ENGINE_URL.replace(/\/$/, '')}${path}`);
   for (const [key, value] of Object.entries(query ?? {})) {

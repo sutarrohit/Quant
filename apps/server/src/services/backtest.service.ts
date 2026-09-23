@@ -105,7 +105,6 @@ export class BacktestService {
 
     const job = await engineFetch<EngineJob>(`/v1/backtests/${run.jobId}`, {
       method: 'DELETE',
-      requestId: run.requestId,
     });
     return this.record(run, job);
   }
@@ -133,7 +132,6 @@ export class BacktestService {
   async trades(userId: string, id: string, offset: number, limit: number): Promise<TradePage> {
     const run = await this.finished(userId, id);
     return engineFetch<TradePage>(`/v1/backtests/${run.jobId}/artifacts/trades`, {
-      requestId: run.requestId,
       query: { offset, limit },
     });
   }
@@ -152,9 +150,8 @@ export class BacktestService {
     return { ...run, jobId: run.jobId };
   }
 
-  private series<T>(run: { jobId: string; requestId: string }, name: string, offset: number) {
+  private series<T>(run: { jobId: string }, name: string, offset: number) {
     return engineFetch<EngineSeriesPage<T>>(`/v1/backtests/${run.jobId}/artifacts/${name}`, {
-      requestId: run.requestId,
       query: { offset, limit: ENGINE_PAGE },
     });
   }
@@ -171,7 +168,6 @@ export class BacktestService {
     try {
       job = await engineFetch<EngineSubmitted>('/v1/backtests', {
         method: 'POST',
-        requestId: run.requestId,
         body: {
           requestId: run.requestId,
           strategyVersionId: run.versionId,
@@ -211,7 +207,7 @@ export class BacktestService {
 
     let job: EngineJob;
     try {
-      job = await engineFetch<EngineJob>(`/v1/backtests/${run.jobId}`, { requestId: run.requestId });
+      job = await engineFetch<EngineJob>(`/v1/backtests/${run.jobId}`);
     } catch (error) {
       // The engine forgot an unfinished job (TTL or a flushed Redis). It will never finish.
       if (error instanceof ApiError && error.code === 'JOB_NOT_FOUND') {

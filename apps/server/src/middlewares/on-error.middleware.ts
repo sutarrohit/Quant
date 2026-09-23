@@ -29,6 +29,7 @@ const onError: ErrorHandler = (err, c) => {
       code,
       message: err.message,
       ...(details === undefined ? {} : { details }),
+      requestId: c.get('requestId'), // Quote this to trace the call through Hono and the engine.
       stack: env.NODE_ENV === 'production' ? undefined : err.stack,
     },
     statusCode

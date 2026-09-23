@@ -7,6 +7,7 @@ import type { AuthUser } from './auth.js';
 export interface AppBinding {
   Variables: {
     logger: PinoLogger;
+    requestId: string; // From hono/request-id; also the x-request-id response header.
     user: AuthUser;
   };
 }
