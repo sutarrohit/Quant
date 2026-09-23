@@ -22,11 +22,10 @@ services:
       dockerfile: Dockerfile
       target: api
     restart: unless-stopped
-    env_file: .env
+    env_file: .env # NT_ARTIFACT_PATH comes from here (S3), so api and worker see the same files.
     environment:
       NT_CATALOG_PATH: /data/catalog
       NT_RAW_PATH: /data/raw
-      NT_ARTIFACT_PATH: /data/artifacts
       NT_REDIS_URL: redis://redis:6379/0
       NT_CACHE_REDIS_URL: redis://redis-cache:6379/0
     ports:
@@ -39,7 +38,6 @@ services:
       # the image's `app` user (uid 1000).
       - ./catalog:/data/catalog
       - ./raw:/data/raw
-      - ./artifacts:/data/artifacts
 
   worker:
     build:
@@ -50,14 +48,12 @@ services:
     env_file: .env
     environment:
       NT_CATALOG_PATH: /data/catalog
-      NT_ARTIFACT_PATH: /data/artifacts
       NT_REDIS_URL: redis://redis:6379/0
     depends_on:
       redis:
         condition: service_healthy
     volumes:
       - ./catalog:/data/catalog
-      - ./artifacts:/data/artifacts
     # Scale with `docker compose up --scale worker=4`. Each worker runs one
     # backtest at a time (max_jobs=1), because a backtest saturates a core and
     # concurrent runs would only make each other slower.
