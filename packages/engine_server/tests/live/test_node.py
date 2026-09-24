@@ -357,9 +357,15 @@ async def test_a_child_that_exits_on_its_own_is_noticed() -> None:
     """
     run = runner()
     await spawn(run, target=exits_immediately)
-    await asyncio.sleep(0.3)
 
-    assert not await run.is_running("acct_1")
+    # Polled, not a fixed sleep: a spawned child re-imports this module, which
+    # takes longer than 0.3s on a loaded machine and read as still running.
+    for _ in range(200):
+        if not await run.is_running("acct_1"):
+            break
+        await asyncio.sleep(0.05)
+    else:
+        pytest.fail("the child was still running after 10s")
     # And it is reaped rather than left in the map to be asked about forever.
     assert "acct_1" not in run._processes  # noqa: SLF001
 
