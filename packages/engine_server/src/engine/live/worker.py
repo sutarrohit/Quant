@@ -98,11 +98,18 @@ async def attach_gate(
 
 
 def attach_recorder(node: Any) -> EventRecorder:
-    """Give every strategy on the node one recorder, as `attach_gate` does the gate."""
+    """Give every strategy on the node one recorder, as `attach_gate` does the gate.
+
+    Also turns on the warm start: a live strategy loads its warm-up from past bars
+    rather than waiting for new ones. Set here, not in the config, which must stay
+    identical to a backtest's.
+    """
     recorder = EventRecorder()
     for strategy in node.trader.strategies():
         if hasattr(strategy, "recorder"):
             strategy.recorder = recorder
+        if hasattr(strategy, "warm_from_history"):
+            strategy.warm_from_history = True
     return recorder
 
 

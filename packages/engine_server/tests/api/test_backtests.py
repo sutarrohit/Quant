@@ -2,16 +2,44 @@ from __future__ import annotations
 
 import copy
 import time
+from collections.abc import Iterator
+from pathlib import Path
 from typing import Any
 
+import httpx
 import pytest
+import respx
 from fastapi.testclient import TestClient
 
 from engine.settings import Settings
 from tests.backtest.conftest import REQUEST
 from tests.conftest import AUTH, RecordingQueue, build_client, make_settings
+from tests.data.test_binance import EXCHANGE_INFO, EXCHANGE_INFO_BODY
 
 CATALOG_SETTINGS_KWARGS = {"catalog_path": "./catalog"}
+
+requires_btc_catalog = pytest.mark.skipif(
+    not Path("catalog/data/bar/BTCUSDT.BINANCE-15-MINUTE-LAST-EXTERNAL").exists(),
+    reason="needs the Phase 0 BTC catalog; run `python -m engine.data.ingest`",
+)
+
+
+@pytest.fixture(autouse=True)
+def venue() -> Iterator[None]:
+    """Binance's exchangeInfo, stubbed: unit tests never reach a venue (rule 15).
+
+    A symbol missing from the catalog is checked against the venue (ADR-003).
+    BTCUSDT is listed; anything else answers as Binance does for an unknown symbol.
+    """
+
+    def answer(request: httpx.Request) -> httpx.Response:
+        if request.url.params.get("symbol") == "BTCUSDT":
+            return httpx.Response(200, json=EXCHANGE_INFO_BODY)
+        return httpx.Response(400, json={"code": -1121, "msg": "Invalid symbol."})
+
+    with respx.mock(assert_all_called=False) as router:
+        router.get(EXCHANGE_INFO).mock(side_effect=answer)
+        yield
 
 
 @pytest.fixture
@@ -170,10 +198,11 @@ def test_errors_carry_a_path(api: TestClient, submission: dict[str, Any]) -> Non
     assert any(error["path"] == "entry" for error in errors)
 
 
-def test_a_symbol_outside_the_catalog_is_rejected(
+def test_a_symbol_outside_the_catalog_and_the_venue_is_rejected(
     api: TestClient, submission: dict[str, Any]
 ) -> None:
-    submission["spec"]["market"]["symbols"] = ["DOGE/USDT"]
+    # Outside the catalog alone is fine since ADR-003; the venue must not list it either.
+    submission["spec"]["market"]["symbols"] = ["NOTA/COIN"]
     codes = [error["code"] for error in post(api, submission).json()["errors"]]
     assert "SYMBOL_NOT_IN_CATALOG" in codes
 
@@ -302,6 +331,7 @@ def test_a_running_job_cannot_be_cancelled(
 # --- catalog -------------------------------------------------------------
 
 
+@requires_btc_catalog
 def test_catalog_lists_what_can_be_backtested(api: TestClient) -> None:
     body = api.get("/v1/catalog/instruments", headers=AUTH).json()
 

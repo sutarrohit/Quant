@@ -179,13 +179,28 @@ export class SimulationService {
     };
   }
 
+  /** Copy fills for every simulation. On a timer, so a page nobody opens still keeps its fills. */
+  async syncAllFills(): Promise<{ copied: number; failed: number }> {
+    const sims = await this.prisma.simulation.findMany({ include });
+    let copied = 0;
+    let failed = 0;
+    for (const sim of sims) {
+      try {
+        copied += await this.syncFills(sim); // One account's outage must not stop the rest.
+      } catch {
+        failed += 1;
+      }
+    }
+    return { copied, failed };
+  }
+
   /**
    * Copy new FILL events from the engine's stream into Postgres (plan S5).
    *
    * From the row's own cursor, so it is independent of whatever page a browser
-   * holds. Idempotent: the (account, trade id) key skips a fill copied twice. The
-   * stream keeps ~1,000 events, so a simulation nobody views for that long can lose
-   * fills before they are copied; it is logged, not hidden.
+   * holds. Idempotent: the (account, trade id) key skips a fill copied twice. Also
+   * run every minute by `startFillSync`, so the capped stream is copied long before
+   * it trims.
    */
   async syncFills(sim: SimWithVersion, now = Date.now()): Promise<number> {
     if (now - (this.lastSync.get(sim.accountId) ?? 0) < SYNC_EVERY_MS) return 0;

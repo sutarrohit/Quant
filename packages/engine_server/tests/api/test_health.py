@@ -23,8 +23,8 @@ def test_health_does_not_probe_dependencies(tmp_path: Path) -> None:
     # dependency turns into a container restart loop.
     settings = make_settings(catalog_path=str(tmp_path / "absent"))
     unreachable = aioredis.from_url("redis://127.0.0.1:6390/0")
-    with build_client(settings, unreachable) as client:
-        assert client.get("/health").status_code == 200
+    client = build_client(settings, unreachable)  # No `with`: the lifespan would open the real Redis.
+    assert client.get("/health").status_code == 200
 
 
 def test_ready_when_every_dependency_is_up(client: TestClient) -> None:
@@ -35,8 +35,8 @@ def test_ready_when_every_dependency_is_up(client: TestClient) -> None:
 
 def test_ready_is_503_when_the_catalog_is_missing(tmp_path: Path) -> None:
     settings = make_settings(catalog_path=str(tmp_path / "absent"))
-    with build_client(settings, fakeredis.FakeServer()) as client:
-        response = client.get("/ready")
+    client = build_client(settings, fakeredis.FakeServer())  # No `with`: the lifespan would open the real Redis.
+    response = client.get("/ready")
     assert response.status_code == 503
     body = response.json()
     assert body["code"] == "NOT_READY"
@@ -46,8 +46,8 @@ def test_ready_is_503_when_the_catalog_is_missing(tmp_path: Path) -> None:
 def test_ready_is_503_when_redis_is_unreachable(settings: Settings) -> None:
     # The queue is not optional: without Redis a submitted job goes nowhere.
     unreachable = aioredis.from_url("redis://127.0.0.1:6390/0")
-    with build_client(settings, unreachable) as client:
-        response = client.get("/ready")
+    client = build_client(settings, unreachable)  # No `with`: the lifespan would open the real Redis.
+    response = client.get("/ready")
     assert response.status_code == 503
     body = response.json()
     assert body["details"]["checks"]["redis"] == "redis is unreachable"
@@ -58,8 +58,8 @@ def test_ready_is_503_when_the_catalog_is_unreachable() -> None:
     # An unreachable object store raises rather than returning False; readiness
     # must answer no, and must not leak the backend's error text.
     settings = make_settings(catalog_path="s3://nonexistent-bucket-xyz/catalog")
-    with build_client(settings, fakeredis.FakeServer()) as client:
-        response = client.get("/ready")
+    client = build_client(settings, fakeredis.FakeServer())  # No `with`: the lifespan would open the real Redis.
+    response = client.get("/ready")
     assert response.status_code == 503
     assert response.json()["details"]["checks"]["catalog"] in {
         "catalog is unreachable",

@@ -1,5 +1,7 @@
 import { serve } from '@hono/node-server';
 import app from './app.js';
+import { simulationService } from './lib/container.js';
+import { startFillSync } from './lib/fill-sync.js';
 
 serve(
   {
@@ -12,3 +14,5 @@ serve(
     );
   }
 );
+
+startFillSync(simulationService);

@@ -105,6 +105,11 @@ class DslStrategy(Strategy):  # type: ignore[misc]  # Strategy is a Cython class
         self._last_bar: Bar | None = None
         self._checking: str | None = None
         self._conditions: list[ConditionResult] = []
+        #: Set on a live node, like `risk_gate`, so the config stays identical to
+        #: a backtest's. Requests a warm-up's worth of past bars at start, so a
+        #: restart is ready at once instead of after `warmup_bars` new ones.
+        self.warm_from_history = False
+        self.bars_from_history = 0
 
     # --- lifecycle -------------------------------------------------------
 
@@ -121,6 +126,10 @@ class DslStrategy(Strategy):  # type: ignore[misc]  # Strategy is a Cython class
         self._resolve_cost_rate()
         self._series = self._build_series()
         self.subscribe_bars(self.config.bar_type)
+        if self.warm_from_history and self.warmup_bars > 0:
+            # Two spare bars: the request's edges are not guaranteed inclusive.
+            span = self.config.bar_type.spec.timedelta * (self.warmup_bars + 2)
+            self.request_bars(self.config.bar_type, start=self.clock.utc_now() - span)
 
         self.log.info(
             f"DslStrategy started: spec_hash={self.config.spec_hash} "
@@ -172,6 +181,7 @@ class DslStrategy(Strategy):  # type: ignore[misc]  # Strategy is a Cython class
         self._checking = None
         self._conditions = []
         self.bars_seen = 0
+        self.bars_from_history = 0
         self.orders_submitted = 0
         self.orders_blocked = 0
 
@@ -250,6 +260,28 @@ class DslStrategy(Strategy):  # type: ignore[misc]  # Strategy is a Cython class
                 self._exit(bar)
         elif self._decide("entry", self.spec.entry, context, bar):
             self._enter(bar)
+
+    def on_historical_data(self, data: Any) -> None:
+        if isinstance(data, Bar) and data.bar_type == self.config.bar_type:
+            self._warm(data)
+
+    def _warm(self, bar: Bar) -> None:
+        """Feed a past bar to the indicators, and decide nothing on it.
+
+        Orders are only ever placed from `on_bar`: a bar that closed before the
+        node started is history, and trading on it would be trading late. A bar
+        no newer than one already seen is dropped, so a live bar that beat the
+        history back cannot be followed by older ones.
+        """
+        if self._last_bar is not None and bar.ts_event <= self._last_bar.ts_event:
+            return
+        self.bars_seen += 1
+        self.bars_from_history += 1
+        self._last_bar = bar
+        for series in self._series.values():
+            series.handle_bar(bar)
+        if all(series.initialized for series in self._series.values()):
+            self._previous = {key: series.value for key, series in self._series.items()}
 
     def _decide(self, side: str, node: object, context: EvalContext, bar: Bar) -> bool:
         """Evaluate one tree and log why.
@@ -461,6 +493,7 @@ class DslStrategy(Strategy):  # type: ignore[misc]  # Strategy is a Cython class
         return {
             "phase": phase,
             "barsSeen": self.bars_seen,
+            "barsFromHistory": self.bars_from_history,
             "warmupBars": self.warmup_bars,
             "barType": str(self.config.bar_type),
             "lastBar": (
