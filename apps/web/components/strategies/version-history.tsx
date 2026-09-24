@@ -1,8 +1,10 @@
 'use client';
 
 import type { StrategyVersion } from '@quant/contracts/strategy';
+import { RiHistoryLine } from '@remixicon/react';
 import { useState } from 'react';
 
+import { SectionTitle } from '@/components/page-header';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -13,7 +15,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { timeAgo } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -42,31 +43,55 @@ export function VersionHistory({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-sm">Versions</CardTitle>
+        <CardTitle>
+          <SectionTitle icon={RiHistoryLine} tone="violet">
+            Versions
+          </SectionTitle>
+        </CardTitle>
       </CardHeader>
-      <CardContent className="flex flex-col gap-1 p-2">
-        {versions.map((v) => (
-          <button
-            key={v.id}
-            type="button"
-            onClick={() => choose(v.version)}
-            className={cn(
-              'flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-muted',
-              v.version === current && 'bg-muted font-medium'
-            )}
-          >
-            <span className="flex items-center gap-2">
-              v{v.version}
-              {v.version === head && <Badge variant="secondary">latest</Badge>}
-            </span>
-            <span
-              className={cn('text-xs', v.version === current ? 'text-foreground/80' : 'text-muted-foreground')}
-              title={v.createdAt}
-            >
-              {timeAgo(v.createdAt)}
-            </span>
-          </button>
-        ))}
+      <CardContent>
+        {/* A timeline: newest on top, a rail joining the dots. */}
+        <ol className="relative flex flex-col">
+          <span aria-hidden className="bg-border absolute top-3 bottom-3 left-[11px] w-px" />
+          {versions.map((v) => {
+            const selected = v.version === current;
+            return (
+              <li key={v.id}>
+                <button
+                  type="button"
+                  onClick={() => choose(v.version)}
+                  aria-current={selected || undefined}
+                  className={cn(
+                    'group relative flex w-full items-center gap-3 rounded-lg py-1.5 pr-2 text-left text-sm transition-colors',
+                    selected ? 'font-semibold' : 'text-muted-foreground hover:text-foreground'
+                  )}
+                >
+                  <span
+                    className={cn(
+                      'relative flex size-6 shrink-0 items-center justify-center rounded-full border text-[10px]',
+                      selected
+                        ? 'border-emerald-500 bg-emerald-500 text-black'
+                        : 'bg-card group-hover:border-foreground/40'
+                    )}
+                  >
+                    {v.version}
+                  </span>
+                  <span className="flex flex-1 items-center gap-2">
+                    v{v.version}
+                    {v.version === head && (
+                      <span className="rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
+                        latest
+                      </span>
+                    )}
+                  </span>
+                  <span className="text-muted-foreground text-xs font-normal" title={v.createdAt}>
+                    {timeAgo(v.createdAt)}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ol>
       </CardContent>
 
       <AlertDialog open={pending !== null} onOpenChange={(open) => !open && setPending(null)}>

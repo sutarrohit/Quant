@@ -1,6 +1,6 @@
 'use client';
 
-import type { StrategySpec, StrategySpecInput } from '@quant/contracts/spec';
+import { MarketSchema, type StrategySpec, type StrategySpecInput } from '@quant/contracts/spec';
 import type { SpecError } from '@quant/contracts/strategy';
 import { RiCodeLine, RiPlayLine, RiPulseLine } from '@remixicon/react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -9,13 +9,17 @@ import { useParams } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
+import { Pill } from '@/components/metric-card';
+import { Chip, PageHeader } from '@/components/page-header';
 import { FormFooter } from '@/components/strategies/form-footer';
+import { LatestBacktest } from '@/components/strategies/latest-backtest';
 import { StrategyForm } from '@/components/strategies/strategy-form';
 import { VersionHistory } from '@/components/strategies/version-history';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { ErrorState } from '@/components/page-states';
 import { Skeleton } from '@/components/ui/skeleton';
 import { createVersionMutationOptions, strategyQueryOptions } from '@/lib/api/strategies/strategy-queries';
+import { timeAgo } from '@/lib/format';
 import { useStrategyBuilderStore } from '@/stores/strategy-builder';
 import { ApiError } from '@/utils/api-error';
 import { toastError } from '@/utils/toast-error';
@@ -37,8 +41,10 @@ export default function StrategyPage() {
   if (isPending) {
     return (
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-4">
+        <Skeleton className="h-4 w-24" />
         <Skeleton className="h-8 w-64" />
-        <Skeleton className="h-96 w-full" />
+        <Skeleton className="h-44 w-full rounded-2xl" />
+        <Skeleton className="h-96 w-full rounded-2xl" />
       </div>
     );
   }
@@ -62,6 +68,7 @@ export default function StrategyPage() {
   const head = data.versions[0];
   const current = data.versions.find((v) => v.version === (pinned ?? head?.version)) ?? head;
   if (!current) return null; // A strategy is created with version 1, so this is unreachable.
+  const market = MarketSchema.safeParse((current.spec as { market?: unknown } | null)?.market).data;
 
   const onSubmit = async (spec: StrategySpec) => {
     try {
@@ -81,37 +88,56 @@ export default function StrategyPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold">{data.name}</h1>
-          <p className="text-sm text-muted-foreground">
-            {current.version === head?.version
-              ? `Latest is v${current.version}`
-              : `Viewing v${current.version} of ${head?.version}`}
-            {draft && ' · unsaved changes'}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={() => setPreviewOpen(!previewOpen)}>
-            <RiCodeLine /> {previewOpen ? 'Hide JSON' : 'Show JSON'}
-          </Button>
-          <Link
-            href={`/strategies/${id}/backtest?version=${current.id}`}
-            className={buttonVariants({ size: 'sm' })}
-            title={draft ? 'Runs the saved version, without your unsaved edits' : undefined}
-          >
-            <RiPlayLine /> Run backtest
-          </Link>
-          <Link
-            href={`/strategies/${id}/simulate?version=${current.id}`}
-            className={buttonVariants({ variant: 'outline', size: 'sm' })}
-          >
-            <RiPulseLine /> Paper trade
-          </Link>
-        </div>
-      </div>
+      <PageHeader
+        back={{ href: '/strategies', label: 'Strategies' }}
+        title={data.name}
+        badges={<Pill>V{current.version}</Pill>}
+        chips={
+          <>
+            {market && (
+              <Chip className="text-foreground font-medium">
+                {market.symbols.join(', ')} · {market.timeframe}
+              </Chip>
+            )}
+            <Chip>Binance · Spot</Chip>
+            <Chip>Updated {timeAgo(data.updatedAt)}</Chip>
+            {current.version !== head?.version && (
+              <Chip className="border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                Viewing v{current.version} of {head?.version}
+              </Chip>
+            )}
+            {draft && (
+              <Chip className="border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                Unsaved changes
+              </Chip>
+            )}
+          </>
+        }
+        actions={
+          <>
+            <Button variant="outline" size="sm" onClick={() => setPreviewOpen(!previewOpen)}>
+              <RiCodeLine /> {previewOpen ? 'Hide JSON' : 'Show JSON'}
+            </Button>
+            <Link
+              href={`/strategies/${id}/backtest?version=${current.id}`}
+              className={buttonVariants({ size: 'sm' })}
+              title={draft ? 'Runs the saved version, without your unsaved edits' : undefined}
+            >
+              <RiPlayLine /> Run backtest
+            </Link>
+            <Link
+              href={`/strategies/${id}/simulate?version=${current.id}`}
+              className={buttonVariants({ variant: 'outline', size: 'sm' })}
+            >
+              <RiPulseLine /> Paper trade
+            </Link>
+          </>
+        }
+      />
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_14rem]">
+      <LatestBacktest strategyId={id} versionId={current.id} version={current.version} />
+
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_16rem]">
         <StrategyForm
           key={`${id}:${current.version}`}
           defaultValues={draft ?? (current.spec as StrategySpecInput)}
@@ -123,7 +149,7 @@ export default function StrategyPage() {
             <FormFooter runnable={runnable} submitting={submitting} label="Save as new version" />
           )}
         />
-        <div className="order-first xl:order-none">
+        <div className="order-first xl:sticky xl:top-4 xl:order-none xl:self-start">
           <VersionHistory
             versions={data.versions}
             current={current.version}

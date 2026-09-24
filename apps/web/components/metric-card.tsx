@@ -45,15 +45,17 @@ export function ChartWell({
   loading,
   empty,
   badge,
+  className,
 }: {
   values: number[] | undefined;
   up: boolean;
   loading: boolean;
   empty: ReactNode;
   badge?: ReactNode;
+  className?: string;
 }) {
   return (
-    <div className="bg-muted/40 relative h-20 overflow-hidden rounded-lg">
+    <div className={cn('bg-muted/40 relative h-20 overflow-hidden rounded-lg', className)}>
       {loading ? (
         <Skeleton className="h-full w-full rounded-none" />
       ) : values && values.length > 1 ? (
