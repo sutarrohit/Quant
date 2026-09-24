@@ -90,6 +90,23 @@ async def test_a_gate_is_refreshed_before_the_node_runs() -> None:
     assert gate.last_refresh_ns is not None
 
 
+async def test_a_fresh_gate_passes_against_the_strategys_clock() -> None:
+    # Refreshed from the worker, checked with the strategy's LiveClock: both must
+    # be Unix ns. A monotonic stamp read as 56 years stale and blocked every entry.
+    from nautilus_trader.common.component import LiveClock
+
+    from engine.types.risk import AccountRisk, OrderIntent
+
+    gate = await attach_gate(FakeNode(FakeStrategy()), desired(), NeverEngaged())
+    decision = gate.check(
+        OrderIntent(instrument_id="SOLUSDT.BINANCE", notional=Decimal("100"), reduce_only=False),
+        AccountRisk(),
+        LiveClock().timestamp_ns(),
+    )
+
+    assert decision.allowed, decision.reason
+
+
 async def test_an_engaged_kill_switch_is_seen_at_attach_time() -> None:
     gate = await attach_gate(FakeNode(FakeStrategy()), desired(), Engaged())
 

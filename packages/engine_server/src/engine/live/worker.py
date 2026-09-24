@@ -75,7 +75,7 @@ async def attach_gate(
     # that can disagree is how an account trades inside a limit nobody set
     # (ADR-002).
     gate.apply(mandate)
-    await gate.refresh(switch, time.monotonic_ns())
+    await gate.refresh(switch, time.time_ns())
     for strategy in node.trader.strategies():
         if hasattr(strategy, "risk_gate"):
             strategy.risk_gate = gate
@@ -124,7 +124,7 @@ async def tend(
     while True:
         await asyncio.sleep(interval)
         elapsed += interval
-        await gate.refresh(switch, time.monotonic_ns())
+        await gate.refresh(switch, time.time_ns())  # Unix ns, like the strategy's LiveClock
         if mandates is not None:
             # Revocation reaches a running node the same way a kill does: by
             # being read, not by being pushed. `trading-core` writes; nothing
