@@ -26,11 +26,12 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   };
 
-  // Token expired but the session lives: /login would sign out a user who is still
+  // Token expired but the session lives: re-login would sign out a user who is still
   // authenticated, so bounce through /refresh, which re-mints and continues.
   if (request.cookies.has('privy-session')) return redirectTo('/refresh');
 
-  return redirectTo('/login');
+  // The landing page opens the Privy modal when it sees redirect_uri.
+  return redirectTo('/');
 }
 
 export const config = {

@@ -131,3 +131,37 @@
     @apply font-mono;
   }
 }
+/* Landing hero: beams travelling along the grid, and the equity line drawing in. */
+@keyframes beam-x {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100vw); }
+}
+@keyframes beam-y {
+  from { transform: translateY(-100%); }
+  to { transform: translateY(40rem); }
+}
+@keyframes draw {
+  to { stroke-dashoffset: 0; }
+}
+
+@utility animate-beam-x {
+  animation: beam-x var(--beam-duration, 7s) linear infinite;
+  animation-delay: var(--beam-delay, 0s);
+}
+@utility animate-beam-y {
+  animation: beam-y var(--beam-duration, 6s) linear infinite;
+  animation-delay: var(--beam-delay, 0s);
+}
+@utility animate-draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: draw 2.2s cubic-bezier(0.65, 0, 0.35, 1) 0.6s forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-beam-x, .animate-beam-y { animation: none; display: none; }
+  .animate-draw { animation: none; stroke-dashoffset: 0; }
+}
+@keyframes shimmer {
+  to { background-position: 200% center; }
+}
