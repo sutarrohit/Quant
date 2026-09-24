@@ -10,9 +10,11 @@ import {
 } from '@quant/contracts/spec';
 import { validateSpec } from '@quant/contracts/spec-validate';
 import type { SpecError } from '@quant/contracts/strategy';
-import { useEffect, type ReactNode } from 'react';
+import { RiAddLine, RiLoginBoxLine, RiLogoutBoxRLine, RiScales3Line, RiStackLine } from '@remixicon/react';
+import { useEffect, type ComponentType, type ReactNode } from 'react';
 import { useController, useForm, useWatch, type Control } from 'react-hook-form';
 
+import { SectionTitle } from '@/components/page-header';
 import { ConditionNodeEditor } from '@/components/strategies/condition-node';
 import { SpecErrorsProvider, buildErrorMap } from '@/components/strategies/spec-errors';
 import { SpecPreview } from '@/components/strategies/spec-preview';
@@ -117,7 +119,11 @@ export function StrategyForm({ defaultValues, storeKey, serverErrors, onEdit, on
             <div className="flex min-w-0 flex-col gap-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Market</CardTitle>
+                  <CardTitle>
+                    <SectionTitle icon={RiStackLine} tone="cyan">
+                      Market
+                    </SectionTitle>
+                  </CardTitle>
                   <CardDescription>Binance · Spot — the only venue the engine trades today.</CardDescription>
                 </CardHeader>
                 <CardContent className="grid items-start gap-4 sm:grid-cols-2">
@@ -152,6 +158,8 @@ export function StrategyForm({ defaultValues, storeKey, serverErrors, onEdit, on
                 name="entry"
                 title="Entry"
                 description="When to open a position. Evaluated at each bar's close."
+                icon={RiLoginBoxLine}
+                tone="emerald"
                 storeKey={storeKey}
               />
               <TreeCard
@@ -159,12 +167,18 @@ export function StrategyForm({ defaultValues, storeKey, serverErrors, onEdit, on
                 name="exit"
                 title="Exit"
                 description="When to close it. Risk sizing needs a stop loss in here."
+                icon={RiLogoutBoxRLine}
+                tone="red"
                 storeKey={storeKey}
               />
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Sizing</CardTitle>
+                  <CardTitle>
+                    <SectionTitle icon={RiScales3Line} tone="amber">
+                      Sizing
+                    </SectionTitle>
+                  </CardTitle>
                   <CardDescription>Position size = equity × risk ÷ distance to the stop.</CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -200,12 +214,16 @@ function TreeCard({
   title,
   description,
   storeKey,
+  icon,
+  tone,
 }: {
   control: Control<StrategySpecInput, unknown, StrategySpec>;
   name: 'entry' | 'exit';
   title: string;
   description: string;
   storeKey: string;
+  icon: ComponentType<{ className?: string }>;
+  tone: 'emerald' | 'red';
 }) {
   const { field } = useController({ control, name });
   const root = field.value as ConditionNode;
@@ -214,7 +232,11 @@ function TreeCard({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{title}</CardTitle>
+        <CardTitle>
+          <SectionTitle icon={icon} tone={tone}>
+            {title}
+          </SectionTitle>
+        </CardTitle>
         <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
@@ -230,10 +252,10 @@ function TreeCard({
         {!isGroup && (
           <button
             type="button"
-            className="self-start text-xs text-muted-foreground underline-offset-2 hover:underline"
+            className="text-muted-foreground flex items-center justify-center gap-1.5 rounded-xl border border-dashed py-2.5 text-xs transition-colors hover:border-emerald-500/50 hover:text-emerald-600 dark:hover:text-emerald-400"
             onClick={() => field.onChange({ all: [root, newLeaf()] })}
           >
-            Combine with another condition
+            <RiAddLine className="size-3.5" /> Combine with another condition
           </button>
         )}
       </CardContent>

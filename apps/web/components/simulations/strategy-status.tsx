@@ -1,6 +1,7 @@
 import type { StrategyStatus } from '@quant/contracts/simulation';
-import { RiCheckLine, RiCloseLine } from '@remixicon/react';
+import { RiCheckLine, RiCloseLine, RiCpuLine } from '@remixicon/react';
 
+import { SectionTitle } from '@/components/page-header';
 import { DetailRow } from '@/components/simulations/detail-row';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,7 +26,11 @@ export function StrategyStatusCard({ status }: { status: StrategyStatus | null }
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Strategy</CardTitle>
+          <CardTitle>
+            <SectionTitle icon={RiCpuLine} tone="violet">
+              Strategy
+            </SectionTitle>
+          </CardTitle>
           <CardDescription>Not reporting yet.</CardDescription>
         </CardHeader>
       </Card>
@@ -42,8 +47,10 @@ export function StrategyStatusCard({ status }: { status: StrategyStatus | null }
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          Strategy <Badge variant="secondary">{phase.label}</Badge>
+        <CardTitle>
+          <SectionTitle icon={RiCpuLine} tone="violet">
+            Strategy <Badge variant="secondary">{phase.label}</Badge>
+          </SectionTitle>
         </CardTitle>
         <CardDescription>
           {phase.hint}
@@ -61,7 +68,10 @@ export function StrategyStatusCard({ status }: { status: StrategyStatus | null }
               aria-valuemax={status.warmupBars}
               aria-valuenow={warm}
             >
-              <div className="h-full bg-primary" style={{ width: `${(warm / Math.max(status.warmupBars, 1)) * 100}%` }} />
+              <div
+                className="h-full bg-gradient-to-r from-emerald-500 to-cyan-400"
+                style={{ width: `${(warm / Math.max(status.warmupBars, 1)) * 100}%` }}
+              />
             </div>
             <p className="text-xs text-muted-foreground">
               {warm} of {status.warmupBars} bars
@@ -73,20 +83,25 @@ export function StrategyStatusCard({ status }: { status: StrategyStatus | null }
 
         {evaluation && (
           <div>
-            <p className="text-xs font-medium text-muted-foreground">
+            <p className="text-muted-foreground text-[10px] font-medium tracking-wider uppercase">
               {evaluation.side === 'entry' ? 'Entry' : 'Exit'} rule on the last bar
             </p>
             <ul className="mt-1 flex flex-col">
               {evaluation.conditions.map((c) => (
                 <li key={c.path} className="flex items-center gap-2 border-b py-2 text-sm last:border-0">
                   {c.passed ? (
-                    <RiCheckLine className="size-4 shrink-0 text-emerald-700 dark:text-emerald-400" aria-label="holds" />
+                    <RiCheckLine
+                      className="size-4 shrink-0 text-emerald-700 dark:text-emerald-400"
+                      aria-label="holds"
+                    />
                   ) : (
                     <RiCloseLine className="size-4 shrink-0 text-muted-foreground" aria-label="does not hold" />
                   )}
                   <code className="flex-1 text-xs">{c.label}</code>
                   {c.series && status.values[c.series] !== undefined && (
-                    <span className="text-xs tabular-nums text-muted-foreground">now {reading(status.values[c.series]!)}</span>
+                    <span className="text-xs tabular-nums text-muted-foreground">
+                      now {reading(status.values[c.series]!)}
+                    </span>
                   )}
                 </li>
               ))}
@@ -96,7 +111,9 @@ export function StrategyStatusCard({ status }: { status: StrategyStatus | null }
 
         <div>
           <DetailRow label="Last bar">
-            {status.lastBar && lastClose ? `${utcDateTime(lastClose)} UTC · close ${money(status.lastBar.close)}` : 'None yet'}
+            {status.lastBar && lastClose
+              ? `${utcDateTime(lastClose)} UTC · close ${money(status.lastBar.close)}`
+              : 'None yet'}
           </DetailRow>
           <DetailRow label="Next bar">{nextBar ? `${utcDateTime(nextBar)} UTC` : '—'}</DetailRow>
           <DetailRow label="Orders submitted">{status.ordersSubmitted}</DetailRow>

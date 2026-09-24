@@ -5,7 +5,6 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
 import { ApiError } from '@/utils/api-error';
 
 /** Nothing here yet, and the one thing to do about it. */
@@ -73,17 +72,6 @@ export function ErrorState({
           </Link>
         )}
       </div>
-    </div>
-  );
-}
-
-/** Rows standing in for a table, at the table's row height so nothing jumps on load. */
-export function TableSkeleton({ rows = 3 }: { rows?: number }) {
-  return (
-    <div className="flex flex-col gap-2" aria-busy="true" aria-label="Loading">
-      {Array.from({ length: rows }, (_, i) => (
-        <Skeleton key={i} className="h-10 w-full" />
-      ))}
     </div>
   );
 }

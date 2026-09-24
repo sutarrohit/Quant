@@ -101,19 +101,22 @@ export function ActivityFeed({ events }: { events: SimulationEvent[] }) {
         {newest.slice(0, shown).map((event) => {
           const line = describe(event);
           return (
-            <li key={event.id} className="flex items-start gap-3 border-b py-2 text-sm last:border-0">
+            <li
+              key={event.id}
+              className="border-border/60 flex items-start gap-3 border-b py-2.5 text-sm last:border-0"
+            >
               <span
                 className={cn(
-                  'mt-0.5 [&_svg]:size-4',
-                  line.tone === 'good' && 'text-emerald-700 dark:text-emerald-400',
-                  line.tone === 'bad' && 'text-destructive',
-                  line.tone === 'plain' && 'text-muted-foreground'
+                  'flex size-7 shrink-0 items-center justify-center rounded-full [&_svg]:size-3.5',
+                  line.tone === 'good' && 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+                  line.tone === 'bad' && 'bg-red-500/10 text-red-600 dark:text-red-400',
+                  line.tone === 'plain' && 'bg-muted text-muted-foreground'
                 )}
               >
                 {line.icon}
               </span>
               <div className="flex min-w-0 flex-1 flex-col">
-                <span>{line.title}</span>
+                <span className="font-medium">{line.title}</span>
                 {line.detail && <span className="text-xs text-muted-foreground">{line.detail}</span>}
               </div>
               <time dateTime={event.at} className="shrink-0 text-xs tabular-nums text-muted-foreground">

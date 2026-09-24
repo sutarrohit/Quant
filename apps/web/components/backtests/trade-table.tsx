@@ -3,7 +3,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -47,10 +46,19 @@ export function TradeTable({ runId }: { runId: string }) {
             const pnl = Number(t.pnl);
             return (
               <TableRow key={`${t.entryTime}-${i}`} className="tabular-nums">
-                <TableCell>{utcDateTime(t.entryTime)}</TableCell>
-                <TableCell>{utcDateTime(t.exitTime)}</TableCell>
+                <TableCell className="text-muted-foreground">{utcDateTime(t.entryTime)}</TableCell>
+                <TableCell className="text-muted-foreground">{utcDateTime(t.exitTime)}</TableCell>
                 <TableCell>
-                  <Badge variant="outline">{t.side}</Badge>
+                  <span
+                    className={cn(
+                      'rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wider',
+                      t.side === 'SHORT'
+                        ? 'bg-red-500/10 text-red-600 dark:text-red-400'
+                        : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                    )}
+                  >
+                    {t.side}
+                  </span>
                 </TableCell>
                 <TableCell className="text-right">{t.quantity}</TableCell>
                 <TableCell className="text-right">{t.entryPrice}</TableCell>
@@ -58,13 +66,22 @@ export function TradeTable({ runId }: { runId: string }) {
                 <TableCell
                   className={cn(
                     'text-right',
-                    pnl > 0 && 'text-emerald-700 dark:text-emerald-400',
-                    pnl < 0 && 'text-destructive'
+                    'font-medium',
+                    pnl > 0 && 'text-emerald-600 dark:text-emerald-400',
+                    pnl < 0 && 'text-red-600 dark:text-red-400'
                   )}
                 >
                   {money(t.pnl)}
                 </TableCell>
-                <TableCell className="text-right">{percent(t.returnPct, true)}</TableCell>
+                <TableCell
+                  className={cn(
+                    'text-right',
+                    pnl > 0 && 'text-emerald-600 dark:text-emerald-400',
+                    pnl < 0 && 'text-red-600 dark:text-red-400'
+                  )}
+                >
+                  {percent(t.returnPct, true)}
+                </TableCell>
                 <TableCell className="text-right">{money(t.fees)}</TableCell>
                 <TableCell className="text-right">{money(t.slippage)}</TableCell>
                 <TableCell className="text-right">{duration(t.holdingSeconds)}</TableCell>

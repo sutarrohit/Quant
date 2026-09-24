@@ -1,16 +1,21 @@
 'use client';
 
 import type { SimulationEquity } from '@quant/contracts/simulation';
-import { CartesianGrid, Line, LineChart, ReferenceLine, XAxis, YAxis } from 'recharts';
+import { useId } from 'react';
+import { Area, AreaChart, CartesianGrid, ReferenceLine, XAxis, YAxis } from 'recharts';
 
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart';
 import { barClose } from '@/lib/bars';
 import { money, utcDateTime } from '@/lib/format';
 
-const config = { equity: { label: 'Equity', color: 'var(--primary)' } } satisfies ChartConfig;
-
 const tick = (iso: string) =>
-  new Date(iso).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
+  new Date(iso).toLocaleString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'UTC',
+  });
 
 /**
  * Equity marked to the close of every bar. A line, unlike a backtest's steps: the
@@ -25,12 +30,25 @@ export function EquityCurve({
   baseline: number | null;
   quote: string;
 }) {
+  const id = useId().replaceAll(':', '');
   const data = points.map((p) => ({ time: barClose(p.time), equity: Number(p.equity) }));
+  // Green above the starting balance, red below it.
+  const last = data.at(-1)?.equity ?? 0;
+  const up = last >= (baseline ?? data[0]?.equity ?? last);
+  const config = {
+    equity: { label: 'Equity', color: up ? 'rgb(16 185 129)' : 'rgb(239 68 68)' },
+  } satisfies ChartConfig;
 
   return (
-    <ChartContainer config={config} className="aspect-auto h-64 w-full">
-      <LineChart data={data} margin={{ left: 8, right: 8, top: 8 }}>
-        <CartesianGrid vertical={false} />
+    <ChartContainer config={config} className="aspect-auto h-72 w-full">
+      <AreaChart data={data} margin={{ left: 8, right: 8, top: 8 }}>
+        <defs>
+          <linearGradient id={`${id}-equity`} x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stopColor="var(--color-equity)" stopOpacity={0.35} />
+            <stop offset="100%" stopColor="var(--color-equity)" stopOpacity={0} />
+          </linearGradient>
+        </defs>
+        <CartesianGrid vertical={false} strokeDasharray="3 3" />
         <XAxis dataKey="time" tickFormatter={tick} tickLine={false} axisLine={false} minTickGap={64} />
         <YAxis
           domain={['auto', 'auto']}
@@ -48,8 +66,16 @@ export function EquityCurve({
             />
           }
         />
-        <Line dataKey="equity" type="linear" stroke="var(--color-equity)" strokeWidth={2} dot={data.length < 3} />
-      </LineChart>
+        <Area
+          dataKey="equity"
+          type="linear"
+          stroke="var(--color-equity)"
+          strokeWidth={2}
+          fill={`url(#${id}-equity)`}
+          baseValue="dataMin"
+          dot={data.length < 3}
+        />
+      </AreaChart>
     </ChartContainer>
   );
 }

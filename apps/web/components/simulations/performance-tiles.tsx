@@ -13,23 +13,27 @@ export function PerformanceTiles({ snapshot }: { snapshot: SimulationSnapshot })
   return (
     <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
       <Tile
+        size="lg"
         label="Equity"
         value={snapshot.equity ? `${money(snapshot.equity)} ${quote}` : '—'}
         hint={baseline ? `from ${money(baseline.amount)} ${baseline.currency}` : 'Starting balance not recorded yet'}
       />
       <Tile
+        size="lg"
         label="Profit / loss"
         value={pnl ? `${signed(pnl)} ${quote}` : '—'}
         hint={returnPercent ? percent(returnPercent, true) : undefined}
         tone={pnl ? toneOf(pnl) : undefined}
       />
       <Tile
+        size="lg"
         label="Unrealized"
         value={`${signed(unrealizedPnl)} ${quote}`}
         hint={snapshot.position ? 'Open position at the last close' : 'No open position'}
         tone={toneOf(unrealizedPnl)}
       />
       <Tile
+        size="lg"
         label="Realized"
         value={realizedPnl ? `${signed(realizedPnl)} ${quote}` : '—'}
         hint="Closed trades, after fees"
