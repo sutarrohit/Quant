@@ -42,6 +42,7 @@ from engine.live.kill_switch import (
 )
 from engine.live.mandate import Mandate, MandateStore
 from engine.live.node import build_node_config
+from engine.live.publisher import EventRecorder, StatePublisher
 from engine.logging import configure_logging, log_context
 from engine.settings import Settings
 from engine.simulation.node import (
@@ -96,6 +97,15 @@ async def attach_gate(
     return gate
 
 
+def attach_recorder(node: Any) -> EventRecorder:
+    """Give every strategy on the node one recorder, as `attach_gate` does the gate."""
+    recorder = EventRecorder()
+    for strategy in node.trader.strategies():
+        if hasattr(strategy, "recorder"):
+            strategy.recorder = recorder
+    return recorder
+
+
 def build_kill_switch(settings: Settings, redis: Any) -> KillSwitch:
     """Both paths, because either alone is the one that is broken that day."""
     return CompositeKillSwitch(
@@ -113,6 +123,7 @@ async def tend(
     heartbeat_seconds: float,
     kill_switch_seconds: float,
     mandates: MandateStore | None = None,
+    publisher: StatePublisher | None = None,
 ) -> None:
     """Refresh the gate and heartbeat until cancelled.
 
@@ -122,12 +133,17 @@ async def tend(
 
     The interval is the shorter of the two, so an operator's kill takes effect
     in seconds while the heartbeat keeps its own cadence.
+
+    The publisher rides it too, but **its failure is contained**: a page that
+    cannot show state is an inconvenience, and a gate that stops refreshing
+    stops trading.
     """
     interval = min(heartbeat_seconds, kill_switch_seconds)
     elapsed = 0.0
     while True:
         await asyncio.sleep(interval)
         elapsed += interval
+        was_killed = gate.kill_engaged
         await gate.refresh(switch, time.time_ns())  # Unix ns, like the strategy's LiveClock
         if mandates is not None:
             # Revocation reaches a running node the same way a kill does: by
@@ -150,6 +166,17 @@ async def tend(
                         "mandate revoked; the account will open no new positions",
                         extra={"account_id": account_id},
                     )
+                    if publisher is not None:
+                        publisher.note("MANDATE_REVOKED")
+        if publisher is not None:
+            if gate.kill_engaged != was_killed:
+                publisher.note("KILL_ENGAGED" if gate.kill_engaged else "KILL_RELEASED")
+            try:
+                await publisher.publish(
+                    kill_engaged=gate.kill_engaged, mandate_revoked=gate.mandate_revoked
+                )
+            except Exception:
+                logger.exception("could not publish account state", extra={"account_id": account_id})
         if elapsed + 1e-9 < heartbeat_seconds:
             continue
         elapsed = 0.0
@@ -196,6 +223,13 @@ async def run_account(
     node.build()
     route_bars_to_exchange(node, state)  # Else the simulated exchange never sees a price.
     gate = await attach_gate(node, state, switch, mandate)
+    publisher = StatePublisher(client, state, node, attach_recorder(node))
+    publisher.note(
+        "NODE_STARTED",
+        revision=state.revision,
+        specHash=state.spec_hash,
+        strategyVersionId=state.strategy_version_id,
+    )
 
     tender = asyncio.create_task(
         tend(
@@ -206,6 +240,7 @@ async def run_account(
             heartbeat_seconds=DEFAULT_HEARTBEAT_SECONDS,
             kill_switch_seconds=settings.live_kill_switch_interval_seconds,
             mandates=mandates,
+            publisher=publisher,
         )
     )
     running = asyncio.create_task(node.run_async())
@@ -245,6 +280,11 @@ async def run_account(
             running.cancel()
         with contextlib.suppress(asyncio.CancelledError, Exception):
             await running
+        with contextlib.suppress(Exception):  # Best effort: the node is already down.
+            publisher.note("NODE_STOPPED", revision=state.revision)
+            await publisher.publish(
+                kill_engaged=gate.kill_engaged, mandate_revoked=gate.mandate_revoked
+            )
         if owns_redis:
             await client.aclose()
         logger.info("node stopped", extra={"account_id": state.account_id})

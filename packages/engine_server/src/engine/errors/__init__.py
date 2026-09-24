@@ -67,6 +67,7 @@ from engine.errors.live import (
     MandateRevoked,
     PreflightFailed,
     ReconciliationFailed,
+    SnapshotNotFound,
 )
 from engine.errors.simulation import (
     VenueNotSupported,
@@ -82,6 +83,7 @@ from engine.errors.strategies import (
 
 __all__ = [
     "AccountNotFound",
+    "SnapshotNotFound",
     "BacktestConfigError",
     "BacktestFailed",
     "BacktestIncomplete",

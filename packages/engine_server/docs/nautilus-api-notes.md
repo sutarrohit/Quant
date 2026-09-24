@@ -931,3 +931,22 @@ whatever the account held. The cache keeps positions across a restart
 from its cache (`opening_balances`), falling back to `STARTING_BALANCES` for a
 new account. Its `__init__` repeats Nautilus's rather than calling it, because
 the parent's publishes the 10,000 USDT state on the way out.
+
+### D27 — `Portfolio.realized_pnl` forgets a reopened position across a restart
+
+**Found:** 2026-09-24, building the account snapshot (docs/simulation-state-plan.md).
+
+On a NETTING account a position that closes and reopens keeps its id
+(`SOLUSDT.BINANCE-DslStrategy-000`). The earlier cycle's result is kept as an
+in-memory snapshot; the cache persists only the current cycle. So a restart
+drops it:
+
+| Node session | `realized_pnl(SOLUSDT.BINANCE)` |
+|---|---|
+| Started flat, one closed round trip (−0.513) in history | −0.8129 (the round trip + the new buy's fee) |
+| Restarted after the position reopened | −0.2999 (the new buy's fee only) |
+
+The snapshot therefore does not use it. P&L is **equity − baseline**, with
+unrealised from the open position at the last close and realised the remainder.
+Exact for a cash account with no external flows; live will also need deposits
+and withdrawals netted out of the baseline.

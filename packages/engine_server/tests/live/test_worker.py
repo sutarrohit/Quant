@@ -344,3 +344,64 @@ async def test_an_unreadable_mandate_does_not_stop_trading(store: LiveStateStore
     )
 
     assert gate.mandate_revoked is False
+
+
+# --- the publisher rides the tend loop ------------------------------------------
+
+
+class Publisher:
+    """Records what tend asks of it; optionally fails every publish."""
+
+    def __init__(self, *, fail: bool = False) -> None:
+        self.fail = fail
+        self.notes: list[str] = []
+        self.published = 0
+
+    def note(self, kind: str, **fields: object) -> None:
+        self.notes.append(kind)
+
+    async def publish(self, **flags: bool) -> None:
+        self.published += 1
+        if self.fail:
+            raise ConnectionError("redis is down")
+
+
+async def test_a_publisher_that_fails_does_not_stop_the_heartbeat(store: LiveStateStore) -> None:
+    # A page that cannot show state is an inconvenience; a stale gate stops trading.
+    gate = RiskGate(account_id="acct_1")
+    publisher = Publisher(fail=True)
+
+    await run_briefly(
+        tend(
+            gate,
+            NeverEngaged(),
+            store,
+            "acct_1",
+            heartbeat_seconds=0.02,
+            kill_switch_seconds=0.01,
+            publisher=publisher,  # type: ignore[arg-type]
+        )
+    )
+
+    assert publisher.published >= 2  # The loop outlived the first failure.
+    assert gate.last_refresh_ns is not None
+
+
+async def test_a_kill_is_recorded_as_an_event(store: LiveStateStore) -> None:
+    publisher = Publisher()
+    gate = RiskGate(account_id="acct_1")
+
+    await run_briefly(
+        tend(
+            gate,
+            Engaged(),
+            store,
+            "acct_1",
+            heartbeat_seconds=0.05,
+            kill_switch_seconds=0.01,
+            publisher=publisher,  # type: ignore[arg-type]
+        ),
+        seconds=0.035,
+    )
+
+    assert publisher.notes == ["KILL_ENGAGED"]  # Once, on the change.
