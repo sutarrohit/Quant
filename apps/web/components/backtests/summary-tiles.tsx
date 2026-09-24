@@ -5,7 +5,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
 import { duration, money, percent } from '@/lib/format';
 
-function Tile({ label, value, hint, tone }: { label: string; value: string; hint?: string; tone?: 'up' | 'down' }) {
+export function Tile({ label, value, hint, tone }: { label: string; value: string; hint?: string; tone?: 'up' | 'down' }) {
   return (
     <div className="flex flex-col gap-1 rounded-lg border p-3">
       <span className="text-xs text-muted-foreground">{label}</span>
@@ -23,7 +23,7 @@ function Tile({ label, value, hint, tone }: { label: string; value: string; hint
   );
 }
 
-const toneOf = (value: string) => (Number(value) > 0 ? 'up' : Number(value) < 0 ? 'down' : undefined);
+export const toneOf = (value: string) => (Number(value) > 0 ? 'up' : Number(value) < 0 ? 'down' : undefined);
 
 /** The run's numbers. Costs sit beside the return, not in a drawer: they are the honest half of it. */
 export function SummaryTiles({ summary, quote }: { summary: BacktestSummary; quote: string }) {

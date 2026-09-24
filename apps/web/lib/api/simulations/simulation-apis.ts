@@ -1,7 +1,10 @@
 import type {
   CreateSimulationInput,
   Simulation,
+  SimulationEquity,
+  SimulationEventPage,
   SimulationList,
+  SimulationSnapshot,
   StartSimulationInput,
 } from '@quant/contracts/simulation';
 
@@ -42,4 +45,20 @@ export async function engageKill(id: string): Promise<Simulation> {
 // DELETE /api/v1/simulations/:id/kill
 export async function releaseKill(id: string): Promise<Simulation> {
   return request(`/simulations/${id}/kill`, { method: 'DELETE' });
+}
+
+// GET /api/v1/simulations/:id/snapshot -- 404 SNAPSHOT_NOT_FOUND until the node first publishes.
+export async function getSimulationSnapshot(id: string): Promise<SimulationSnapshot> {
+  return request(`/simulations/${id}/snapshot`, { method: 'GET' });
+}
+
+// GET /api/v1/simulations/:id/events -- oldest first; `after` is the last page's cursor.
+export async function getSimulationEvents(id: string, after?: string, limit = 200): Promise<SimulationEventPage> {
+  const query = new URLSearchParams({ limit: String(limit), ...(after ? { after } : {}) });
+  return request(`/simulations/${id}/events?${query}`, { method: 'GET' });
+}
+
+// GET /api/v1/simulations/:id/equity -- one point per closed bar.
+export async function getSimulationEquity(id: string, after?: string): Promise<SimulationEquity> {
+  return request(`/simulations/${id}/equity${after ? `?after=${after}` : ''}`, { method: 'GET' });
 }
