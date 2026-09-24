@@ -1,7 +1,14 @@
 'use client';
 
 import { isTerminal } from '@quant/contracts/backtest';
-import { RiErrorWarningLine, RiPulseLine, RiRepeatLine } from '@remixicon/react';
+import {
+  RiCalendarLine,
+  RiErrorWarningLine,
+  RiExchangeLine,
+  RiLineChartLine,
+  RiPulseLine,
+  RiRepeatLine,
+} from '@remixicon/react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
@@ -9,6 +16,8 @@ import { useParams } from 'next/navigation';
 import { EquityChart } from '@/components/backtests/equity-chart';
 import { StatusBadge, StatusTimeline } from '@/components/backtests/run-status';
 import { SummaryTiles } from '@/components/backtests/summary-tiles';
+import { Pill, shortTimeframe, symbolOf } from '@/components/metric-card';
+import { Chip, PageHeader, SectionTitle } from '@/components/page-header';
 import { TradeTable } from '@/components/backtests/trade-table';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -39,9 +48,14 @@ export default function BacktestRunPage() {
   if (isPending) {
     return (
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-4">
+        <Skeleton className="h-4 w-24" />
         <Skeleton className="h-8 w-72" />
-        <Skeleton className="h-24 w-full" />
-        <Skeleton className="h-72 w-full" />
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {Array.from({ length: 4 }, (_, i) => (
+            <Skeleton key={i} className="h-24 rounded-xl" />
+          ))}
+        </div>
+        <Skeleton className="h-96 w-full rounded-2xl" />
       </div>
     );
   }
@@ -63,46 +77,60 @@ export default function BacktestRunPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-semibold">
-              <Link href={`/strategies/${run.strategyId}`} className="hover:underline">
-                {run.strategyName}
-              </Link>{' '}
-              <span className="text-muted-foreground">v{run.version}</span>
-            </h1>
+      <PageHeader
+        back={{ href: '/backtests', label: 'Backtests' }}
+        title={
+          <Link href={`/strategies/${run.strategyId}`} className="hover:underline">
+            {run.strategyName}
+          </Link>
+        }
+        badges={
+          <>
+            <Pill>V{run.version}</Pill>
             <StatusBadge status={run.status} />
-          </div>
-          <p className="text-sm text-muted-foreground">
-            {run.instrumentId.replace(/\.[A-Z]+$/, '')} · {utcDate(run.start)} → {utcDate(run.end)} UTC · fees{' '}
-            {run.fees.makerBps}/{run.fees.takerBps} bps maker/taker · slippage {run.slippageBps} bps
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {run.status === 'QUEUED' && (
-            <Button variant="outline" size="sm" disabled={cancel.isPending} onClick={() => cancel.mutate(run.id)}>
-              {cancel.isPending ? 'Cancelling…' : 'Cancel run'}
-            </Button>
-          )}
-          {finished && (
-            <Link
-              href={`/strategies/${run.strategyId}/backtest?version=${run.versionId}`}
-              className={buttonVariants({ variant: 'outline', size: 'sm' })}
-            >
-              <RiRepeatLine /> Run again
-            </Link>
-          )}
-          {succeeded && (
-            <Link
-              href={`/strategies/${run.strategyId}/simulate?version=${run.versionId}`}
-              className={buttonVariants({ size: 'sm' })}
-            >
-              <RiPulseLine /> Paper trade this version
-            </Link>
-          )}
-        </div>
-      </div>
+          </>
+        }
+        chips={
+          <>
+            <Chip className="text-foreground font-medium">
+              {symbolOf(run.instrumentId)} · {shortTimeframe(run.barType)}
+            </Chip>
+            <Chip>
+              <RiCalendarLine className="size-3" /> {utcDate(run.start)} → {utcDate(run.end)} UTC
+            </Chip>
+            <Chip>
+              Fees {run.fees.makerBps}/{run.fees.takerBps} bps
+            </Chip>
+            <Chip>Slippage {run.slippageBps} bps</Chip>
+            <Chip>Start {run.startingBalances.join(', ')}</Chip>
+          </>
+        }
+        actions={
+          <>
+            {run.status === 'QUEUED' && (
+              <Button variant="outline" size="sm" disabled={cancel.isPending} onClick={() => cancel.mutate(run.id)}>
+                {cancel.isPending ? 'Cancelling…' : 'Cancel run'}
+              </Button>
+            )}
+            {finished && (
+              <Link
+                href={`/strategies/${run.strategyId}/backtest?version=${run.versionId}`}
+                className={buttonVariants({ variant: 'outline', size: 'sm' })}
+              >
+                <RiRepeatLine /> Run again
+              </Link>
+            )}
+            {succeeded && (
+              <Link
+                href={`/strategies/${run.strategyId}/simulate?version=${run.versionId}`}
+                className={buttonVariants({ size: 'sm' })}
+              >
+                <RiPulseLine /> Paper trade this version
+              </Link>
+            )}
+          </>
+        }
+      />
 
       {!finished && (
         <Card>
@@ -135,7 +163,9 @@ export default function BacktestRunPage() {
       {succeeded && (
         <Card>
           <CardHeader>
-            <CardTitle>Equity</CardTitle>
+            <CardTitle>
+              <SectionTitle icon={RiLineChartLine}>Equity</SectionTitle>
+            </CardTitle>
             <CardDescription>
               Realized: it moves only when a trade closes.
               {equity.data &&
@@ -144,7 +174,7 @@ export default function BacktestRunPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {equity.isPending && <Skeleton className="h-96 w-full" />}
+            {equity.isPending && <Skeleton className="h-96 w-full rounded-xl" />}
             {equity.error && (
               <p className="text-sm text-destructive">Could not load the curve: {equity.error.message}</p>
             )}
@@ -161,7 +191,11 @@ export default function BacktestRunPage() {
       {succeeded && (
         <Card>
           <CardHeader>
-            <CardTitle>Trades</CardTitle>
+            <CardTitle>
+              <SectionTitle icon={RiExchangeLine} tone="cyan">
+                Trades
+              </SectionTitle>
+            </CardTitle>
             <CardDescription>Closed round trips, with the fees and slippage each one paid.</CardDescription>
           </CardHeader>
           <CardContent>

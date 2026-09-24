@@ -5,8 +5,9 @@ import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useState } from 'react';
 
-import { RunTable } from '@/components/backtests/run-table';
-import { EmptyState, ErrorState, TableSkeleton } from '@/components/page-states';
+import { BacktestCard } from '@/components/backtests/backtest-card';
+import { CardGrid, CardGridSkeleton } from '@/components/metric-card';
+import { EmptyState, ErrorState } from '@/components/page-states';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { backtestsQueryOptions } from '@/lib/api/backtests/backtest-queries';
 
@@ -25,7 +26,7 @@ export default function BacktestsPage() {
         </p>
       </div>
 
-      {isPending && <TableSkeleton />}
+      {isPending && <CardGridSkeleton />}
 
       {error && <ErrorState error={error} title="Could not load runs" onRetry={() => void refetch()} />}
 
@@ -45,7 +46,11 @@ export default function BacktestsPage() {
 
       {data && data.data.length > 0 && (
         <>
-          <RunTable runs={data.data} />
+          <CardGrid>
+            {data.data.map((run) => (
+              <BacktestCard key={run.id} run={run} />
+            ))}
+          </CardGrid>
           {data.pagination.totalPages > 1 && (
             <div className="flex items-center justify-end gap-3 text-sm text-muted-foreground">
               <span>

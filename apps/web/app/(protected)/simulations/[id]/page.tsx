@@ -1,11 +1,24 @@
 'use client';
 
 import type { Simulation } from '@quant/contracts/simulation';
-import { RiAlarmWarningLine, RiErrorWarningLine, RiLoader4Line, RiTimeLine } from '@remixicon/react';
+import {
+  RiAlarmWarningLine,
+  RiEqualizerLine,
+  RiErrorWarningLine,
+  RiExchangeLine,
+  RiHistoryLine,
+  RiLineChartLine,
+  RiLoader4Line,
+  RiServerLine,
+  RiSettings3Line,
+  RiTimeLine,
+} from '@remixicon/react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 
+import { shortTimeframe, symbolOf } from '@/components/metric-card';
+import { Chip, PageHeader, SectionTitle } from '@/components/page-header';
 import { ActivityFeed } from '@/components/simulations/activity-feed';
 import { DetailRow as Row } from '@/components/simulations/detail-row';
 import { EquityCurve } from '@/components/simulations/equity-curve';
@@ -28,6 +41,7 @@ import {
 } from '@/lib/api/simulations/simulation-queries';
 import { strategyQueryOptions } from '@/lib/api/strategies/strategy-queries';
 import { money, timeAgo, utcDateTime } from '@/lib/format';
+import { cn } from '@/lib/utils';
 
 /** Balances, position, the strategy's reasoning, the curve and the feed. */
 function LiveState({ sim }: { sim: Simulation }) {
@@ -52,7 +66,11 @@ function LiveState({ sim }: { sim: Simulation }) {
         </AlertDescription>
       </Alert>
     ) : (
-      <ErrorState error={snapshot.error} title="Could not load the account state" onRetry={() => void snapshot.refetch()} />
+      <ErrorState
+        error={snapshot.error}
+        title="Could not load the account state"
+        onRetry={() => void snapshot.refetch()}
+      />
     );
   }
 
@@ -77,10 +95,10 @@ function LiveState({ sim }: { sim: Simulation }) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Equity</CardTitle>
-          <CardDescription>
-            Marked to each bar&apos;s close. The dashed line is the starting balance.
-          </CardDescription>
+          <CardTitle>
+            <SectionTitle icon={RiLineChartLine}>Equity</SectionTitle>
+          </CardTitle>
+          <CardDescription>Marked to each bar&apos;s close. The dashed line is the starting balance.</CardDescription>
         </CardHeader>
         <CardContent>
           {equity.data && equity.data.points.length > 0 ? (
@@ -97,7 +115,11 @@ function LiveState({ sim }: { sim: Simulation }) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Fills</CardTitle>
+          <CardTitle>
+            <SectionTitle icon={RiExchangeLine} tone="cyan">
+              Fills
+            </SectionTitle>
+          </CardTitle>
           <CardDescription>Every fill, kept permanently. Fees include slippage.</CardDescription>
         </CardHeader>
         <CardContent>
@@ -107,7 +129,11 @@ function LiveState({ sim }: { sim: Simulation }) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Activity</CardTitle>
+          <CardTitle>
+            <SectionTitle icon={RiHistoryLine} tone="violet">
+              Activity
+            </SectionTitle>
+          </CardTitle>
           <CardDescription>Fills, signals, blocked entries, starts and stops. Times in UTC.</CardDescription>
         </CardHeader>
         <CardContent>
@@ -132,9 +158,14 @@ export default function SimulationPage() {
   if (isPending) {
     return (
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-4">
+        <Skeleton className="h-4 w-24" />
         <Skeleton className="h-8 w-72" />
-        <Skeleton className="h-40 w-full" />
-        <Skeleton className="h-64 w-full" />
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          {Array.from({ length: 4 }, (_, i) => (
+            <Skeleton key={i} className="h-24 rounded-xl" />
+          ))}
+        </div>
+        <Skeleton className="h-64 w-full rounded-2xl" />
       </div>
     );
   }
@@ -165,18 +196,39 @@ export default function SimulationPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-xl font-semibold">{sim.name}</h1>
-          <StateBadge sim={sim} />
-        </div>
-        <p className="text-sm text-muted-foreground">
-          <Link href={`/strategies/${sim.strategyId}`} className="hover:underline">
-            {sim.strategyName}
-          </Link>{' '}
-          v{sim.version} · {sim.instrumentId.replace(/\.[A-Z]+$/, '')} · paper trading
-        </p>
-      </div>
+      <PageHeader
+        back={{ href: '/simulations', label: 'Simulations' }}
+        title={sim.name}
+        badges={<StateBadge sim={sim} />}
+        chips={
+          <>
+            <Chip className="text-foreground font-medium">
+              {symbolOf(sim.instrumentId)} · {shortTimeframe(sim.barType)}
+            </Chip>
+            <Chip>
+              <Link href={`/strategies/${sim.strategyId}`} className="hover:text-foreground">
+                {sim.strategyName}
+              </Link>{' '}
+              v{sim.version}
+            </Chip>
+            <Chip>Paper trading</Chip>
+            <Chip>
+              <span className="relative flex size-1.5">
+                {state.label === 'Running' && (
+                  <span className="absolute inset-0 animate-ping rounded-full bg-emerald-500/60" />
+                )}
+                <span
+                  className={cn(
+                    'relative size-1.5 rounded-full',
+                    state.label === 'Running' ? 'bg-emerald-500' : 'bg-muted-foreground/50'
+                  )}
+                />
+              </span>
+              {observed?.heartbeatAt ? `Heartbeat ${timeAgo(observed.heartbeatAt)}` : 'No heartbeat yet'}
+            </Chip>
+          </>
+        }
+      />
 
       {observed?.status === 'HALTED' && (
         <Alert variant="destructive">
@@ -214,7 +266,11 @@ export default function SimulationPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Controls</CardTitle>
+          <CardTitle>
+            <SectionTitle icon={RiSettings3Line} tone="amber">
+              Controls
+            </SectionTitle>
+          </CardTitle>
           <CardDescription>{state.hint}</CardDescription>
         </CardHeader>
         <CardContent>
@@ -229,7 +285,11 @@ export default function SimulationPage() {
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>State</CardTitle>
+            <CardTitle>
+              <SectionTitle icon={RiServerLine} tone="cyan">
+                State
+              </SectionTitle>
+            </CardTitle>
             <CardDescription>
               What was asked for, and what the node reports. They match when it has converged.
             </CardDescription>
@@ -272,7 +332,11 @@ export default function SimulationPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Configuration</CardTitle>
+            <CardTitle>
+              <SectionTitle icon={RiEqualizerLine} tone="violet">
+                Configuration
+              </SectionTitle>
+            </CardTitle>
             <CardDescription>Account-level. Fixed when it was created.</CardDescription>
           </CardHeader>
           <CardContent>

@@ -39,13 +39,18 @@ export function FillTable({ simulationId }: { simulationId: string }) {
         <TableBody>
           {data.data.map((f) => (
             <TableRow key={f.tradeId}>
-              <TableCell className="tabular-nums">{utcDateTime(f.filledAt)}</TableCell>
-              <TableCell
-                className={cn(
-                  f.side === 'BUY' ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-destructive'
-                )}
-              >
-                {f.side === 'BUY' ? 'Buy' : 'Sell'}
+              <TableCell className="text-muted-foreground tabular-nums">{utcDateTime(f.filledAt)}</TableCell>
+              <TableCell>
+                <span
+                  className={cn(
+                    'rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wider uppercase',
+                    f.side === 'BUY'
+                      ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                      : 'bg-red-500/10 text-red-600 dark:text-red-400'
+                  )}
+                >
+                  {f.side === 'BUY' ? 'Buy' : 'Sell'}
+                </span>
               </TableCell>
               <TableCell className="text-right tabular-nums">{money(f.quantity, 3)}</TableCell>
               <TableCell className="text-right tabular-nums">{money(f.price)}</TableCell>

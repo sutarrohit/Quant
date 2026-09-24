@@ -1,11 +1,14 @@
 import type { SimulationSnapshot } from '@quant/contracts/simulation';
+import { RiWallet3Line } from '@remixicon/react';
 
+import { SectionTitle } from '@/components/page-header';
 import { DetailRow } from '@/components/simulations/detail-row';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { duration, money, percent, utcDateTime } from '@/lib/format';
 
-const base = (instrumentId: string, quote: string) => instrumentId.replace(/\.[A-Z]+$/, '').replace(new RegExp(`${quote}$`), '');
+const base = (instrumentId: string, quote: string) =>
+  instrumentId.replace(/\.[A-Z]+$/, '').replace(new RegExp(`${quote}$`), '');
 
 /** The open position, or flat, with what the account holds either way. */
 export function PositionCard({ snapshot }: { snapshot: SimulationSnapshot }) {
@@ -20,7 +23,9 @@ export function PositionCard({ snapshot }: { snapshot: SimulationSnapshot }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Position</CardTitle>
+        <CardTitle>
+          <SectionTitle icon={RiWallet3Line}>Position</SectionTitle>
+        </CardTitle>
         <CardDescription>
           {position ? `${position.side} since ${utcDateTime(position.openedAt)} UTC` : 'Flat: holding no coin.'}
         </CardDescription>
@@ -48,15 +53,21 @@ export function PositionCard({ snapshot }: { snapshot: SimulationSnapshot }) {
                 {move !== null && ` (${percent(move, true)})`}
               </span>
             </DetailRow>
-            <DetailRow label="Stop loss at">{position.stopPrice ? `${money(position.stopPrice)} ${quote}` : '—'}</DetailRow>
+            <DetailRow label="Stop loss at">
+              {position.stopPrice ? `${money(position.stopPrice)} ${quote}` : '—'}
+            </DetailRow>
             <DetailRow label="Take profit at">
               {position.takeProfitPrice ? `${money(position.takeProfitPrice)} ${quote}` : '—'}
             </DetailRow>
-            <DetailRow label="Held for">{duration((Date.parse(snapshot.at) - Date.parse(position.openedAt)) / 1000)}</DetailRow>
+            <DetailRow label="Held for">
+              {duration((Date.parse(snapshot.at) - Date.parse(position.openedAt)) / 1000)}
+            </DetailRow>
           </>
         )}
 
-        <p className={cn('text-xs font-medium text-muted-foreground', position && 'mt-4')}>Balances</p>
+        <p className={cn('text-muted-foreground text-[10px] font-medium tracking-wider uppercase', position && 'mt-4')}>
+          Balances
+        </p>
         {snapshot.balances.length === 0 && <p className="py-2 text-sm text-muted-foreground">Nothing held.</p>}
         {[...snapshot.balances, ...snapshot.otherHoldings].map((b) => (
           <DetailRow key={b.currency} label={b.currency}>

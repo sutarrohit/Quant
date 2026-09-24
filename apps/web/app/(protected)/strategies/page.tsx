@@ -4,8 +4,9 @@ import { RiAddLine, RiLineChartLine } from '@remixicon/react';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 
-import { StrategyTable } from '@/components/strategies/strategy-table';
-import { EmptyState, ErrorState, TableSkeleton } from '@/components/page-states';
+import { CardGridSkeleton } from '@/components/metric-card';
+import { StrategyGrid } from '@/components/strategies/strategy-grid';
+import { EmptyState, ErrorState } from '@/components/page-states';
 import { buttonVariants } from '@/components/ui/button';
 import { strategiesQueryOptions } from '@/lib/api/strategies/strategy-queries';
 
@@ -29,7 +30,7 @@ export default function StrategiesPage() {
         {data && data.strategies.length > 0 && newStrategy}
       </div>
 
-      {isPending && <TableSkeleton />}
+      {isPending && <CardGridSkeleton />}
 
       {error && <ErrorState error={error} title="Could not load strategies" onRetry={() => void refetch()} />}
 
@@ -42,7 +43,7 @@ export default function StrategiesPage() {
         />
       )}
 
-      {data && data.strategies.length > 0 && <StrategyTable strategies={data.strategies} />}
+      {data && data.strategies.length > 0 && <StrategyGrid strategies={data.strategies} />}
     </div>
   );
 }

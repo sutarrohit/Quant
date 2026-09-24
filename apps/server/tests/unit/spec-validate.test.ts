@@ -60,11 +60,11 @@ describe('operators are per indicator', () => {
     expect(codes(spec)).toContain('UNSUPPORTED_OPERATOR');
   });
 
-  it('allows volume against its own average', () => {
-    const spec = edit({
-      entry: { indicator: 'volume', operator: 'greaterThanSma', period: 20 },
-    });
-    expect(codes(spec)).not.toContain('UNSUPPORTED_OPERATOR');
+  it('allows volume against its own average, with no value', () => {
+    // The average is the threshold, as on the engine.
+    for (const operator of ['greaterThanSma', 'lessThanSma']) {
+      expect(codes(edit({ entry: { indicator: 'volume', operator, period: 20 } }))).toEqual([]);
+    }
   });
 });
 
@@ -82,9 +82,8 @@ describe('periods', () => {
   });
 
   it('requires one on volume only for the averaging operators', () => {
-    expect(
-      codes(edit({ entry: { indicator: 'volume', operator: 'greaterThanSma' } }))
-    ).toContain('MISSING_PERIOD');
+    // Only the missing window is reported, as on the engine.
+    expect(codes(edit({ entry: { indicator: 'volume', operator: 'greaterThanSma' } }))).toEqual(['MISSING_PERIOD']);
     expect(
       codes(edit({ entry: { indicator: 'volume', operator: 'greaterThan', value: 1, period: 20 } }))
     ).toContain('INVALID_REFERENCE');

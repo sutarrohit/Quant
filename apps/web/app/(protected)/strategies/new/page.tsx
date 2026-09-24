@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
+import { Chip, PageHeader } from '@/components/page-header';
 import { FormFooter } from '@/components/strategies/form-footer';
 import { StrategyForm } from '@/components/strategies/strategy-form';
 import { Input } from '@/components/ui/input';
@@ -42,10 +43,16 @@ export default function NewStrategyPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
-      <div>
-        <h1 className="text-xl font-semibold">New strategy</h1>
-        <p className="text-sm text-muted-foreground">Starts from a 200-period SMA crossover. Change anything.</p>
-      </div>
+      <PageHeader
+        back={{ href: '/strategies', label: 'Strategies' }}
+        title="New strategy"
+        chips={
+          <>
+            <Chip>Binance · Spot</Chip>
+            <Chip>Starts from a 200-period SMA crossover. Change anything.</Chip>
+          </>
+        }
+      />
       <StrategyForm
         defaultValues={draft ?? starterSpec('strategy')}
         storeKey={NEW}
@@ -54,12 +61,15 @@ export default function NewStrategyPage() {
         onSubmit={onSubmit}
         header={
           <div className="grid max-w-md gap-2">
-            <Label htmlFor="strategy-name">Name</Label>
+            <Label htmlFor="strategy-name" className="text-muted-foreground text-[10px] tracking-wider uppercase">
+              Name
+            </Label>
             <Input
               id="strategy-name"
               value={name}
               maxLength={200}
               placeholder="e.g. SMA 200 crossover"
+              className="h-10 text-base font-semibold"
               onChange={(e) => setName(e.target.value)}
             />
           </div>

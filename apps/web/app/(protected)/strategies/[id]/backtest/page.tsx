@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useParams, useSearchParams } from 'next/navigation';
 
 import { BacktestForm } from '@/components/backtests/backtest-form';
+import { Chip, PageHeader } from '@/components/page-header';
 import { ErrorState } from '@/components/page-states';
 import { Skeleton } from '@/components/ui/skeleton';
 import { strategyQueryOptions } from '@/lib/api/strategies/strategy-queries';
@@ -17,9 +18,10 @@ export default function NewBacktestPage() {
 
   if (isPending) {
     return (
-      <div className="mx-auto flex w-full max-w-4xl flex-col gap-4">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-4">
+        <Skeleton className="h-4 w-24" />
         <Skeleton className="h-8 w-64" />
-        <Skeleton className="h-96 w-full" />
+        <Skeleton className="h-96 w-full rounded-2xl" />
       </div>
     );
   }
@@ -41,14 +43,22 @@ export default function NewBacktestPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
-      <div>
-        <h1 className="text-xl font-semibold">Backtest {data.name}</h1>
-        <p className="text-sm text-muted-foreground">
-          Replays the rules over past bars, with fees and slippage charged on every fill.
-          {hasDraft && ' Unsaved edits are not included: save them as a version first.'}
-        </p>
-      </div>
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
+      <PageHeader
+        back={{ href: `/strategies/${id}`, label: data.name }}
+        title={`Backtest ${data.name}`}
+        chips={
+          <>
+            <Chip>Binance · Spot</Chip>
+            <Chip>Replays the rules over past bars, with fees and slippage on every fill</Chip>
+            {hasDraft && (
+              <Chip className="border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                Unsaved edits are not included: save them as a version first
+              </Chip>
+            )}
+          </>
+        }
+      />
       <BacktestForm strategy={data} versionId={versionId} />
     </div>
   );
