@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import json
 from typing import Any
 
 import fakeredis
@@ -483,3 +484,96 @@ def test_a_mandate_carries_limits(api: TestClient) -> None:
     granted = api.put("/v1/live/acct_1/mandate", json=grant(), headers=AUTH).json()
 
     assert granted["limits"]["max_order_notional"] == "5000"
+
+
+# --- what an account is doing (docs/simulation-state-plan.md) ------------------
+
+
+def write(redis_server: fakeredis.FakeServer, key: str, value: str) -> None:
+    fakeredis.FakeRedis(server=redis_server, decode_responses=True).set(key, value)
+
+
+def stream(redis_server: fakeredis.FakeServer, key: str, *entries: dict[str, str]) -> list[str]:
+    client = fakeredis.FakeRedis(server=redis_server, decode_responses=True)
+    return [client.xadd(key, entry) for entry in entries]
+
+
+def test_state_of_an_unknown_account_is_404(api: TestClient) -> None:
+    for path in ("snapshot", "events", "equity"):
+        response = api.get(f"/v1/live/acct_x/{path}", headers=AUTH)
+        assert response.status_code == 404
+        assert response.json()["code"] == "ACCOUNT_NOT_FOUND"
+
+
+def test_a_node_that_has_not_published_yet_says_so(api: TestClient) -> None:
+    api.put("/v1/live/acct_1", json=body(), headers=AUTH)
+
+    response = api.get("/v1/live/acct_1/snapshot", headers=AUTH)
+
+    assert response.status_code == 404
+    assert response.json()["code"] == "SNAPSHOT_NOT_FOUND"
+
+
+def test_a_fresh_snapshot_is_not_stale(api: TestClient, redis_server: fakeredis.FakeServer) -> None:
+    from datetime import UTC, datetime
+
+    api.put("/v1/live/acct_1", json=body(), headers=AUTH)
+    now = datetime.now(UTC).isoformat().replace("+00:00", "Z")
+    write(redis_server, "live:snapshot:acct_1", json.dumps({"at": now, "equity": "10000"}))
+
+    response = api.get("/v1/live/acct_1/snapshot", headers=AUTH)
+
+    assert response.status_code == 200
+    assert response.json() == {"at": now, "equity": "10000", "stale": False}
+
+
+def test_an_old_snapshot_is_returned_and_marked_stale(
+    api: TestClient, redis_server: fakeredis.FakeServer
+) -> None:
+    # A dead node's last known state is still the most useful thing to show.
+    api.put("/v1/live/acct_1", json=body(), headers=AUTH)
+    write(redis_server, "live:snapshot:acct_1", json.dumps({"at": "2026-01-01T00:00:00Z"}))
+
+    assert api.get("/v1/live/acct_1/snapshot", headers=AUTH).json()["stale"] is True
+
+
+def test_events_page_from_a_cursor(api: TestClient, redis_server: fakeredis.FakeServer) -> None:
+    api.put("/v1/live/acct_1", json=body(), headers=AUTH)
+    ids = stream(
+        redis_server,
+        "live:events:acct_1",
+        *({"data": json.dumps({"kind": "SIGNAL", "n": n})} for n in range(3)),
+    )
+
+    latest = api.get("/v1/live/acct_1/events?limit=2", headers=AUTH).json()
+    since = api.get(f"/v1/live/acct_1/events?after={ids[0]}", headers=AUTH).json()
+
+    assert [e["n"] for e in latest["events"]] == [1, 2]
+    assert [e["n"] for e in since["events"]] == [1, 2]
+    assert since["last"] == ids[2]
+
+
+def test_a_cursor_that_is_not_a_stream_id_is_refused(api: TestClient) -> None:
+    # It is spliced into an XRANGE bound, so it is checked, not trusted.
+    api.put("/v1/live/acct_1", json=body(), headers=AUTH)
+
+    response = api.get("/v1/live/acct_1/events?after=-", headers=AUTH)
+
+    assert response.status_code == 422
+
+
+def test_equity_points_come_oldest_first(api: TestClient, redis_server: fakeredis.FakeServer) -> None:
+    api.put("/v1/live/acct_1", json=body(), headers=AUTH)
+    stream(
+        redis_server,
+        "live:equity:acct_1",
+        {"time": "2026-09-24T04:15:00Z", "equity": "10000"},
+        {"time": "2026-09-24T04:30:00Z", "equity": "10001.5"},
+    )
+
+    document = api.get("/v1/live/acct_1/equity", headers=AUTH).json()
+
+    assert document["points"] == [
+        {"time": "2026-09-24T04:15:00Z", "equity": "10000"},
+        {"time": "2026-09-24T04:30:00Z", "equity": "10001.5"},
+    ]

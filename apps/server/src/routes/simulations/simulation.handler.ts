@@ -7,6 +7,10 @@ import type { RiskLimits, Simulation } from '@quant/contracts/simulation';
 import type {
   createSimulationRoute,
   engageKillRoute,
+  simulationEquityRoute,
+  simulationFillsRoute,
+  simulationEventsRoute,
+  simulationSnapshotRoute,
   getSimulationRoute,
   listSimulationsRoute,
   releaseKillRoute,
@@ -32,6 +36,7 @@ const toWire = (sim: SimView): Simulation => ({
   updatedAt: sim.updatedAt.toISOString(),
   live: sim.live,
   liveError: sim.liveError,
+  performance: sim.performance,
 });
 
 export const listSimulationsHandler: AppRouteHandler<typeof listSimulationsRoute> = async (c) => {
@@ -68,4 +73,27 @@ export const engageKillHandler: AppRouteHandler<typeof engageKillRoute> = async 
 export const releaseKillHandler: AppRouteHandler<typeof releaseKillRoute> = async (c) => {
   const sim = await simulationService.kill(c.get('user').id, c.req.valid('param').id, false);
   return c.json(toWire(sim), HttpStatusCodes.OK);
+};
+
+export const simulationSnapshotHandler: AppRouteHandler<typeof simulationSnapshotRoute> = async (c) => {
+  const snapshot = await simulationService.snapshot(c.get('user').id, c.req.valid('param').id);
+  return c.json(snapshot, HttpStatusCodes.OK);
+};
+
+export const simulationEventsHandler: AppRouteHandler<typeof simulationEventsRoute> = async (c) => {
+  const { after, limit } = c.req.valid('query');
+  const page = await simulationService.events(c.get('user').id, c.req.valid('param').id, after, limit);
+  return c.json(page, HttpStatusCodes.OK);
+};
+
+export const simulationEquityHandler: AppRouteHandler<typeof simulationEquityRoute> = async (c) => {
+  const { after } = c.req.valid('query');
+  const equity = await simulationService.equity(c.get('user').id, c.req.valid('param').id, after);
+  return c.json(equity, HttpStatusCodes.OK);
+};
+
+export const simulationFillsHandler: AppRouteHandler<typeof simulationFillsRoute> = async (c) => {
+  const { page, pageSize } = c.req.valid('query');
+  const fills = await simulationService.fills(c.get('user').id, c.req.valid('param').id, page, pageSize);
+  return c.json(fills, HttpStatusCodes.OK);
 };

@@ -22,7 +22,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from decimal import Decimal
 
-from engine.dsl.keys import SMA_OPERATORS, required_refs
+from engine.dsl.keys import SMA_OPERATORS, required_refs, subject_ref
 from engine.errors import InterpreterError
 from engine.types.dsl import (
     AllGroup,
@@ -177,3 +177,66 @@ def _crosses(
     if above:
         return previous <= previous_reference and current > reference
     return previous >= previous_reference and current < reference
+
+
+# --- explaining a decision ----------------------------------------------
+
+
+@dataclass(frozen=True, slots=True)
+class ConditionResult:
+    """One leaf of a tree, and whether it holds on this bar."""
+
+    path: str
+    label: str
+    passed: bool
+    #: The series the leaf is about, so its value can be shown beside it. None
+    #: for take-profit and stop-loss, which read the position instead.
+    series: str | None = None
+
+
+def explain(root: object, ctx: EvalContext, path: str) -> list[ConditionResult]:
+    """Every leaf under ``root``, each evaluated on its own.
+
+    What a strategy's author wants to see: not "entry: false", but which half of
+    the rule is holding it back. Leaves only -- a group's answer follows from
+    them. Not on the order path: `evaluate` still decides.
+    """
+    from engine.dsl.validator import walk
+
+    return [
+        ConditionResult(
+            path=leaf_path,
+            label=describe(node),
+            passed=evaluate(node, ctx),
+            series=_subject_key(node),
+        )
+        for leaf_path, node in walk(root, path)
+        if not isinstance(node, AllGroup | AnyGroup | NotGroup)
+    ]
+
+
+def describe(node: object) -> str:
+    """A leaf as a person would write it: ``rsi(14) crossesAbove 30``."""
+    if isinstance(node, TakeProfitPercent):
+        return f"take profit at +{node.value}%"
+    if isinstance(node, StopLossPercent):
+        return f"stop loss at -{node.value}%"
+    indicator: str = node.indicator  # type: ignore[attr-defined]
+    operator: Operator = node.operator  # type: ignore[attr-defined]
+    period: int | None = getattr(node, "period", None)
+    reference = getattr(node, "reference", None)
+
+    if operator in SMA_OPERATORS:
+        return f"{indicator} {operator.value}({period})"  # volume greaterThanSma(20)
+    subject = indicator if period is None else f"{indicator}({period})"
+    if reference is not None:
+        target = reference.indicator if reference.period is None else f"{reference.indicator}({reference.period})"
+    else:
+        target = str(getattr(node, "value", ""))
+    return f"{subject} {operator.value} {target}"
+
+
+def _subject_key(node: object) -> str | None:
+    if not all(hasattr(node, attribute) for attribute in _INDICATOR_ATTRIBUTES):
+        return None
+    return subject_ref(node.indicator, getattr(node, "period", None)).key  # type: ignore[attr-defined]

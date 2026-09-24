@@ -164,12 +164,39 @@ model Simulation {
 
   riskLimits Json? @map("risk_limits") // Absent means unlimited -- a choice, not a default.
 
+  // The engine event-stream id fills have been copied up to. Null until the first copy.
+  fillsSyncedTo String? @map("fills_synced_to")
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   version StrategyVersion @relation(fields: [versionId], references: [id])
+  fills   AccountFill[]
 
   @@index([userId])
   @@map("simulation")
+}
+
+// A fill, copied from the engine's event stream (simulation-state plan S5). The engine's
+// Redis is a cache and trims its stream; this is the record. Keyed by account and trade
+// id, so copying the same event twice leaves one row. Mode-neutral (L9): live reuses it.
+model AccountFill {
+  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  accountId          String   @map("account_id")
+  tradeId            String   @map("trade_id")
+  clientOrderId      String   @map("client_order_id")
+  side               String
+  quantity           Decimal  @db.Decimal(38, 18)
+  price              Decimal  @db.Decimal(38, 18)
+  commission         Decimal  @db.Decimal(38, 18)
+  commissionCurrency String   @map("commission_currency") // Never assumed (L5).
+  filledAt           DateTime @map("filled_at")
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  simulation Simulation @relation(fields: [accountId], references: [accountId], onDelete: Cascade)
+
+  @@unique([accountId, tradeId])
+  @@index([accountId, filledAt])
+  @@map("account_fill")
 }

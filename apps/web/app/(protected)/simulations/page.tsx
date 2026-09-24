@@ -13,7 +13,7 @@ export default function SimulationsPage() {
   const { data, isPending, error, refetch } = useQuery(simulationsQueryOptions());
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
+    <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
       <div>
         <h1 className="text-xl font-semibold">Simulations</h1>
         <p className="text-sm text-muted-foreground">Paper accounts trading live prices. Updates every 5 seconds.</p>

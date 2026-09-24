@@ -18,18 +18,20 @@ Three consequences visible in these routes:
 from __future__ import annotations
 
 import logging
+from datetime import UTC, datetime
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import APIRouter, Depends, Query, Request, status
 
 from engine.api.auth import InternalAuth
 from engine.api.deps import RedisDep, SettingsDep
 from engine.dsl.hashing import spec_hash
 from engine.dsl.validator import validate_spec
-from engine.errors import AccountNotFound, SpecInvalid
+from engine.errors import AccountNotFound, SnapshotNotFound, SpecInvalid
 from engine.live.desired_state import LiveStateStore
 from engine.live.kill_switch import RedisKillSwitch
 from engine.live.mandate import Mandate, MandateStore
+from engine.live.publisher import StateFeed
 from engine.settings import Settings
 from engine.types.dsl import StrategySpec
 from engine.types.live import LiveRequest, MandateRequest, RevokeRequest
@@ -114,6 +116,66 @@ async def get_live(account_id: str, store: LiveStoreDep) -> dict[str, Any]:
         "observed": observed.model_dump(mode="json") if observed else None,
         "leaseHolder": await store.lease_holder(account_id),
     }
+
+
+# --- what an account is doing (docs/simulation-state-plan.md) ----------------
+
+
+async def get_state_feed(redis: RedisDep) -> StateFeed:
+    return StateFeed(redis)
+
+
+StateFeedDep = Annotated[StateFeed, Depends(get_state_feed)]
+
+#: A stream id: milliseconds, a dash, a sequence number. Checked because it is
+#: spliced into an `XRANGE` bound.
+STREAM_ID = r"^\d{1,20}-\d{1,20}$"
+
+
+@router.get("/{account_id}/snapshot")
+async def get_snapshot(
+    account_id: str, store: LiveStoreDep, feed: StateFeedDep, settings: SettingsDep
+) -> dict[str, Any]:
+    """Balances, the position, P&L and what the strategy is waiting for.
+
+    A snapshot older than the heartbeat timeout is returned with `stale: true`
+    rather than hidden: a dead node's last known state is still the most useful
+    thing to show.
+    """
+    await store.require(account_id)
+    snapshot = await feed.snapshot(account_id)
+    if snapshot is None:
+        raise SnapshotNotFound(f"account {account_id} has not published its state yet")
+    age = datetime.now(UTC) - datetime.fromisoformat(snapshot["at"])
+    snapshot["stale"] = age.total_seconds() > settings.live_heartbeat_timeout_seconds
+    return snapshot
+
+
+@router.get("/{account_id}/events")
+async def get_events(
+    account_id: str,
+    store: LiveStoreDep,
+    feed: StateFeedDep,
+    after: Annotated[str | None, Query(pattern=STREAM_ID)] = None,
+    limit: Annotated[int, Query(ge=1, le=1_000)] = 100,
+) -> dict[str, Any]:
+    """Oldest first. Without `after`, the latest `limit`; with it, what came since."""
+    await store.require(account_id)
+    events, last = await feed.events(account_id, after=after, limit=limit)
+    return {"events": events, "last": last}
+
+
+@router.get("/{account_id}/equity")
+async def get_equity(
+    account_id: str,
+    store: LiveStoreDep,
+    feed: StateFeedDep,
+    after: Annotated[str | None, Query(pattern=STREAM_ID)] = None,
+) -> dict[str, Any]:
+    """One point per closed bar, oldest first. Bounded at ~5,000 by the stream."""
+    await store.require(account_id)
+    points, last = await feed.equity(account_id, after=after)
+    return {"points": points, "last": last}
 
 
 @router.get("")

@@ -1,26 +1,126 @@
 'use client';
 
-import { RiAlarmWarningLine, RiErrorWarningLine, RiLoader4Line } from '@remixicon/react';
-import { useQuery } from '@tanstack/react-query';
+import type { Simulation } from '@quant/contracts/simulation';
+import { RiAlarmWarningLine, RiErrorWarningLine, RiLoader4Line, RiTimeLine } from '@remixicon/react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 
+import { ActivityFeed } from '@/components/simulations/activity-feed';
+import { DetailRow as Row } from '@/components/simulations/detail-row';
+import { EquityCurve } from '@/components/simulations/equity-curve';
+import { FillTable } from '@/components/simulations/fill-table';
+import { PerformanceTiles } from '@/components/simulations/performance-tiles';
+import { PositionCard } from '@/components/simulations/position-card';
 import { SimulationActions } from '@/components/simulations/simulation-actions';
 import { StateBadge, simState } from '@/components/simulations/state-badge';
+import { StrategyStatusCard } from '@/components/simulations/strategy-status';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ErrorState } from '@/components/page-states';
 import { Skeleton } from '@/components/ui/skeleton';
-import { simulationQueryOptions } from '@/lib/api/simulations/simulation-queries';
+import {
+  isStarting,
+  simulationEquityQueryOptions,
+  simulationEventsQueryOptions,
+  simulationQueryOptions,
+  simulationSnapshotQueryOptions,
+} from '@/lib/api/simulations/simulation-queries';
 import { strategyQueryOptions } from '@/lib/api/strategies/strategy-queries';
 import { money, timeAgo, utcDateTime } from '@/lib/format';
 
-function Row({ label, children }: { label: string; children: React.ReactNode }) {
+/** Balances, position, the strategy's reasoning, the curve and the feed. */
+function LiveState({ sim }: { sim: Simulation }) {
+  const client = useQueryClient();
+  const snapshot = useQuery(simulationSnapshotQueryOptions(sim.id));
+  const events = useQuery(simulationEventsQueryOptions(client, sim.id));
+  const equity = useQuery(simulationEquityQueryOptions(client, sim.id));
+  const snap = snapshot.data;
+
+  if (snapshot.isPending) return <Skeleton className="h-64 w-full" />;
+
+  if (!snap) {
+    const running = sim.live?.desired.status === 'RUNNING';
+    return isStarting(snapshot.error) ? (
+      <Alert>
+        {running ? <RiLoader4Line className="animate-spin" /> : <RiTimeLine />}
+        <AlertTitle>{running ? 'Waiting for the first report' : 'No report yet'}</AlertTitle>
+        <AlertDescription>
+          {running
+            ? 'The node reports its balances and strategy every few seconds once it is up.'
+            : 'Start the simulation to see its balances, position and strategy.'}
+        </AlertDescription>
+      </Alert>
+    ) : (
+      <ErrorState error={snapshot.error} title="Could not load the account state" onRetry={() => void snapshot.refetch()} />
+    );
+  }
+
+  const quote = snap.quoteCurrency ?? '';
+
   return (
-    <div className="flex items-baseline justify-between gap-4 border-b py-2 text-sm last:border-0">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="text-right tabular-nums">{children}</span>
-    </div>
+    <>
+      {snap.stale && (
+        <Alert variant="destructive">
+          <RiErrorWarningLine />
+          <AlertTitle>Showing the last report, from {timeAgo(snap.at)}</AlertTitle>
+          <AlertDescription>The node has stopped reporting. These numbers are not live.</AlertDescription>
+        </Alert>
+      )}
+
+      <PerformanceTiles snapshot={snap} />
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <PositionCard snapshot={snap} />
+        <StrategyStatusCard status={snap.strategy} />
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Equity</CardTitle>
+          <CardDescription>
+            Marked to each bar&apos;s close. The dashed line is the starting balance.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {equity.data && equity.data.points.length > 0 ? (
+            <EquityCurve
+              points={equity.data.points}
+              baseline={snap.baseline ? Number(snap.baseline.amount) : null}
+              quote={quote}
+            />
+          ) : (
+            <p className="text-sm text-muted-foreground">The curve starts at the first closed bar.</p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Fills</CardTitle>
+          <CardDescription>Every fill, kept permanently. Fees include slippage.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <FillTable simulationId={sim.id} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Activity</CardTitle>
+          <CardDescription>Fills, signals, blocked entries, starts and stops. Times in UTC.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {events.error ? (
+            <ErrorState error={events.error} title="Could not load activity" onRetry={() => void events.refetch()} />
+          ) : events.data ? (
+            <ActivityFeed events={events.data.events} />
+          ) : (
+            <Skeleton className="h-32 w-full" />
+          )}
+        </CardContent>
+      </Card>
+    </>
   );
 }
 
@@ -74,7 +174,7 @@ export default function SimulationPage() {
           <Link href={`/strategies/${sim.strategyId}`} className="hover:underline">
             {sim.strategyName}
           </Link>{' '}
-          v{sim.version} · {sim.instrumentId.replace(/\.[A-Z]+$/, '')} · paper, 10,000 USDT starting balance
+          v{sim.version} · {sim.instrumentId.replace(/\.[A-Z]+$/, '')} · paper trading
         </p>
       </div>
 
@@ -109,6 +209,8 @@ export default function SimulationPage() {
           </AlertDescription>
         </Alert>
       )}
+
+      <LiveState sim={sim} />
 
       <Card>
         <CardHeader>

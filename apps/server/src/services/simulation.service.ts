@@ -10,17 +10,39 @@ import type { StrategySpec } from '@quant/contracts/spec';
 import {
   HEARTBEAT_STALE_SECONDS,
   type CreateSimulation,
+  type FillPage,
   type LiveView,
   type RiskLimits,
+  type SimulationEquity,
+  type SimulationEventPage,
+  type SimulationPerformance,
+  type SimulationSnapshot,
 } from '@quant/contracts/simulation';
 
 export type SimWithVersion = SimRow & { version: StrategyVersion & { strategy: Strategy } };
 export type SimView = SimWithVersion & {
   live: LiveView | null;
   liveError: { code: string; message: string } | null;
+  performance: SimulationPerformance | null;
 };
 
+type EngineSnapshot = SimulationSnapshot & { accountId?: string };
+
 const include = { version: { include: { strategy: true } } } as const;
+const SYNC_PAGE = 1_000; // The engine's max page, and roughly its whole stream.
+const SYNC_EVERY_MS = 5_000; // A page polls every 5s; one copy per window is enough.
+
+type EngineFill = {
+  id: string;
+  kind: 'FILL';
+  at: string;
+  side: string;
+  quantity: string;
+  price: string;
+  commission: { amount: string; currency: string };
+  tradeId: string;
+  clientOrderId: string;
+};
 const LIVE_STATUSES = new Set(['STARTING', 'RECONCILING', 'RUNNING']);
 
 /**
@@ -31,6 +53,8 @@ const LIVE_STATUSES = new Set(['STARTING', 'RECONCILING', 'RUNNING']);
  * engine's `GET /v1/live` lists every user's accounts and is never called.
  */
 export class SimulationService {
+  private readonly lastSync = new Map<string, number>(); // accountId -> ms; per process, best effort.
+
   constructor(private readonly prisma: PrismaClient) {}
 
   /** Save the row, then ask the engine to run it. */
@@ -113,6 +137,98 @@ export class SimulationService {
     return this.view(sim);
   }
 
+  /** Balances, position, P&L and what the strategy is waiting for. 404 SNAPSHOT_NOT_FOUND until the first publish. */
+  async snapshot(userId: string, id: string): Promise<SimulationSnapshot> {
+    const sim = await this.own(userId, id);
+    const snapshot = await engineFetch<EngineSnapshot>(`/v1/live/${sim.accountId}/snapshot`);
+    delete snapshot.accountId; // Stays server-side (D3).
+    return snapshot;
+  }
+
+  async events(userId: string, id: string, after: string | undefined, limit: number): Promise<SimulationEventPage> {
+    const sim = await this.own(userId, id);
+    await this.syncFills(sim).catch(() => undefined); // The page polls this; the record must not break the feed.
+    return engineFetch<SimulationEventPage>(`/v1/live/${sim.accountId}/events`, { query: { after, limit } });
+  }
+
+  /** Fills from Postgres, newest first. Copies any new ones first; serves what it has if the engine is down. */
+  async fills(userId: string, id: string, page: number, pageSize: number): Promise<FillPage> {
+    const sim = await this.own(userId, id);
+    await this.syncFills(sim).catch(() => undefined);
+
+    const where = { accountId: sim.accountId };
+    const [rows, total] = await Promise.all([
+      this.prisma.accountFill.findMany({
+        where,
+        orderBy: { filledAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.accountFill.count({ where }),
+    ]);
+    return {
+      data: rows.map((row) => ({
+        tradeId: row.tradeId,
+        side: row.side,
+        quantity: row.quantity.toString(),
+        price: row.price.toString(),
+        commission: { amount: row.commission.toString(), currency: row.commissionCurrency },
+        filledAt: row.filledAt.toISOString(),
+      })),
+      pagination: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) },
+    };
+  }
+
+  /**
+   * Copy new FILL events from the engine's stream into Postgres (plan S5).
+   *
+   * From the row's own cursor, so it is independent of whatever page a browser
+   * holds. Idempotent: the (account, trade id) key skips a fill copied twice. The
+   * stream keeps ~1,000 events, so a simulation nobody views for that long can lose
+   * fills before they are copied; it is logged, not hidden.
+   */
+  async syncFills(sim: SimWithVersion, now = Date.now()): Promise<number> {
+    if (now - (this.lastSync.get(sim.accountId) ?? 0) < SYNC_EVERY_MS) return 0;
+    this.lastSync.set(sim.accountId, now);
+
+    let cursor = sim.fillsSyncedTo ?? '0-0';
+    let copied = 0;
+    for (;;) {
+      const page = await engineFetch<{ events: EngineFill[]; last: string | null }>(
+        `/v1/live/${sim.accountId}/events`,
+        { query: { after: cursor, limit: SYNC_PAGE } }
+      );
+      const fills = page.events.filter((event) => event.kind === 'FILL');
+      if (fills.length > 0) {
+        const { count } = await this.prisma.accountFill.createMany({
+          data: fills.map((fill) => ({
+            accountId: sim.accountId,
+            tradeId: fill.tradeId,
+            clientOrderId: fill.clientOrderId,
+            side: fill.side,
+            quantity: fill.quantity,
+            price: fill.price,
+            commission: fill.commission.amount,
+            commissionCurrency: fill.commission.currency,
+            filledAt: new Date(fill.at),
+          })),
+          skipDuplicates: true,
+        });
+        copied += count;
+      }
+      if (!page.last || page.last === cursor) break;
+      cursor = page.last;
+      await this.prisma.simulation.update({ where: { id: sim.id }, data: { fillsSyncedTo: cursor } });
+      if (page.events.length < SYNC_PAGE) break;
+    }
+    return copied;
+  }
+
+  async equity(userId: string, id: string, after: string | undefined): Promise<SimulationEquity> {
+    const sim = await this.own(userId, id);
+    return engineFetch<SimulationEquity>(`/v1/live/${sim.accountId}/equity`, { query: { after } });
+  }
+
   private async own(userId: string, id: string): Promise<SimWithVersion> {
     const sim = await this.prisma.simulation.findFirst({ where: { id, userId }, include });
     if (!sim) throw new ApiError(404, 'SIMULATION_NOT_FOUND', 'No such simulation');
@@ -150,12 +266,13 @@ export class SimulationService {
 
   /** Our row plus the engine's view. An engine failure is reported on the row, not thrown. */
   private async view(sim: SimWithVersion): Promise<SimView> {
+    const performance = this.performance(sim); // In parallel; never fails the row.
     try {
       const [state, kill] = await Promise.all([
         engineFetch<EngineLiveState>(`/v1/live/${sim.accountId}`),
         engineFetch<EngineKill>(`/v1/live/${sim.accountId}/kill`),
       ]);
-      return { ...sim, live: toLiveView(state, kill.killSwitch), liveError: null };
+      return { ...sim, live: toLiveView(state, kill.killSwitch), liveError: null, performance: await performance };
     } catch (error) {
       const known = error instanceof ApiError;
       return {
@@ -165,7 +282,27 @@ export class SimulationService {
           code: known ? error.code : 'ENGINE_ERROR',
           message: known ? error.message : 'Could not read the engine',
         },
+        performance: await performance,
       };
+    }
+  }
+
+  /** The list row's glance at the snapshot. Null before the first publish or when unreadable. */
+  private async performance(sim: SimWithVersion): Promise<SimulationPerformance | null> {
+    try {
+      const snap = await engineFetch<EngineSnapshot>(`/v1/live/${sim.accountId}/snapshot`);
+      return {
+        equity: snap.equity,
+        pnl: snap.pnl,
+        returnPercent: snap.returnPercent,
+        quoteCurrency: snap.quoteCurrency,
+        position: snap.position ? { side: snap.position.side, quantity: snap.position.quantity } : null,
+        phase: snap.strategy?.phase ?? null,
+        at: snap.at,
+        stale: snap.stale,
+      };
+    } catch {
+      return null;
     }
   }
 }

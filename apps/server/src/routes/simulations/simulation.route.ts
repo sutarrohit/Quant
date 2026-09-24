@@ -6,8 +6,15 @@ import jsonContentRequired from 'stoker/openapi/helpers/json-content-required';
 import { ApiErrorSchema } from '@quant/contracts/error';
 import {
   CreateSimulationSchema,
+  EquityQuerySchema,
+  EventsQuerySchema,
+  FillPageSchema,
+  FillsQuerySchema,
+  SimulationEquitySchema,
+  SimulationEventPageSchema,
   SimulationListSchema,
   SimulationSchema,
+  SimulationSnapshotSchema,
   StartSimulationSchema,
 } from '@quant/contracts/simulation';
 
@@ -98,6 +105,61 @@ export const releaseKillRoute = createRoute({
   request: { params: IdParam },
   responses: {
     [HttpStatusCodes.OK]: one('Kill switch released'),
+    [HttpStatusCodes.NOT_FOUND]: notFound,
+    [HttpStatusCodes.UNAUTHORIZED]: unauthorized,
+  },
+});
+
+// --- what the account is doing (docs/simulation-state-plan.md) ---------------
+
+export const simulationSnapshotRoute = createRoute({
+  method: 'get',
+  path: '/{id}/snapshot',
+  tags: ['Simulations'],
+  description: 'Balances, position, P&L and the strategy status. Marked stale past the heartbeat timeout.',
+  request: { params: IdParam },
+  responses: {
+    [HttpStatusCodes.OK]: jsonContent(SimulationSnapshotSchema, 'The latest snapshot'),
+    [HttpStatusCodes.NOT_FOUND]: jsonContent(ApiErrorSchema, 'No such simulation, or SNAPSHOT_NOT_FOUND: not published yet'),
+    [HttpStatusCodes.UNAUTHORIZED]: unauthorized,
+  },
+});
+
+export const simulationEventsRoute = createRoute({
+  method: 'get',
+  path: '/{id}/events',
+  tags: ['Simulations'],
+  description: 'Oldest first. Without `after`, the latest `limit`; with it, what came since.',
+  request: { params: IdParam, query: EventsQuerySchema },
+  responses: {
+    [HttpStatusCodes.OK]: jsonContent(SimulationEventPageSchema, 'Fills, signals, blocked entries, starts and stops'),
+    [HttpStatusCodes.NOT_FOUND]: notFound,
+    [HttpStatusCodes.UNPROCESSABLE_ENTITY]: jsonContent(ApiErrorSchema, 'A cursor that is not a stream id'),
+    [HttpStatusCodes.UNAUTHORIZED]: unauthorized,
+  },
+});
+
+export const simulationEquityRoute = createRoute({
+  method: 'get',
+  path: '/{id}/equity',
+  tags: ['Simulations'],
+  request: { params: IdParam, query: EquityQuerySchema },
+  responses: {
+    [HttpStatusCodes.OK]: jsonContent(SimulationEquitySchema, 'One point per closed bar, oldest first'),
+    [HttpStatusCodes.NOT_FOUND]: notFound,
+    [HttpStatusCodes.UNPROCESSABLE_ENTITY]: jsonContent(ApiErrorSchema, 'A cursor that is not a stream id'),
+    [HttpStatusCodes.UNAUTHORIZED]: unauthorized,
+  },
+});
+
+export const simulationFillsRoute = createRoute({
+  method: 'get',
+  path: '/{id}/fills',
+  tags: ['Simulations'],
+  description: 'Every fill, newest first, from Postgres. Survives the engine forgetting.',
+  request: { params: IdParam, query: FillsQuerySchema },
+  responses: {
+    [HttpStatusCodes.OK]: jsonContent(FillPageSchema, 'One page of fills'),
     [HttpStatusCodes.NOT_FOUND]: notFound,
     [HttpStatusCodes.UNAUTHORIZED]: unauthorized,
   },

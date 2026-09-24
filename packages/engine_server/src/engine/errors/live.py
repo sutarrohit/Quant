@@ -16,6 +16,13 @@ class AccountNotFound(EngineError):
     http_status = 404
 
 
+class SnapshotNotFound(EngineError):
+    """The account exists and its node has not published yet: seconds after a start."""
+
+    code = ErrorCode.SNAPSHOT_NOT_FOUND
+    http_status = 404
+
+
 class CredentialUnavailable(EngineError):
     """The reference could not be resolved.
 

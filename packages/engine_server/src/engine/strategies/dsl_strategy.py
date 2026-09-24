@@ -33,12 +33,12 @@ from nautilus_trader.model.instruments import Instrument
 from nautilus_trader.trading.strategy import Strategy
 
 from engine.dsl.indicators import Series, build
-from engine.dsl.interpreter import EvalContext, evaluate
+from engine.dsl.interpreter import ConditionResult, EvalContext, evaluate, explain
 from engine.dsl.keys import SeriesRef, required_refs
 from engine.errors import StrategySetupError
 from engine.live.gate import NoGate
 from engine.strategies.sizing import InstrumentLimits, SizingOutcome, size_by_risk
-from engine.types.dsl import RiskPercentSizing, StopLossPercent, StrategySpec
+from engine.types.dsl import RiskPercentSizing, StopLossPercent, StrategySpec, TakeProfitPercent
 from engine.types.risk import AccountRisk, Decision, OrderIntent
 
 logger = logging.getLogger(__name__)
@@ -48,6 +48,12 @@ class RiskGateLike(Protocol):
     """What the order path needs from a gate: a synchronous answer."""
 
     def check(self, intent: OrderIntent, account: AccountRisk, now_ns: int) -> Decision: ...
+
+
+class RecorderLike(Protocol):
+    """Where a live node's strategy reports what it did. Synchronous, in memory."""
+
+    def record(self, kind: str, ts_ns: int, **fields: Any) -> None: ...
 
 
 class DslStrategyConfig(StrategyConfig, frozen=True):
@@ -92,6 +98,13 @@ class DslStrategy(Strategy):  # type: ignore[misc]  # Strategy is a Cython class
         #: live run the same order path (docs/adr-001-live-execution.md).
         self.risk_gate: RiskGateLike = NoGate()
         self.orders_blocked = 0
+        #: Set on a live node, like `risk_gate`. None in a backtest, which then
+        #: records nothing and explains nothing (docs/simulation-state-plan.md).
+        self.recorder: RecorderLike | None = None
+        self._take_profit_percent = _take_profit_percent(self.spec)
+        self._last_bar: Bar | None = None
+        self._checking: str | None = None
+        self._conditions: list[ConditionResult] = []
 
     # --- lifecycle -------------------------------------------------------
 
@@ -155,6 +168,9 @@ class DslStrategy(Strategy):  # type: ignore[misc]  # Strategy is a Cython class
     def on_reset(self) -> None:
         self._series = self._build_series()
         self._previous = {}
+        self._last_bar = None
+        self._checking = None
+        self._conditions = []
         self.bars_seen = 0
         self.orders_submitted = 0
         self.orders_blocked = 0
@@ -201,6 +217,7 @@ class DslStrategy(Strategy):  # type: ignore[misc]  # Strategy is a Cython class
         #: data. A backtest that halts part-way otherwise returns a
         #: perfectly ordinary-looking result for the part that ran.
         self.bars_seen += 1
+        self._last_bar = bar
 
         for series in self._series.values():
             series.handle_bar(bar)
@@ -222,6 +239,11 @@ class DslStrategy(Strategy):  # type: ignore[misc]  # Strategy is a Cython class
             in_position=in_position,
             entry_price=entry_price,
         )
+
+        self._checking = "exit" if in_position else "entry"
+        if self.recorder is not None:
+            root = self.spec.exit_ if in_position else self.spec.entry
+            self._conditions = explain(root, context, self._checking)
 
         if in_position:
             if self._decide("exit", self.spec.exit_, context, bar):
@@ -250,6 +272,13 @@ class DslStrategy(Strategy):  # type: ignore[misc]  # Strategy is a Cython class
         if triggered:
             logger.info("signal fired", extra=fields)
             self.log.info(f"{side} signal at {bar.ts_event}: {fields['values']}")
+            self._record(
+                "SIGNAL",
+                bar.ts_event,
+                side=side,
+                close=str(context.close),
+                values={key: str(round(value, 8)) for key, value in sorted(context.values.items())},
+            )
         return triggered
 
     def _position_state(self) -> tuple[bool, Decimal | None]:
@@ -291,6 +320,13 @@ class DslStrategy(Strategy):  # type: ignore[misc]  # Strategy is a Cython class
         }
         if not sizing.placeable:
             logger.info("entry skipped", extra=fields)
+            self._record(
+                "ENTRY_SKIPPED",
+                bar.ts_event,
+                outcome=sizing.outcome.value,
+                quantity=str(sizing.quantity),
+                notional=str(sizing.notional),
+            )
             return
         if sizing.outcome is not SizingOutcome.OK:
             logger.warning("entry size reduced", extra=fields)
@@ -322,6 +358,13 @@ class DslStrategy(Strategy):  # type: ignore[misc]  # Strategy is a Cython class
                 },
             )
             self.log.warning(f"entry blocked: {decision.reason}")
+            self._record(
+                "ENTRY_BLOCKED",
+                bar.ts_event,
+                breach=decision.breach.value if decision.breach else None,
+                reason=decision.reason,
+                mandateId=getattr(self.risk_gate, "mandate_id", None),
+            )
             return
 
         assert self.instrument is not None
@@ -333,6 +376,13 @@ class DslStrategy(Strategy):  # type: ignore[misc]  # Strategy is a Cython class
         self.submit_order(order)
         self.orders_submitted += 1
         logger.info("entry submitted", extra=fields)
+        self._record(
+            "ENTRY_SUBMITTED",
+            bar.ts_event,
+            clientOrderId=str(order.client_order_id),
+            quantity=str(sizing.quantity),
+            notional=str(sizing.notional),
+        )
 
     def _exit(self, bar: Bar) -> None:
         positions = self.cache.positions_open(instrument_id=self.config.instrument_id)
@@ -340,6 +390,7 @@ class DslStrategy(Strategy):  # type: ignore[misc]  # Strategy is a Cython class
             return
         for position in positions:
             self.close_position(position)
+            self._record("EXIT_SUBMITTED", bar.ts_event, quantity=str(position.quantity.as_decimal()))
         self.orders_submitted += 1
         logger.info(
             "exit submitted",
@@ -349,6 +400,93 @@ class DslStrategy(Strategy):  # type: ignore[misc]  # Strategy is a Cython class
                 "ts_event": bar.ts_event,
             },
         )
+
+    # --- what a live node reports ------------------------------------------
+
+    def _record(self, kind: str, ts_ns: int, **fields: Any) -> None:
+        if self.recorder is not None:
+            self.recorder.record(kind, ts_ns, **fields)
+
+    def on_order_filled(self, event: Any) -> None:
+        # One event per fill, keyed by trade id: live fills orders in parts (L6).
+        self._record(
+            "FILL",
+            event.ts_event,
+            side=event.order_side.name,
+            quantity=str(event.last_qty.as_decimal()),
+            price=str(event.last_px.as_decimal()),
+            commission={
+                "amount": str(event.commission.as_decimal()),
+                "currency": str(event.commission.currency),
+            },
+            tradeId=str(event.trade_id),
+            clientOrderId=str(event.client_order_id),
+        )
+
+    def on_order_rejected(self, event: Any) -> None:
+        self._record(
+            "ORDER_REJECTED",
+            event.ts_event,
+            clientOrderId=str(event.client_order_id),
+            reason=str(event.reason),
+        )
+
+    def on_position_closed(self, event: Any) -> None:
+        self._record(
+            "POSITION_CLOSED",
+            event.ts_event,
+            quantity=str(event.peak_qty.as_decimal()),
+            entryPrice=str(event.avg_px_open),
+            exitPrice=str(event.avg_px_close),
+            realizedPnl={
+                "amount": str(event.realized_pnl.as_decimal()),
+                "currency": str(event.realized_pnl.currency),
+            },
+            openedAt=_iso(event.ts_opened),
+            durationSeconds=event.duration_ns // 1_000_000_000,
+        )
+
+    def status(self) -> dict[str, Any]:
+        """What the strategy is doing, as JSON. Read by the live publisher.
+
+        The phase comes from the position *now*; the conditions from the last
+        bar evaluated, which may predate a fill. Strings for every number (S4).
+        """
+        warming = self.bars_seen < self.warmup_bars or not all(
+            series.initialized for series in self._series.values()
+        )
+        held = bool(self.cache.positions_open(instrument_id=self.config.instrument_id))
+        phase = "WARMING_UP" if warming else "IN_POSITION" if held else "WAITING_FOR_ENTRY"
+        bar = self._last_bar
+        return {
+            "phase": phase,
+            "barsSeen": self.bars_seen,
+            "warmupBars": self.warmup_bars,
+            "barType": str(self.config.bar_type),
+            "lastBar": (
+                {"time": _iso(bar.ts_event), "close": str(bar.close.as_decimal())}
+                if bar is not None
+                else None
+            ),
+            "values": {key: str(round(value, 8)) for key, value in sorted(self._previous.items())},
+            "lastEvaluation": (
+                {
+                    "side": self._checking,
+                    "conditions": [
+                        {"path": c.path, "label": c.label, "passed": c.passed, "series": c.series}
+                        for c in self._conditions
+                    ],
+                }
+                if self._checking is not None
+                else None
+            ),
+            "stopLossPercent": str(self._stop_loss_percent),
+            "takeProfitPercent": (
+                str(self._take_profit_percent) if self._take_profit_percent is not None else None
+            ),
+            "ordersSubmitted": self.orders_submitted,
+            "ordersBlocked": self.orders_blocked,
+        }
 
     def _account_risk(self) -> AccountRisk:
         """What this account is carrying, as the gate needs to see it.
@@ -414,6 +552,20 @@ def _date_of_ns(ts_ns: int) -> date:
     venue and this service agree on without a timezone argument.
     """
     return datetime.fromtimestamp(ts_ns / 1_000_000_000, tz=UTC).date()
+
+
+def _iso(ts_ns: int) -> str:
+    return datetime.fromtimestamp(ts_ns / 1_000_000_000, tz=UTC).isoformat().replace("+00:00", "Z")
+
+
+def _take_profit_percent(spec: StrategySpec) -> Decimal | None:
+    """The first take-profit in the exit tree, if any. For display only."""
+    from engine.dsl.validator import walk
+
+    for _, node in walk(spec.exit_, "exit"):
+        if isinstance(node, TakeProfitPercent):
+            return node.value
+    return None
 
 
 def _stop_loss_percent(spec: StrategySpec) -> Decimal:
