@@ -12,13 +12,20 @@ import {
   type CreateSimulation,
   type LiveView,
   type RiskLimits,
+  type SimulationEquity,
+  type SimulationEventPage,
+  type SimulationPerformance,
+  type SimulationSnapshot,
 } from '@quant/contracts/simulation';
 
 export type SimWithVersion = SimRow & { version: StrategyVersion & { strategy: Strategy } };
 export type SimView = SimWithVersion & {
   live: LiveView | null;
   liveError: { code: string; message: string } | null;
+  performance: SimulationPerformance | null;
 };
+
+type EngineSnapshot = SimulationSnapshot & { accountId?: string };
 
 const include = { version: { include: { strategy: true } } } as const;
 const LIVE_STATUSES = new Set(['STARTING', 'RECONCILING', 'RUNNING']);
@@ -113,6 +120,24 @@ export class SimulationService {
     return this.view(sim);
   }
 
+  /** Balances, position, P&L and what the strategy is waiting for. 404 SNAPSHOT_NOT_FOUND until the first publish. */
+  async snapshot(userId: string, id: string): Promise<SimulationSnapshot> {
+    const sim = await this.own(userId, id);
+    const snapshot = await engineFetch<EngineSnapshot>(`/v1/live/${sim.accountId}/snapshot`);
+    delete snapshot.accountId; // Stays server-side (D3).
+    return snapshot;
+  }
+
+  async events(userId: string, id: string, after: string | undefined, limit: number): Promise<SimulationEventPage> {
+    const sim = await this.own(userId, id);
+    return engineFetch<SimulationEventPage>(`/v1/live/${sim.accountId}/events`, { query: { after, limit } });
+  }
+
+  async equity(userId: string, id: string, after: string | undefined): Promise<SimulationEquity> {
+    const sim = await this.own(userId, id);
+    return engineFetch<SimulationEquity>(`/v1/live/${sim.accountId}/equity`, { query: { after } });
+  }
+
   private async own(userId: string, id: string): Promise<SimWithVersion> {
     const sim = await this.prisma.simulation.findFirst({ where: { id, userId }, include });
     if (!sim) throw new ApiError(404, 'SIMULATION_NOT_FOUND', 'No such simulation');
@@ -150,12 +175,13 @@ export class SimulationService {
 
   /** Our row plus the engine's view. An engine failure is reported on the row, not thrown. */
   private async view(sim: SimWithVersion): Promise<SimView> {
+    const performance = this.performance(sim); // In parallel; never fails the row.
     try {
       const [state, kill] = await Promise.all([
         engineFetch<EngineLiveState>(`/v1/live/${sim.accountId}`),
         engineFetch<EngineKill>(`/v1/live/${sim.accountId}/kill`),
       ]);
-      return { ...sim, live: toLiveView(state, kill.killSwitch), liveError: null };
+      return { ...sim, live: toLiveView(state, kill.killSwitch), liveError: null, performance: await performance };
     } catch (error) {
       const known = error instanceof ApiError;
       return {
@@ -165,7 +191,27 @@ export class SimulationService {
           code: known ? error.code : 'ENGINE_ERROR',
           message: known ? error.message : 'Could not read the engine',
         },
+        performance: await performance,
       };
+    }
+  }
+
+  /** The list row's glance at the snapshot. Null before the first publish or when unreadable. */
+  private async performance(sim: SimWithVersion): Promise<SimulationPerformance | null> {
+    try {
+      const snap = await engineFetch<EngineSnapshot>(`/v1/live/${sim.accountId}/snapshot`);
+      return {
+        equity: snap.equity,
+        pnl: snap.pnl,
+        returnPercent: snap.returnPercent,
+        quoteCurrency: snap.quoteCurrency,
+        position: snap.position ? { side: snap.position.side, quantity: snap.position.quantity } : null,
+        phase: snap.strategy?.phase ?? null,
+        at: snap.at,
+        stale: snap.stale,
+      };
+    } catch {
+      return null;
     }
   }
 }

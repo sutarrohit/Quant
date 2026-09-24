@@ -7,6 +7,9 @@ import {
   getSimulationHandler,
   listSimulationsHandler,
   releaseKillHandler,
+  simulationEquityHandler,
+  simulationEventsHandler,
+  simulationSnapshotHandler,
   startSimulationHandler,
   stopSimulationHandler,
 } from './simulation.handler.js';
@@ -16,6 +19,9 @@ import {
   getSimulationRoute,
   listSimulationsRoute,
   releaseKillRoute,
+  simulationEquityRoute,
+  simulationEventsRoute,
+  simulationSnapshotRoute,
   startSimulationRoute,
   stopSimulationRoute,
 } from './simulation.route.js';
@@ -32,4 +38,7 @@ export default simulationRouter
   .openapi(startSimulationRoute, startSimulationHandler)
   .openapi(stopSimulationRoute, stopSimulationHandler)
   .openapi(engageKillRoute, engageKillHandler)
-  .openapi(releaseKillRoute, releaseKillHandler);
+  .openapi(releaseKillRoute, releaseKillHandler)
+  .openapi(simulationSnapshotRoute, simulationSnapshotHandler)
+  .openapi(simulationEventsRoute, simulationEventsHandler)
+  .openapi(simulationEquityRoute, simulationEquityHandler);

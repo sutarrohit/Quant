@@ -61,6 +61,22 @@ export const LiveViewSchema = z.object({
   heartbeatStale: z.boolean(), // Live, but silent for longer than HEARTBEAT_STALE_SECONDS.
 });
 
+const amount = z.string().regex(/^-?\d+(\.\d+)?$/, 'a decimal string');
+
+export const STRATEGY_PHASES = ['WARMING_UP', 'WAITING_FOR_ENTRY', 'IN_POSITION'] as const;
+
+/** The list row's glance: from the snapshot, null until the node first publishes. */
+export const SimulationPerformanceSchema = z.object({
+  equity: amount.nullable(),
+  pnl: amount.nullable(),
+  returnPercent: amount.nullable(),
+  quoteCurrency: z.string().nullable(),
+  position: z.object({ side: z.string(), quantity: amount }).nullable(),
+  phase: z.enum(STRATEGY_PHASES).nullable(),
+  at: z.string(),
+  stale: z.boolean(),
+});
+
 export const SimulationSchema = z.object({
   id: z.uuid(),
   name: z.string(),
@@ -79,6 +95,7 @@ export const SimulationSchema = z.object({
   updatedAt: z.iso.datetime(),
   live: LiveViewSchema.nullable(), // Null when the engine has no record or could not be reached.
   liveError: z.object({ code: z.string(), message: z.string() }).nullable(),
+  performance: SimulationPerformanceSchema.nullable(), // Null until the node first publishes.
 });
 
 export const SimulationListSchema = z.object({ simulations: z.array(SimulationSchema) });
@@ -93,3 +110,137 @@ export type StartSimulationInput = z.input<typeof StartSimulationSchema>;
 export type LiveView = z.infer<typeof LiveViewSchema>;
 export type Simulation = z.infer<typeof SimulationSchema>;
 export type SimulationList = z.infer<typeof SimulationListSchema>;
+
+// --- what a running account is doing (docs/simulation-state-plan.md) ---------
+// Every number is a decimal string (S4). Mode-neutral: live reuses these (L1).
+
+
+/** A Redis stream id, the cursor for events and equity. Opaque to the browser. */
+export const STREAM_ID = /^\d{1,20}-\d{1,20}$/;
+
+
+export const BalanceSchema = z.object({
+  currency: z.string(),
+  total: amount,
+  free: amount,
+  locked: amount,
+});
+
+export const PositionSchema = z.object({
+  side: z.string(), // LONG in v1.
+  quantity: amount,
+  avgEntry: amount,
+  lastPrice: amount.nullable(),
+  unrealizedPnl: amount,
+  openedAt: z.string(),
+  stopPrice: amount.nullable(),
+  takeProfitPrice: amount.nullable(),
+});
+
+export const ConditionResultSchema = z.object({
+  path: z.string(), // e.g. entry.all[0]
+  label: z.string(), // e.g. rsi(14) crossesAbove 30
+  passed: z.boolean(),
+  series: z.string().nullable(), // Key into `values`; null for take-profit and stop-loss.
+});
+
+export const StrategyStatusSchema = z.object({
+  phase: z.enum(STRATEGY_PHASES),
+  barsSeen: z.number().int(),
+  warmupBars: z.number().int(),
+  barType: z.string(),
+  lastBar: z.object({ time: z.string(), close: amount }).nullable(),
+  values: z.record(z.string(), amount), // Indicator values on the last bar, by series key.
+  lastEvaluation: z
+    .object({ side: z.enum(['entry', 'exit']), conditions: z.array(ConditionResultSchema) })
+    .nullable(), // The last bar's rule check; may predate a fill.
+  stopLossPercent: amount,
+  takeProfitPercent: amount.nullable(),
+  ordersSubmitted: z.number().int(),
+  ordersBlocked: z.number().int(),
+});
+
+export const SimulationSnapshotSchema = z.object({
+  mode: z.string(),
+  at: z.string(),
+  sessionStartedAt: z.string(),
+  revision: z.number().int(),
+  instrumentId: z.string(),
+  quoteCurrency: z.string().nullable(),
+  baseline: z.object({ currency: z.string(), amount, at: z.string() }).nullable(), // What P&L is measured from (L2).
+  equity: amount.nullable(), // Null only while holding coin with no price yet.
+  realizedPnl: amount.nullable(),
+  unrealizedPnl: amount,
+  pnl: amount.nullable(),
+  returnPercent: amount.nullable(),
+  balances: z.array(BalanceSchema), // The instrument's two currencies.
+  otherHoldings: z.array(BalanceSchema), // Everything else; outside the performance numbers (L4).
+  position: PositionSchema.nullable(),
+  openOrders: z.array(
+    z.object({
+      clientOrderId: z.string(),
+      side: z.string(),
+      type: z.string(),
+      quantity: amount,
+      status: z.string(),
+      submittedAt: z.string(),
+    })
+  ),
+  killSwitch: z.boolean(),
+  mandateRevoked: z.boolean(),
+  strategy: StrategyStatusSchema.nullable(),
+  stale: z.boolean(), // Older than the heartbeat timeout: the node's last known state.
+});
+
+/** Kinds the page knows. The feed shows any other kind generically (L7). */
+export const EVENT_KINDS = [
+  'NODE_STARTED',
+  'NODE_STOPPED',
+  'SIGNAL',
+  'ENTRY_SUBMITTED',
+  'ENTRY_SKIPPED',
+  'ENTRY_BLOCKED',
+  'EXIT_SUBMITTED',
+  'FILL',
+  'ORDER_REJECTED',
+  'POSITION_CLOSED',
+  'KILL_ENGAGED',
+  'KILL_RELEASED',
+  'MANDATE_REVOKED',
+] as const;
+
+/** One event. `kind` is open and the rest is kind-specific, so it passes through. */
+export const SimulationEventSchema = z.looseObject({
+  id: z.string(),
+  kind: z.string(),
+  at: z.string(),
+});
+
+export const SimulationEventPageSchema = z.object({
+  events: z.array(SimulationEventSchema), // Oldest first.
+  last: z.string().nullable(), // Pass back as `after` for what came since.
+});
+
+export const SimulationEquitySchema = z.object({
+  points: z.array(z.object({ time: z.string(), equity: amount })), // One per closed bar, oldest first.
+  last: z.string().nullable(),
+});
+
+export const EventsQuerySchema = z.object({
+  after: z.string().regex(STREAM_ID).optional(),
+  limit: z.coerce.number().int().min(1).max(1_000).default(100),
+});
+
+export const EquityQuerySchema = z.object({
+  after: z.string().regex(STREAM_ID).optional(),
+});
+
+export type StrategyPhase = (typeof STRATEGY_PHASES)[number];
+export type EventKind = (typeof EVENT_KINDS)[number];
+export type ConditionResult = z.infer<typeof ConditionResultSchema>;
+export type StrategyStatus = z.infer<typeof StrategyStatusSchema>;
+export type SimulationSnapshot = z.infer<typeof SimulationSnapshotSchema>;
+export type SimulationEvent = z.infer<typeof SimulationEventSchema>;
+export type SimulationEventPage = z.infer<typeof SimulationEventPageSchema>;
+export type SimulationEquity = z.infer<typeof SimulationEquitySchema>;
+export type SimulationPerformance = z.infer<typeof SimulationPerformanceSchema>;
