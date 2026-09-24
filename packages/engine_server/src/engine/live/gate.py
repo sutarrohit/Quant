@@ -37,7 +37,7 @@ class RiskGate:
     ``last_refresh_ns`` is Unix-epoch nanoseconds, the same clock as ``now_ns``
     passed to :meth:`check` — the strategy's Nautilus clock in live, so the gate
     never reads a clock of its own and stays deterministic. Not monotonic: the
-    two would differ by decades and every entry would read as stale.
+    two would differ by decades and every entry would read as stale (D22).
     """
 
     account_id: str

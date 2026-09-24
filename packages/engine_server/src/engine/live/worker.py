@@ -44,7 +44,11 @@ from engine.live.mandate import Mandate, MandateStore
 from engine.live.node import build_node_config
 from engine.logging import configure_logging, log_context
 from engine.settings import Settings
-from engine.simulation.node import register_factories, route_bars_to_exchange
+from engine.simulation.node import (
+    register_calculated_account,
+    register_factories,
+    route_bars_to_exchange,
+)
 from engine.types.state import DesiredState, TradingMode
 
 logger = logging.getLogger(__name__)
@@ -183,6 +187,7 @@ async def run_account(
     mandates = MandateStore(client)
     mandate = await _authority(state, mandates)
 
+    register_calculated_account(state)  # Before the node loads the account from its cache.
     node = TradingNode(config=build_node_config(state, settings))
     # Between construction and build, and nowhere else. A node built without
     # its factories does not raise -- it comes up with no data client and no

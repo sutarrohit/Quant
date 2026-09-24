@@ -22,16 +22,19 @@ from typing import Any
 import pytest
 from nautilus_trader.common import Environment
 from nautilus_trader.live.factories import LiveDataClientFactory, LiveExecClientFactory
+from nautilus_trader.model.objects import Money
 
 from engine.errors import LiveNotPermitted, VenueNotSupported
 from engine.live.node import build_node_config
 from engine.settings import Settings
+from engine.simulation.exchange import opening_balances
 from engine.simulation.node import (
     clients,
     data_client,
     data_factory,
     exec_factory,
     execution_client,
+    register_calculated_account,
     register_factories,
 )
 from engine.types.state import TradingMode
@@ -185,6 +188,69 @@ def test_fills_come_from_bars() -> None:
     ever matches, and the run looks like a strategy that found no signals.
     """
     assert execution_client(desired()).bar_execution is True
+
+
+def test_the_accounts_costs_reach_the_simulated_exchange() -> None:
+    # Charged by BpsFeeModel, as in a backtest. Nautilus's own model read the
+    # instrument's fee, which Binance's public endpoint reports as zero (D25).
+    built = execution_client(desired())
+
+    assert (built.maker_bps, built.taker_bps, built.slippage_bps) == ("1", "10", "5")
+
+
+class FakeAccount:
+    def __init__(self, *balances: str) -> None:
+        self._balances = [Money.from_str(balance) for balance in balances]
+
+    def balances_total(self) -> dict[object, Money]:
+        return {money.currency: money for money in self._balances}
+
+
+class FakeCache:
+    def __init__(self, account: FakeAccount | None) -> None:
+        self._account = account
+
+    def account_for_venue(self, venue: object) -> FakeAccount | None:
+        return self._account
+
+
+def test_a_new_account_opens_with_the_starting_balance() -> None:
+    assert opening_balances(FakeCache(None), "BINANCE", ["10_000 USDT"]) == [
+        Money.from_str("10000 USDT")
+    ]
+
+
+def test_a_restarted_account_opens_with_what_it_held() -> None:
+    # A restart used to put a SOL-holding account back to 10,000 USDT (D26).
+    cache = FakeCache(FakeAccount("9800.12 USDT", "1.745 SOL", "0 BTC"))
+
+    assert opening_balances(cache, "BINANCE", ["10_000 USDT"]) == [
+        Money.from_str("9800.12 USDT"),
+        Money.from_str("1.745 SOL"),
+    ]
+
+
+def test_a_simulated_account_works_balances_out_from_fills() -> None:
+    # Registered before the node loads the account from its cache (D24).
+    from nautilus_trader.accounting.factory import AccountFactory
+    from nautilus_trader.model.identifiers import AccountId
+    from nautilus_trader.test_kit.stubs.events import TestEventStubs
+
+    register_calculated_account(desired(venue="SIMTEST"))
+    event = TestEventStubs.cash_account_state(account_id=AccountId("SIMTEST-001"))
+
+    assert AccountFactory.create(event).calculate_account_state
+
+
+def test_a_live_account_leaves_balances_to_the_venue() -> None:
+    from nautilus_trader.accounting.factory import AccountFactory
+    from nautilus_trader.model.identifiers import AccountId
+    from nautilus_trader.test_kit.stubs.events import TestEventStubs
+
+    register_calculated_account(desired(venue="LIVETEST", mode=TradingMode.LIVE))
+    event = TestEventStubs.cash_account_state(account_id=AccountId("LIVETEST-001"))
+
+    assert not AccountFactory.create(event).calculate_account_state
 
 
 def test_the_data_client_needs_no_credentials() -> None:
