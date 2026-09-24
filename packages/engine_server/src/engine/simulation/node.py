@@ -143,3 +143,26 @@ def register_factories(node: Any, state: DesiredState) -> None:
     """
     node.add_data_client_factory(state.venue, data_factory(state.venue))
     node.add_exec_client_factory(state.venue, exec_factory(state.venue))
+
+
+#: Above the strategy's default of 0, so the exchange prices a bar before the
+#: strategy acts on it -- the order a backtest uses.
+BAR_PRIORITY = 10
+
+
+def route_bars_to_exchange(node: Any, state: DesiredState) -> None:
+    """Feed the account's bars to the simulated exchange. Call after `build()`.
+
+    The sandbox client listens on ``data.*.{venue}.*``, which matches quote and
+    trade topics but not ``data.bars.{bar_type}``. The strategy trades bars and
+    subscribes to nothing else, so the exchange never had a price and rejected
+    every order with "no market" -- `bar_execution=True` alone does nothing.
+    """
+    from nautilus_trader.model.identifiers import ClientId
+
+    client = node.kernel.exec_engine._clients[ClientId(state.venue)]
+    node.kernel.msgbus.subscribe(
+        topic=f"data.bars.{state.bar_type}",
+        handler=client.on_data,
+        priority=BAR_PRIORITY,
+    )

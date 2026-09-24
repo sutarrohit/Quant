@@ -44,7 +44,7 @@ from engine.live.mandate import Mandate, MandateStore
 from engine.live.node import build_node_config
 from engine.logging import configure_logging, log_context
 from engine.settings import Settings
-from engine.simulation.node import register_factories
+from engine.simulation.node import register_factories, route_bars_to_exchange
 from engine.types.state import DesiredState, TradingMode
 
 logger = logging.getLogger(__name__)
@@ -189,6 +189,7 @@ async def run_account(
     # execution client and reports itself healthy (D17).
     register_factories(node, state)
     node.build()
+    route_bars_to_exchange(node, state)  # Else the simulated exchange never sees a price.
     gate = await attach_gate(node, state, switch, mandate)
 
     tender = asyncio.create_task(
