@@ -1,5 +1,8 @@
 "use client"
 
+import { usePrivy } from "@privy-io/react-auth"
+import { useTheme } from "next-themes"
+
 import {
   Avatar,
   AvatarFallback,
@@ -11,6 +14,8 @@ import {
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
@@ -20,7 +25,13 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { RiArrowUpDownLine, RiSparklingLine, RiCheckboxCircleLine, RiBankCardLine, RiNotificationLine, RiLogoutBoxLine } from "@remixicon/react"
+import { RiArrowUpDownLine, RiSparklingLine, RiCheckboxCircleLine, RiBankCardLine, RiNotificationLine, RiLogoutBoxLine, RiSunLine, RiMoonLine, RiComputerLine } from "@remixicon/react"
+
+const THEMES = [
+  { value: "light", label: "Light", icon: <RiSunLine /> },
+  { value: "dark", label: "Dark", icon: <RiMoonLine /> },
+  { value: "system", label: "System", icon: <RiComputerLine /> },
+]
 
 export function NavUser({
   user,
@@ -32,6 +43,8 @@ export function NavUser({
   }
 }) {
   const { isMobile } = useSidebar()
+  const { theme, setTheme } = useTheme() // Undefined until mounted; the menu only renders once opened.
+  const { logout } = usePrivy()
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -98,7 +111,19 @@ export function NavUser({
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuGroup>
+              <DropdownMenuLabel>Theme</DropdownMenuLabel>
+              <DropdownMenuRadioGroup value={theme ?? "system"} onValueChange={(value) => setTheme(String(value))}>
+                {THEMES.map((t) => (
+                  <DropdownMenuRadioItem key={t.value} value={t.value}>
+                    {t.icon}
+                    {t.label}
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => void logout()}>
               <RiLogoutBoxLine
               />
               Log out
