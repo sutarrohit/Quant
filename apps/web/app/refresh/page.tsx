@@ -15,7 +15,7 @@ function RefreshInner() {
     const target = params.get('redirect_uri') ?? '/';
 
     if (!authenticated) {
-      router.replace(`/login?redirect_uri=${encodeURIComponent(target)}`);
+      router.replace(`/?redirect_uri=${encodeURIComponent(target)}`);
       return;
     }
 
