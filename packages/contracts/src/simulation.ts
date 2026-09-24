@@ -147,6 +147,7 @@ export const ConditionResultSchema = z.object({
 export const StrategyStatusSchema = z.object({
   phase: z.enum(STRATEGY_PHASES),
   barsSeen: z.number().int(),
+  barsFromHistory: z.number().int().optional(), // Past bars loaded at start (live only).
   warmupBars: z.number().int(),
   barType: z.string(),
   lastBar: z.object({ time: z.string(), close: amount }).nullable(),

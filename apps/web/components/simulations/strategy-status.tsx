@@ -45,7 +45,10 @@ export function StrategyStatusCard({ status }: { status: StrategyStatus | null }
         <CardTitle className="flex items-center gap-2">
           Strategy <Badge variant="secondary">{phase.label}</Badge>
         </CardTitle>
-        <CardDescription>{phase.hint}</CardDescription>
+        <CardDescription>
+          {phase.hint}
+          {!!status.barsFromHistory && ` Warmed from ${status.barsFromHistory} past bars at start.`}
+        </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         {status.phase === 'WARMING_UP' && (
@@ -63,7 +66,7 @@ export function StrategyStatusCard({ status }: { status: StrategyStatus | null }
             <p className="text-xs text-muted-foreground">
               {warm} of {status.warmupBars} bars
               {step && status.warmupBars > warm && ` · about ${duration((status.warmupBars - warm) * step)} to go`}.
-              Indicators start from nothing after every restart.
+              {status.barsFromHistory ? '' : ' Past bars could not be loaded, so it waits for new ones.'}
             </p>
           </div>
         )}
