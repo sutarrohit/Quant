@@ -70,8 +70,8 @@ function checkLeaf(leaf: Leaf, path: string): SpecError[] {
     }
   }
 
-  // Exactly one of value / reference.
-  if (value === undefined && reference === undefined) {
+  // Exactly one of value / reference -- except a ...Sma operator, whose average is the threshold.
+  if (value === undefined && reference === undefined && !SMA_OPERATORS.has(operator)) {
     out.push(err(path, 'MISSING_THRESHOLD', 'needs either a value or a reference'));
   }
   if (value !== undefined && reference !== undefined) {
