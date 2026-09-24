@@ -33,7 +33,7 @@ from __future__ import annotations
 from typing import Any
 
 from engine.errors import VenueNotSupported
-from engine.types.state import DesiredState
+from engine.types.state import DesiredState, TradingMode
 
 #: What a simulated account starts with. Fixed rather than configurable: a
 #: simulation's balance is not a number anyone should be tuning to make a
@@ -61,7 +61,7 @@ def exec_factory(venue: str) -> type:
     selects the *data* adapter and never the execution one. When live opens,
     this is the function that starts differing by venue.
     """
-    from nautilus_trader.adapters.sandbox.factory import SandboxLiveExecClientFactory
+    from engine.simulation.exchange import SandboxLiveExecClientFactory
 
     data_factory(venue)  # a venue we cannot get data for is not simulatable
     return SandboxLiveExecClientFactory
@@ -113,10 +113,14 @@ def execution_client(state: DesiredState) -> Any:
     price. A simulation says the plumbing works; it does not say the fills will
     match.
     """
-    from nautilus_trader.adapters.sandbox.config import SandboxExecutionClientConfig
+    from engine.simulation.exchange import SimulationExecClientConfig
 
-    return SandboxExecutionClientConfig(
+    return SimulationExecClientConfig(
         venue=state.venue,
+        # Charged by `BpsFeeModel`, as a backtest charges them (D25).
+        maker_bps=str(state.fees.maker_bps),
+        taker_bps=str(state.fees.taker_bps),
+        slippage_bps=str(state.fees.slippage_bps),
         starting_balances=STARTING_BALANCES,
         account_type="CASH",
         # The simulated matching engine needs the instrument as much as the
@@ -134,6 +138,23 @@ def clients(state: DesiredState) -> tuple[dict[str, Any], dict[str, Any]]:
     return {state.venue: data_client(state)}, {state.venue: execution_client(state)}
 
 
+def register_calculated_account(state: DesiredState) -> None:
+    """Have Nautilus work balances out from fills. Call before `TradingNode(...)`.
+
+    Nautilus fixes this per account when it creates it, from a process-wide
+    registry the sandbox client fills in at `build()`. But the node loads the
+    account from its cache in its constructor, before that -- so from the
+    second start on, a fill moved the position and never the money (D24).
+
+    Simulation only: a real venue reports balances, and must not be second-guessed.
+    """
+    if state.mode is not TradingMode.SIMULATION:
+        return
+    from nautilus_trader.accounting.factory import AccountFactory
+
+    AccountFactory.register_calculated_account(state.venue)
+
+
 def register_factories(node: Any, state: DesiredState) -> None:
     """Give the node the factories its clients need, before `build()`.
 
@@ -143,3 +164,26 @@ def register_factories(node: Any, state: DesiredState) -> None:
     """
     node.add_data_client_factory(state.venue, data_factory(state.venue))
     node.add_exec_client_factory(state.venue, exec_factory(state.venue))
+
+
+#: Above the strategy's default of 0, so the exchange prices a bar before the
+#: strategy acts on it -- the order a backtest uses.
+BAR_PRIORITY = 10
+
+
+def route_bars_to_exchange(node: Any, state: DesiredState) -> None:
+    """Feed the account's bars to the simulated exchange. Call after `build()`.
+
+    The sandbox client listens on ``data.*.{venue}.*``, which matches quote and
+    trade topics but not ``data.bars.{bar_type}``. The strategy trades bars and
+    subscribes to nothing else, so the exchange never had a price and rejected
+    every order with "no market" -- `bar_execution=True` alone does nothing (D23).
+    """
+    from nautilus_trader.model.identifiers import ClientId
+
+    client = node.kernel.exec_engine._clients[ClientId(state.venue)]
+    node.kernel.msgbus.subscribe(
+        topic=f"data.bars.{state.bar_type}",
+        handler=client.on_data,
+        priority=BAR_PRIORITY,
+    )

@@ -34,9 +34,10 @@ DEFAULT_MAX_AGE_NS = 30 * 1_000_000_000
 class RiskGate:
     """What the strategy consults before submitting an entry.
 
-    ``last_refresh_ns`` is monotonic nanoseconds from the same clock as
-    ``now_ns`` passed to :meth:`check` — the strategy's Nautilus clock in live,
-    so the gate never reads a clock of its own and stays deterministic.
+    ``last_refresh_ns`` is Unix-epoch nanoseconds, the same clock as ``now_ns``
+    passed to :meth:`check` — the strategy's Nautilus clock in live, so the gate
+    never reads a clock of its own and stays deterministic. Not monotonic: the
+    two would differ by decades and every entry would read as stale (D22).
     """
 
     account_id: str

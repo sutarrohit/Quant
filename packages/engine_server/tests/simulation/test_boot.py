@@ -269,3 +269,35 @@ async def test_a_stopped_child_exits_rather_than_lingering() -> None:
 
     assert not process.is_alive()
     assert process.exitcode is not None
+
+
+@requires_redis
+async def test_bars_reach_the_simulated_exchange_before_the_strategy(node: object) -> None:
+    # The sandbox listens on `data.*.{venue}.*`, which no bar topic matches. Without
+    # this route the exchange never had a price and rejected every order.
+    from nautilus_trader.model.identifiers import ClientId
+
+    from engine.simulation.node import BAR_PRIORITY, route_bars_to_exchange
+
+    state = desired("boot_test", mode=TradingMode.SIMULATION)
+    route_bars_to_exchange(node, state)
+
+    kernel = node.kernel  # type: ignore[attr-defined]
+    client = kernel.exec_engine._clients[ClientId(state.venue)]
+    subscriptions = kernel.msgbus.subscriptions(f"data.bars.{state.bar_type}")
+
+    assert [s.handler for s in subscriptions if s.priority == BAR_PRIORITY] == [client.on_data]
+    assert all(s.priority < BAR_PRIORITY for s in subscriptions if s.handler != client.on_data)
+
+
+@requires_redis
+async def test_the_simulated_exchange_charges_the_backtest_fee_model(node: object) -> None:
+    # Not Nautilus's MakerTakerFeeModel, which charged zero on Binance (D25).
+    from nautilus_trader.model.identifiers import ClientId
+
+    from engine.backtest.fees import BpsFeeModel
+
+    client = node.kernel.exec_engine._clients[ClientId("BINANCE")]  # type: ignore[attr-defined]
+
+    assert isinstance(client.exchange.fee_model, BpsFeeModel)
+    assert client.exchange.fee_model.taker_bps == 10

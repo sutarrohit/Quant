@@ -44,7 +44,11 @@ from engine.live.mandate import Mandate, MandateStore
 from engine.live.node import build_node_config
 from engine.logging import configure_logging, log_context
 from engine.settings import Settings
-from engine.simulation.node import register_factories
+from engine.simulation.node import (
+    register_calculated_account,
+    register_factories,
+    route_bars_to_exchange,
+)
 from engine.types.state import DesiredState, TradingMode
 
 logger = logging.getLogger(__name__)
@@ -75,7 +79,7 @@ async def attach_gate(
     # that can disagree is how an account trades inside a limit nobody set
     # (ADR-002).
     gate.apply(mandate)
-    await gate.refresh(switch, time.monotonic_ns())
+    await gate.refresh(switch, time.time_ns())
     for strategy in node.trader.strategies():
         if hasattr(strategy, "risk_gate"):
             strategy.risk_gate = gate
@@ -124,7 +128,7 @@ async def tend(
     while True:
         await asyncio.sleep(interval)
         elapsed += interval
-        await gate.refresh(switch, time.monotonic_ns())
+        await gate.refresh(switch, time.time_ns())  # Unix ns, like the strategy's LiveClock
         if mandates is not None:
             # Revocation reaches a running node the same way a kill does: by
             # being read, not by being pushed. `trading-core` writes; nothing
@@ -183,12 +187,14 @@ async def run_account(
     mandates = MandateStore(client)
     mandate = await _authority(state, mandates)
 
+    register_calculated_account(state)  # Before the node loads the account from its cache.
     node = TradingNode(config=build_node_config(state, settings))
     # Between construction and build, and nowhere else. A node built without
     # its factories does not raise -- it comes up with no data client and no
     # execution client and reports itself healthy (D17).
     register_factories(node, state)
     node.build()
+    route_bars_to_exchange(node, state)  # Else the simulated exchange never sees a price.
     gate = await attach_gate(node, state, switch, mandate)
 
     tender = asyncio.create_task(

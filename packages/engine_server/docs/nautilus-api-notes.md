@@ -829,3 +829,105 @@ fixture passes: the fixtures would have been written by the same hand, in the
 same vocabulary, on the same afternoon. It takes comparing the two halves that
 must agree in production to see that they do not.
 
+
+---
+
+### D22 — `LiveClock.timestamp_ns()` is Unix time, not monotonic
+
+**Found:** 2026-09-24, running a simulation whose entry fires on the first bar.
+
+The worker stamped each risk-gate refresh with `time.monotonic_ns()` (time since
+boot). The strategy checks the gate with `self.clock.timestamp_ns()`, and in a
+live node that is Nautilus's `LiveClock` — **Unix-epoch nanoseconds**. The gap
+is decades, far past the 30-second `max_age_ns`, so the gate always read as
+stale:
+
+```
+entry blocked by the risk gate  reason="the risk gate has not been refreshed recently enough to be trusted"
+```
+
+Every simulation entry was blocked. Backtests were unaffected (they use
+`NoGate`), and no real simulation had had a signal yet, so nothing had noticed.
+
+Refreshes now use `time.time_ns()`. `test_a_fresh_gate_passes_against_the_strategys_clock`
+checks against a real `LiveClock`; the older tests passed because both sides
+were handed the same fake number.
+
+### D23 — The sandbox exchange never sees bars
+
+**Found:** 2026-09-24, the first order to get past the gate.
+
+`SandboxExecutionClient.connect()` subscribes to `data.*.{venue}.*`. Bar topics
+are `data.bars.{bar_type}` — `data.bars.SOLUSDT.BINANCE-1-MINUTE-LAST-EXTERNAL`
+— which that pattern does not match:
+
+```
+data.bars.SOLUSDT.BINANCE-1-MINUTE-LAST-EXTERNAL  False
+data.quotes.BINANCE.SOLUSDT                       True
+data.trades.BINANCE.SOLUSDT                       True
+```
+
+The strategy subscribes to bars only, so the simulated exchange never had a
+price and rejected every order: `OrderRejected(reason='no market for SOLUSDT.BINANCE')`.
+`bar_execution=True` does nothing on its own.
+
+`route_bars_to_exchange` subscribes the client's `on_data` to the account's bar
+topic after `build()`, at priority 10 so the exchange prices a bar before the
+strategy (priority 0) acts on it — the order a backtest uses.
+
+### D24 — An account loaded from the cache never computes its balances
+
+**Found:** 2026-09-24. After a fill, the position moved and the money did not:
+no `AccountState` after `OrderFilled`, USDT still 10,000, no SOL.
+
+Whether an account works its balances out from fills is fixed when the object
+is created (`AccountFactory.create_c`), from a process-wide registry that
+`BacktestExecClient.__init__` fills with `register_calculated_account(venue)`.
+That runs at `node.build()`. But `TradingNode.__init__` already loaded the
+account from the cache (`system/kernel.py:466`, `exec_engine.load_cache()`):
+
+```
+Cache: Cached 1 account from database        ← TradingNode(...)
+Registered ExecutionClient-BINANCE           ← node.build(), too late
+```
+
+```
+loaded before build: False
+created after build: True
+```
+
+So only an account's very first start ever computed balances. From the second
+start on — any restart, revision or deploy — fills moved nothing.
+
+`register_calculated_account(state)` now runs before `TradingNode(...)`,
+**simulation only**: a real venue reports its balances.
+
+### D25 — The sandbox charges the instrument's fee, which is zero
+
+`SandboxExecutionClient.__init__` hard-codes `MakerTakerFeeModel()`, which reads
+the rate off the instrument, and a Binance instrument from the public endpoint
+reports zero (D20). `SimulatedExchange.fee_model` is read-only, so it cannot be
+swapped after construction.
+
+Overriding the instrument's fees in the cache was ruled out: the Binance data
+client reloads instruments every 60 minutes (`update_instruments_interval_mins`),
+which would put the fee back to zero, silently.
+
+`engine.simulation.exchange.SimulationExecutionClient` builds the same exchange
+with `BpsFeeModel` — the class backtests charge with — from the account's own
+`fees`. Its factory is also named `SandboxLiveExecClientFactory`, because
+`TradingNodeBuilder` passes the portfolio only to a factory with that
+`__name__` (D17).
+
+### D26 — The sandbox resets the account on every start
+
+`SandboxExecutionClient.__init__` builds the exchange from `starting_balances`
+and calls `initialize_account()`, which publishes a fresh 10,000 USDT state over
+whatever the account held. The cache keeps positions across a restart
+(`flush_on_start=False`), so a restarted account held SOL on the books with
+10,000 USDT and no SOL in the balances.
+
+`SimulationExecutionClient` seeds the exchange from the account the node loaded
+from its cache (`opening_balances`), falling back to `STARTING_BALANCES` for a
+new account. Its `__init__` repeats Nautilus's rather than calling it, because
+the parent's publishes the 10,000 USDT state on the way out.
