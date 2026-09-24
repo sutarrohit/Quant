@@ -169,3 +169,27 @@ describe('fills', () => {
     expect(page.pagination).toEqual({ page: 1, pageSize: 20, total: 1, totalPages: 1 });
   });
 });
+
+describe('syncAllFills', () => {
+  it("copies every simulation's fills, and one engine failure does not stop the rest", async () => {
+    const { prisma, rows } = db();
+    const other = { ...SIM, id: 'other', accountId: 'sim_def' } as unknown as SimWithVersion;
+    (prisma.simulation as unknown as { findMany: unknown }).findMany = vi.fn(async () => [other, SIM]);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: URL | string) => {
+        const url = new URL(String(input));
+        if (url.pathname.includes('sim_def')) return new Response('{}', { status: 502 });
+        return new Response(JSON.stringify({ events: [fill('1-0', 'T-1')], last: '1-0' }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      })
+    );
+
+    const result = await new SimulationService(prisma).syncAllFills();
+
+    expect(result).toEqual({ copied: 1, failed: 1 });
+    expect(rows.map((r) => r.accountId)).toEqual(['sim_abc']);
+  });
+});
