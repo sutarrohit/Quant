@@ -4,6 +4,7 @@ import type { SimulationEquity } from '@quant/contracts/simulation';
 import { CartesianGrid, Line, LineChart, ReferenceLine, XAxis, YAxis } from 'recharts';
 
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart';
+import { barClose } from '@/lib/bars';
 import { money, utcDateTime } from '@/lib/format';
 
 const config = { equity: { label: 'Equity', color: 'var(--primary)' } } satisfies ChartConfig;
@@ -24,7 +25,7 @@ export function EquityCurve({
   baseline: number | null;
   quote: string;
 }) {
-  const data = points.map((p) => ({ time: p.time, equity: Number(p.equity) }));
+  const data = points.map((p) => ({ time: barClose(p.time), equity: Number(p.equity) }));
 
   return (
     <ChartContainer config={config} className="aspect-auto h-64 w-full">

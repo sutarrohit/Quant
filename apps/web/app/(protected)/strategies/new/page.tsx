@@ -41,7 +41,7 @@ export default function NewStrategyPage() {
   };
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
+    <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
       <div>
         <h1 className="text-xl font-semibold">New strategy</h1>
         <p className="text-sm text-muted-foreground">Starts from a 200-period SMA crossover. Change anything.</p>

@@ -4,7 +4,7 @@ import { RiCheckLine, RiCloseLine } from '@remixicon/react';
 import { DetailRow } from '@/components/simulations/detail-row';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { barSeconds } from '@/lib/bars';
+import { barClose, barSeconds } from '@/lib/bars';
 import { duration, money, utcDateTime } from '@/lib/format';
 
 const PHASES = {
@@ -35,7 +35,8 @@ export function StrategyStatusCard({ status }: { status: StrategyStatus | null }
   const phase = PHASES[status.phase];
   const step = barSeconds(status.barType);
   const evaluation = status.lastEvaluation;
-  const nextBar = status.lastBar && step ? new Date(Date.parse(status.lastBar.time) + step * 1000).toISOString() : null;
+  const lastClose = status.lastBar ? barClose(status.lastBar.time) : null;
+  const nextBar = lastClose && step ? new Date(Date.parse(lastClose) + step * 1000).toISOString() : null;
   const warm = Math.min(status.barsSeen, status.warmupBars);
 
   return (
@@ -92,7 +93,7 @@ export function StrategyStatusCard({ status }: { status: StrategyStatus | null }
 
         <div>
           <DetailRow label="Last bar">
-            {status.lastBar ? `${utcDateTime(status.lastBar.time)} UTC · close ${money(status.lastBar.close)}` : 'None yet'}
+            {status.lastBar && lastClose ? `${utcDateTime(lastClose)} UTC · close ${money(status.lastBar.close)}` : 'None yet'}
           </DetailRow>
           <DetailRow label="Next bar">{nextBar ? `${utcDateTime(nextBar)} UTC` : '—'}</DetailRow>
           <DetailRow label="Orders submitted">{status.ordersSubmitted}</DetailRow>
