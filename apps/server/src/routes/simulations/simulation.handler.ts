@@ -8,6 +8,7 @@ import type {
   createSimulationRoute,
   engageKillRoute,
   simulationEquityRoute,
+  simulationFillsRoute,
   simulationEventsRoute,
   simulationSnapshotRoute,
   getSimulationRoute,
@@ -89,4 +90,10 @@ export const simulationEquityHandler: AppRouteHandler<typeof simulationEquityRou
   const { after } = c.req.valid('query');
   const equity = await simulationService.equity(c.get('user').id, c.req.valid('param').id, after);
   return c.json(equity, HttpStatusCodes.OK);
+};
+
+export const simulationFillsHandler: AppRouteHandler<typeof simulationFillsRoute> = async (c) => {
+  const { page, pageSize } = c.req.valid('query');
+  const fills = await simulationService.fills(c.get('user').id, c.req.valid('param').id, page, pageSize);
+  return c.json(fills, HttpStatusCodes.OK);
 };

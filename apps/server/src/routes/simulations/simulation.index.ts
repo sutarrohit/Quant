@@ -8,6 +8,7 @@ import {
   listSimulationsHandler,
   releaseKillHandler,
   simulationEquityHandler,
+  simulationFillsHandler,
   simulationEventsHandler,
   simulationSnapshotHandler,
   startSimulationHandler,
@@ -20,6 +21,7 @@ import {
   listSimulationsRoute,
   releaseKillRoute,
   simulationEquityRoute,
+  simulationFillsRoute,
   simulationEventsRoute,
   simulationSnapshotRoute,
   startSimulationRoute,
@@ -41,4 +43,5 @@ export default simulationRouter
   .openapi(releaseKillRoute, releaseKillHandler)
   .openapi(simulationSnapshotRoute, simulationSnapshotHandler)
   .openapi(simulationEventsRoute, simulationEventsHandler)
-  .openapi(simulationEquityRoute, simulationEquityHandler);
+  .openapi(simulationEquityRoute, simulationEquityHandler)
+  .openapi(simulationFillsRoute, simulationFillsHandler);

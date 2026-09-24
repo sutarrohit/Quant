@@ -8,6 +8,8 @@ import {
   CreateSimulationSchema,
   EquityQuerySchema,
   EventsQuerySchema,
+  FillPageSchema,
+  FillsQuerySchema,
   SimulationEquitySchema,
   SimulationEventPageSchema,
   SimulationListSchema,
@@ -146,6 +148,19 @@ export const simulationEquityRoute = createRoute({
     [HttpStatusCodes.OK]: jsonContent(SimulationEquitySchema, 'One point per closed bar, oldest first'),
     [HttpStatusCodes.NOT_FOUND]: notFound,
     [HttpStatusCodes.UNPROCESSABLE_ENTITY]: jsonContent(ApiErrorSchema, 'A cursor that is not a stream id'),
+    [HttpStatusCodes.UNAUTHORIZED]: unauthorized,
+  },
+});
+
+export const simulationFillsRoute = createRoute({
+  method: 'get',
+  path: '/{id}/fills',
+  tags: ['Simulations'],
+  description: 'Every fill, newest first, from Postgres. Survives the engine forgetting.',
+  request: { params: IdParam, query: FillsQuerySchema },
+  responses: {
+    [HttpStatusCodes.OK]: jsonContent(FillPageSchema, 'One page of fills'),
+    [HttpStatusCodes.NOT_FOUND]: notFound,
     [HttpStatusCodes.UNAUTHORIZED]: unauthorized,
   },
 });

@@ -1,4 +1,4 @@
-import { mutationOptions, queryOptions, type QueryClient } from '@tanstack/react-query';
+import { keepPreviousData, mutationOptions, queryOptions, type QueryClient } from '@tanstack/react-query';
 import type {
   Simulation,
   SimulationEquity,
@@ -14,6 +14,7 @@ import {
   getSimulation,
   getSimulationEquity,
   getSimulationEvents,
+  getSimulationFills,
   getSimulationSnapshot,
   getSimulations,
   releaseKill,
@@ -34,6 +35,7 @@ export const simulationKeys = {
   snapshot: (id: string) => [...simulationKeys.all, 'snapshot', id] as const,
   events: (id: string) => [...simulationKeys.all, 'events', id] as const,
   equity: (id: string) => [...simulationKeys.all, 'equity', id] as const,
+  fills: (id: string, page: number, pageSize: number) => [...simulationKeys.all, 'fills', id, page, pageSize] as const,
 };
 
 /** The node has not published yet: seconds after a start. Worth polling through. */
@@ -87,6 +89,15 @@ export function simulationEquityQueryOptions(client: QueryClient, id: string) {
       if (!cached) return page;
       return { points: [...cached.points, ...page.points], last: page.last ?? cached.last };
     },
+    refetchInterval: pollOnceLoaded,
+  });
+}
+
+export function simulationFillsQueryOptions(id: string, page: number, pageSize: number) {
+  return queryOptions({
+    queryKey: simulationKeys.fills(id, page, pageSize),
+    queryFn: () => getSimulationFills(id, page, pageSize),
+    placeholderData: keepPreviousData, // No flash of skeleton between pages.
     refetchInterval: pollOnceLoaded,
   });
 }

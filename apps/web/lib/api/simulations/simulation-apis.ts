@@ -1,5 +1,6 @@
 import type {
   CreateSimulationInput,
+  FillPage,
   Simulation,
   SimulationEquity,
   SimulationEventPage,
@@ -61,4 +62,9 @@ export async function getSimulationEvents(id: string, after?: string, limit = 20
 // GET /api/v1/simulations/:id/equity -- one point per closed bar.
 export async function getSimulationEquity(id: string, after?: string): Promise<SimulationEquity> {
   return request(`/simulations/${id}/equity${after ? `?after=${after}` : ''}`, { method: 'GET' });
+}
+
+// GET /api/v1/simulations/:id/fills -- every fill, newest first, from Postgres.
+export async function getSimulationFills(id: string, page: number, pageSize: number): Promise<FillPage> {
+  return request(`/simulations/${id}/fills?page=${page}&pageSize=${pageSize}`, { method: 'GET' });
 }

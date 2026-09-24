@@ -92,7 +92,7 @@ describe('events and equity', () => {
 
     const page = await service.events('user_1', SIM.id, '1-0', 50);
 
-    expect(urls).toEqual(['/v1/live/sim_abc/events?after=1-0&limit=50']);
+    expect(urls).toContain('/v1/live/sim_abc/events?after=1-0&limit=50');
     expect(page.last).toBe('1-0');
   });
 

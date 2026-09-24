@@ -9,6 +9,7 @@ import { useParams } from 'next/navigation';
 import { ActivityFeed } from '@/components/simulations/activity-feed';
 import { DetailRow as Row } from '@/components/simulations/detail-row';
 import { EquityCurve } from '@/components/simulations/equity-curve';
+import { FillTable } from '@/components/simulations/fill-table';
 import { PerformanceTiles } from '@/components/simulations/performance-tiles';
 import { PositionCard } from '@/components/simulations/position-card';
 import { SimulationActions } from '@/components/simulations/simulation-actions';
@@ -91,6 +92,16 @@ function LiveState({ sim }: { sim: Simulation }) {
           ) : (
             <p className="text-sm text-muted-foreground">The curve starts at the first closed bar.</p>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Fills</CardTitle>
+          <CardDescription>Every fill, kept permanently. Fees include slippage.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <FillTable simulationId={sim.id} />
         </CardContent>
       </Card>
 

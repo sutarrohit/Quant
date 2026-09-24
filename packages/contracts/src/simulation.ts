@@ -244,3 +244,32 @@ export type SimulationEvent = z.infer<typeof SimulationEventSchema>;
 export type SimulationEventPage = z.infer<typeof SimulationEventPageSchema>;
 export type SimulationEquity = z.infer<typeof SimulationEquitySchema>;
 export type SimulationPerformance = z.infer<typeof SimulationPerformanceSchema>;
+
+// --- fills, kept in Postgres (plan phase 4) -----------------------------------
+
+export const FillSchema = z.object({
+  tradeId: z.string(),
+  side: z.string(), // BUY or SELL.
+  quantity: amount,
+  price: amount,
+  commission: z.object({ amount, currency: z.string() }), // Never assumed to be the quote (L5).
+  filledAt: z.iso.datetime(),
+});
+
+export const FillsQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(20),
+});
+
+export const FillPageSchema = z.object({
+  data: z.array(FillSchema), // Newest first.
+  pagination: z.object({
+    page: z.number().int(),
+    pageSize: z.number().int(),
+    total: z.number().int(),
+    totalPages: z.number().int(),
+  }),
+});
+
+export type Fill = z.infer<typeof FillSchema>;
+export type FillPage = z.infer<typeof FillPageSchema>;
