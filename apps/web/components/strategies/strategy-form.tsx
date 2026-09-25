@@ -21,10 +21,11 @@ import { SpecPreview } from '@/components/strategies/spec-preview';
 import { SymbolsInput } from '@/components/strategies/symbols-input';
 import { Choice } from '@/components/strategies/choice';
 import { JsonEditorDialog } from '@/components/strategies/json-editor-dialog';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { childrenOf, groupKind, newLeaf } from '@/lib/strategies/tree';
+import { childrenOf, groupKind, newLeaf, newStop } from '@/lib/strategies/tree';
 import { useStrategyBuilderStore } from '@/stores/strategy-builder';
 
 const TIMEFRAMES = {
@@ -254,13 +255,14 @@ function TreeCard({
           onChange={field.onChange}
         />
         {!isGroup && (
-          <button
-            type="button"
-            className="text-muted-foreground flex items-center justify-center gap-1.5 rounded-xl border border-dashed py-2.5 text-xs transition-colors hover:border-emerald-500/50 hover:text-emerald-600 dark:hover:text-emerald-400"
-            onClick={() => field.onChange({ all: [root, newLeaf()] })}
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-muted-foreground h-9 w-full border-dashed text-xs hover:border-emerald-500/50 hover:text-emerald-600 dark:hover:text-emerald-400"
+            onClick={() => field.onChange({ all: [root, name === 'exit' ? newStop() : newLeaf()] })}
           >
-            <RiAddLine className="size-3.5" /> Combine with another condition
-          </button>
+            <RiAddLine /> Combine with another condition
+          </Button>
         )}
       </CardContent>
     </Card>
