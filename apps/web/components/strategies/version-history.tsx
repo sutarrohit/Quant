@@ -4,7 +4,6 @@ import type { StrategyVersion } from '@quant/contracts/strategy';
 import { RiHistoryLine } from '@remixicon/react';
 import { useState } from 'react';
 
-import { SectionTitle } from '@/components/page-header';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,7 +14,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { timeAgo } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
@@ -41,58 +39,36 @@ export function VersionHistory({
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>
-          <SectionTitle icon={RiHistoryLine} tone="violet">
-            Versions
-          </SectionTitle>
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        {/* A timeline: newest on top, a rail joining the dots. */}
-        <ol className="relative flex flex-col">
-          <span aria-hidden className="bg-border absolute top-3 bottom-3 left-[11px] w-px" />
-          {versions.map((v) => {
-            const selected = v.version === current;
-            return (
-              <li key={v.id}>
-                <button
-                  type="button"
-                  onClick={() => choose(v.version)}
-                  aria-current={selected || undefined}
-                  className={cn(
-                    'group relative flex w-full items-center gap-3 rounded-lg py-1.5 pr-2 text-left text-sm transition-colors',
-                    selected ? 'font-semibold' : 'text-muted-foreground hover:text-foreground'
-                  )}
-                >
-                  <span
-                    className={cn(
-                      'relative flex size-6 shrink-0 items-center justify-center rounded-full border text-[10px]',
-                      selected
-                        ? 'border-emerald-500 bg-emerald-500 text-black'
-                        : 'bg-card group-hover:border-foreground/40'
-                    )}
-                  >
-                    {v.version}
-                  </span>
-                  <span className="flex flex-1 items-center gap-2">
-                    v{v.version}
-                    {v.version === head && (
-                      <span className="rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
-                        latest
-                      </span>
-                    )}
-                  </span>
-                  <span className="text-muted-foreground text-xs font-normal" title={v.createdAt}>
-                    {timeAgo(v.createdAt)}
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-        </ol>
-      </CardContent>
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="text-muted-foreground mr-1 flex items-center gap-1.5 text-[10px] font-medium tracking-wider uppercase">
+        <RiHistoryLine className="size-3.5" /> Versions
+      </span>
+      {versions.map((v) => {
+        const selected = v.version === current;
+        return (
+          <button
+            key={v.id}
+            type="button"
+            onClick={() => choose(v.version)}
+            aria-current={selected || undefined}
+            title={v.createdAt}
+            className={cn(
+              'flex items-center gap-2 rounded-full border px-3 py-1 text-xs transition-colors',
+              selected
+                ? 'border-emerald-500/50 bg-emerald-500/10 font-semibold text-emerald-600 dark:text-emerald-400'
+                : 'text-muted-foreground hover:border-foreground/30 hover:text-foreground'
+            )}
+          >
+            v{v.version}
+            {v.version === head && (
+              <span className="rounded-full bg-emerald-500/15 px-1.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
+                latest
+              </span>
+            )}
+            <span className="font-normal opacity-70">{timeAgo(v.createdAt)}</span>
+          </button>
+        );
+      })}
 
       <AlertDialog open={pending !== null} onOpenChange={(open) => !open && setPending(null)}>
         <AlertDialogContent>
@@ -114,6 +90,6 @@ export function VersionHistory({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </Card>
+    </div>
   );
 }
