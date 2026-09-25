@@ -115,7 +115,11 @@ export function StrategyForm({ defaultValues, storeKey, serverErrors, onEdit, on
             <div className="min-w-0 flex-1">{header}</div>
             <JsonEditorDialog value={values} onApply={applyJson} />
           </div>
-          <div className={previewOpen ? 'grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]' : ''}>
+          <div
+            className={
+              previewOpen ? 'grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] 2xl:grid-cols-[minmax(0,1fr)_28rem]' : ''
+            }
+          >
             <div className="flex min-w-0 flex-col gap-6">
               <Card>
                 <CardHeader>

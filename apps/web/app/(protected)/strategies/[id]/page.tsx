@@ -135,29 +135,21 @@ export default function StrategyPage() {
         }
       />
 
+      <VersionHistory versions={data.versions} current={current.version} hasDraft={!!draft} onSelect={openVersion} />
+
       <LatestBacktest strategyId={id} versionId={current.id} version={current.version} />
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_16rem]">
-        <StrategyForm
-          key={`${id}:${current.version}`}
-          defaultValues={draft ?? (current.spec as StrategySpecInput)}
-          storeKey={id}
-          serverErrors={serverErrors}
-          onEdit={() => setServerErrors((prev) => (prev.length ? [] : prev))}
-          onSubmit={onSubmit}
-          footer={({ runnable, submitting }) => (
-            <FormFooter runnable={runnable} submitting={submitting} label="Save as new version" />
-          )}
-        />
-        <div className="order-first xl:sticky xl:top-4 xl:order-none xl:self-start">
-          <VersionHistory
-            versions={data.versions}
-            current={current.version}
-            hasDraft={!!draft}
-            onSelect={openVersion}
-          />
-        </div>
-      </div>
+      <StrategyForm
+        key={`${id}:${current.version}`}
+        defaultValues={draft ?? (current.spec as StrategySpecInput)}
+        storeKey={id}
+        serverErrors={serverErrors}
+        onEdit={() => setServerErrors((prev) => (prev.length ? [] : prev))}
+        onSubmit={onSubmit}
+        footer={({ runnable, submitting }) => (
+          <FormFooter runnable={runnable} submitting={submitting} label="Save as new version" />
+        )}
+      />
     </div>
   );
 }
